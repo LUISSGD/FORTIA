@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
@@ -8,7 +9,6 @@ import {
   Calendar,
   DollarSign,
   CreditCard,
-  Dumbbell,
   BookOpen,
   LogOut,
 } from "lucide-react"
@@ -31,9 +31,7 @@ export default function Sidebar() {
     <aside className="w-64 bg-gray-900 text-white flex flex-col min-h-screen">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-800">
-        <div className="bg-orange-500 p-2 rounded-lg">
-          <Dumbbell className="h-5 w-5 text-white" />
-        </div>
+        <Image src="/logo.png" alt="FORTIA" width={40} height={40} className="rounded-lg" />
         <span className="text-xl font-bold tracking-wide">FORTIA</span>
       </div>
 

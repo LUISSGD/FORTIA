@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Dumbbell } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -42,9 +42,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
-            <div className="bg-orange-500 p-3 rounded-xl">
-              <Dumbbell className="h-8 w-8 text-white" />
-            </div>
+            <Image src="/logo.png" alt="FORTIA" width={64} height={64} className="rounded-xl" />
           </div>
           <CardTitle className="text-2xl font-bold">FORTIA</CardTitle>
           <CardDescription>Ingresa tus credenciales para continuar</CardDescription>
