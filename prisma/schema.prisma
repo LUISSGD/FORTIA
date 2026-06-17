@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+}
+
+model MembershipPlan {
+  id           String   @id @default(cuid())
+  name         String
+  durationDays Int
+  price        Float
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  clients Client[]
+}
+
+model Client {
+  id               String          @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String?
+  dni              String?         @unique
+  birthDate        DateTime?
+  notes            String?
+  membershipPlanId String?
+  membershipPlan   MembershipPlan? @relation(fields: [membershipPlanId], references: [id])
+  membershipStart  DateTime?
+  membershipEnd    DateTime?
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  payments    Payment[]
+  enrollments Enrollment[]
+  incomes     Income[]
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id])
+  amount      Float
+  method      String   @default("CASH")
+  concept     String?
+  periodStart DateTime
+  periodEnd   DateTime
+  paidAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  income   Income? @relation(fields: [incomeId], references: [id])
+  incomeId String? @unique
+}
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String   @default("#6366f1")
+  maxCapacity Int      @default(20)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  slots ScheduleSlot[]
+}
+
+model ScheduleSlot {
+  id         String   @id @default(cuid())
+  classId    String
+  class      Class    @relation(fields: [classId], references: [id])
+  dayOfWeek  Int
+  startTime  String
+  endTime    String
+  instructor String?
+  room       String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  enrollments Enrollment[]
+
+  @@unique([dayOfWeek, startTime, classId])
+}
+
+model Enrollment {
+  id       String       @id @default(cuid())
+  slotId   String
+  slot     ScheduleSlot @relation(fields: [slotId], references: [id])
+  clientId String
+  client   Client       @relation(fields: [clientId], references: [id])
+  joinedAt DateTime     @default(now())
+
+  @@unique([slotId, clientId])
+}
+
+model Income {
+  id          String   @id @default(cuid())
+  amount      Float
+  category    String   @default("OTHER")
+  description String?
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id])
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  payment Payment?
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  amount      Float
+  category    String   @default("OTHER")
+  description String?
+  vendor      String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
