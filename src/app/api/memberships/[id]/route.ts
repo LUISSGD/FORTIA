@@ -2,6 +2,15 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 
+export async function GET(_req: Request, ctx: RouteContext<"/api/memberships/[id]">) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  const { id } = await ctx.params
+  const plan = await prisma.membershipPlan.findUnique({ where: { id } })
+  if (!plan) return NextResponse.json({ error: "No encontrado" }, { status: 404 })
+  return NextResponse.json(plan)
+}
+
 export async function PUT(request: Request, ctx: RouteContext<"/api/memberships/[id]">) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })

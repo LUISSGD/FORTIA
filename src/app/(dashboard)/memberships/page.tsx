@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Clock, Users } from "lucide-react"
+import { Plus, Clock, Users, Pencil } from "lucide-react"
 
 export default async function MembershipsPage() {
   const plans = await prisma.membershipPlan.findMany({
@@ -52,6 +52,14 @@ export default async function MembershipsPage() {
                 <Badge variant="secondary" className="text-xs">
                   S/ {(plan.price / plan.durationDays).toFixed(2)} / día
                 </Badge>
+                <div className="pt-1">
+                  <Link href={`/memberships/${plan.id}/edit`}>
+                    <Button variant="outline" size="sm" className="w-full text-xs h-8 gap-1">
+                      <Pencil className="h-3 w-3" />
+                      Editar plan
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           ))}
