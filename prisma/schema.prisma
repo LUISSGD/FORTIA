@@ -112,6 +112,7 @@ model Enrollment {
 model Income {
   id          String   @id @default(cuid())
   amount      Float
+  currency    String   @default("PEN")
   category    String   @default("OTHER")
   description String?
   clientId    String?
@@ -125,6 +126,7 @@ model Income {
 model Expense {
   id          String   @id @default(cuid())
   amount      Float
+  currency    String   @default("PEN")
   category    String   @default("OTHER")
   description String?
   vendor      String?

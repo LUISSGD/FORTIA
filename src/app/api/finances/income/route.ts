@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   const income = await prisma.income.create({
     data: {
       amount: Number(body.amount),
+      currency: body.currency ?? "PEN",
       category: body.category ?? "OTHER",
       description: body.description ?? null,
       clientId: body.clientId ?? null,

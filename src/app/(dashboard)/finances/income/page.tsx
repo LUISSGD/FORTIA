@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { formatCurrency, formatDate, INCOME_CATEGORIES } from "@/lib/utils"
+import { formatDate, INCOME_CATEGORIES } from "@/lib/utils"
 import Header from "@/components/layout/Header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,11 @@ import Link from "next/link"
 import { Plus } from "lucide-react"
 import DeleteButton from "@/components/ui/DeleteButton"
 
+function formatAmount(amount: number, currency: string) {
+  if (currency === "USD") return `$ ${amount.toFixed(2)}`
+  return `S/ ${amount.toFixed(2)}`
+}
+
 export default async function IncomePage() {
   const incomes = await prisma.income.findMany({
     orderBy: { date: "desc" },
@@ -15,7 +20,8 @@ export default async function IncomePage() {
     take: 100,
   })
 
-  const total = incomes.reduce((s, i) => s + i.amount, 0)
+  const totalPEN = incomes.filter((i) => i.currency === "PEN").reduce((s, i) => s + i.amount, 0)
+  const totalUSD = incomes.filter((i) => i.currency === "USD").reduce((s, i) => s + i.amount, 0)
 
   return (
     <>
@@ -24,7 +30,12 @@ export default async function IncomePage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-semibold">Registro de ingresos</h2>
-            <p className="text-sm text-gray-500 mt-1">Total mostrado: <span className="font-semibold text-green-600">{formatCurrency(total)}</span></p>
+            <div className="flex gap-4 mt-1">
+              <p className="text-sm text-gray-500">Soles: <span className="font-semibold text-green-600">S/ {totalPEN.toFixed(2)}</span></p>
+              {totalUSD > 0 && (
+                <p className="text-sm text-gray-500">Dólares: <span className="font-semibold text-green-600">$ {totalUSD.toFixed(2)}</span></p>
+              )}
+            </div>
           </div>
           <Link href="/finances/income/new">
             <Button className="bg-green-500 hover:bg-green-600">
@@ -53,7 +64,10 @@ export default async function IncomePage() {
                   <TableCell className="text-gray-600">
                     {i.client ? `${i.client.firstName} ${i.client.lastName}` : "—"}
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-green-600">{formatCurrency(i.amount)}</TableCell>
+                  <TableCell className="text-right font-semibold text-green-600">
+                    {formatAmount(i.amount, i.currency)}
+                    {i.currency === "USD" && <span className="ml-1 text-xs text-blue-500 font-normal">USD</span>}
+                  </TableCell>
                   <TableCell className="text-right">
                     <DeleteButton url={`/api/finances/income/${i.id}`} confirm="¿Eliminar este ingreso?" />
                   </TableCell>

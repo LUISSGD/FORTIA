@@ -29,6 +29,7 @@ export async function POST(request: Request) {
   const expense = await prisma.expense.create({
     data: {
       amount: Number(body.amount),
+      currency: body.currency ?? "PEN",
       category: body.category ?? "OTHER",
       description: body.description ?? null,
       vendor: body.vendor ?? null,

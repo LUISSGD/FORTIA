@@ -17,7 +17,7 @@ export default function NewIncomePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    amount: "", category: "OTHER", description: "", date: format(new Date(), "yyyy-MM-dd"),
+    amount: "", currency: "PEN", category: "OTHER", description: "", date: format(new Date(), "yyyy-MM-dd"),
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,6 +37,8 @@ export default function NewIncomePage() {
     }
   }
 
+  const symbol = form.currency === "USD" ? "$" : "S/"
+
   return (
     <main className="flex-1 p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -48,8 +50,23 @@ export default function NewIncomePage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label>Monto (S/) *</Label>
-              <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0.01" />
+              <Label>Moneda</Label>
+              <div className="flex gap-2 mt-1">
+                {["PEN", "USD"].map((cur) => (
+                  <button
+                    key={cur}
+                    type="button"
+                    onClick={() => setForm({ ...form, currency: cur })}
+                    className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-colors ${form.currency === cur ? "bg-green-500 text-white border-green-500" : "border-gray-300 text-gray-600 hover:border-green-400"}`}
+                  >
+                    {cur === "PEN" ? "S/ Soles" : "$ Dólares"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Monto ({symbol}) *</Label>
+              <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0.01" placeholder="0.00" />
             </div>
             <div>
               <Label>Categoría</Label>
