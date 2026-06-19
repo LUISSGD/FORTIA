@@ -121,7 +121,7 @@ export default function EditClientPage() {
                         <SelectLabel className="text-orange-600 font-semibold">{group}</SelectLabel>
                         {groupPlans.map((p) => (
                           <SelectItem key={p.id} value={p.id} className="pl-4">
-                            {p.name.replace(group + " — ", "").replace(group, "").trim() || p.name} — S/ {p.price}
+                            {p.name} — S/ {p.price}
                           </SelectItem>
                         ))}
                       </SelectGroup>

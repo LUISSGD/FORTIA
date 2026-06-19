@@ -102,14 +102,11 @@ export default function NewClientPage() {
                     return (
                       <SelectGroup key={group}>
                         <SelectLabel className="text-orange-600 font-semibold">{group}</SelectLabel>
-                        {groupPlans.map((p) => {
-                          const label = p.name.replace(group + " — ", "").replace(group, "").trim() || p.name
-                          return (
-                            <SelectItem key={p.id} value={p.id} textValue={`${group} ${label}`} className="pl-4">
-                              {label} — S/ {p.price}
-                            </SelectItem>
-                          )
-                        })}
+                        {groupPlans.map((p) => (
+                          <SelectItem key={p.id} value={p.id} className="pl-4">
+                            {p.name} — S/ {p.price}
+                          </SelectItem>
+                        ))}
                       </SelectGroup>
                     )
                   })}
