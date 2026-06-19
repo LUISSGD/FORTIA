@@ -16,6 +16,17 @@ interface Plan { id: string; name: string; price: number; durationDays: number }
 
 const PLAN_GROUPS = ["FORTIA X", "PRIME ATHLETE Corporativo", "PRIME ATHLETE Atletas", "PRIME ATHLETE", "ELITE ATHLETE Head Coach", "ELITE ATHLETE Team Fortia", "FORTIA SOCIO"]
 
+function groupPlans(plans: Plan[]) {
+  const grouped = PLAN_GROUPS.flatMap((group) => {
+    const items = plans.filter((p) => p.name.startsWith(group))
+    return items.length ? [{ label: group, items }] : []
+  })
+  const assignedIds = new Set(grouped.flatMap((g) => g.items.map((p) => p.id)))
+  const others = plans.filter((p) => !assignedIds.has(p.id))
+  if (others.length) grouped.push({ label: "Otros", items: others })
+  return grouped
+}
+
 export default function NewClientPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -141,20 +152,16 @@ export default function NewClientPage() {
                   <SelectValue placeholder="Seleccionar plan..." />
                 </SelectTrigger>
                 <SelectContent className="w-[480px] max-h-80">
-                  {PLAN_GROUPS.map((group) => {
-                    const groupPlans = plans.filter((p) => p.name.startsWith(group))
-                    if (!groupPlans.length) return null
-                    return (
-                      <SelectGroup key={group}>
-                        <SelectLabel className="text-orange-600 font-semibold">{group}</SelectLabel>
-                        {groupPlans.map((p) => (
-                          <SelectItem key={p.id} value={p.id} className="pl-4">
-                            {p.name} — S/ {p.price}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    )
-                  })}
+                  {groupPlans(plans).map(({ label, items }) => (
+                    <SelectGroup key={label}>
+                      <SelectLabel className="text-orange-600 font-semibold">{label}</SelectLabel>
+                      {items.map((p) => (
+                        <SelectItem key={p.id} value={p.id} className="pl-4">
+                          {p.name} — S/ {p.price}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
