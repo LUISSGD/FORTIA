@@ -6,6 +6,9 @@ export async function DELETE(_req: Request, ctx: RouteContext<"/api/finances/inc
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   const { id } = await ctx.params
+
+  // Delete linked payment first (Payment.incomeId references Income)
+  await prisma.payment.deleteMany({ where: { incomeId: id } })
   await prisma.income.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }

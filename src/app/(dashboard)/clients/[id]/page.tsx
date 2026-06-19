@@ -1,29 +1,38 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import { formatDate, formatDateTime, formatCurrency, PAYMENT_METHODS } from "@/lib/utils"
+import { formatDate, formatCurrency, PAYMENT_METHODS } from "@/lib/utils"
 import Header from "@/components/layout/Header"
 import RenewalBadge from "@/components/clients/RenewalBadge"
 import WhatsAppButton from "@/components/clients/WhatsAppButton"
 import AddPaymentDialog from "@/components/clients/AddPaymentDialog"
+import ClientSchedulePanel from "@/components/clients/ClientSchedulePanel"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Pencil } from "lucide-react"
 
 export default async function ClientDetailPage({ params }: PageProps<"/clients/[id]">) {
   const { id } = await params
 
-  const [client, plans] = await Promise.all([
+  const [client, plans, allSlots] = await Promise.all([
     prisma.client.findUnique({
       where: { id },
       include: {
         membershipPlan: true,
         payments: { orderBy: { paidAt: "desc" } },
-        enrollments: { include: { slot: { include: { class: true } } } },
+        enrollments: {
+          include: {
+            slot: { include: { class: true } },
+          },
+        },
       },
     }),
     prisma.membershipPlan.findMany({ where: { isActive: true } }),
+    prisma.scheduleSlot.findMany({
+      where: { isActive: true },
+      include: { class: true },
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+    }),
   ])
 
   if (!client) notFound()
@@ -42,7 +51,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
           <RenewalBadge membershipEnd={client.membershipEnd} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Client info */}
           <Card className="lg:col-span-1">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -53,6 +62,14 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div><span className="text-gray-500">DNI:</span> <span className="font-medium">{client.dni ?? "—"}</span></div>
+              {client.firstName2 && (
+                <div className="pl-2 border-l-2 border-blue-200 space-y-1">
+                  <p className="text-xs text-blue-500 font-semibold">PERSONA 2</p>
+                  <div><span className="text-gray-500">Nombre:</span> <span className="font-medium">{client.firstName2} {client.lastName2}</span></div>
+                  {client.dni2 && <div><span className="text-gray-500">DNI:</span> <span className="font-medium">{client.dni2}</span></div>}
+                  {client.phone2 && <div><span className="text-gray-500">Tel:</span> <span className="font-medium">{client.phone2}</span></div>}
+                </div>
+              )}
               <div><span className="text-gray-500">Teléfono:</span> <span className="font-medium">{client.phone ?? "—"}</span></div>
               <div><span className="text-gray-500">Email:</span> <span className="font-medium">{client.email ?? "—"}</span></div>
               <div><span className="text-gray-500">Plan:</span> <span className="font-medium">{client.membershipPlan?.name ?? "Sin plan"}</span></div>
@@ -97,25 +114,41 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
             </CardContent>
           </Card>
 
-          {/* Enrolled classes */}
+          {/* Schedule */}
           <Card className="lg:col-span-1">
-            <CardHeader><CardTitle className="text-base">Clases inscritas</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Horarios asignados</CardTitle></CardHeader>
+            <CardContent>
+              <ClientSchedulePanel
+                clientId={client.id}
+                enrollments={client.enrollments.map((e) => ({ slotId: e.slotId, slot: e.slot }))}
+                allSlots={allSlots}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Enrolled classes summary */}
+          <Card className="lg:col-span-1">
+            <CardHeader><CardTitle className="text-base">Resumen semanal</CardTitle></CardHeader>
             <CardContent>
               {client.enrollments.length === 0 ? (
-                <p className="text-sm text-gray-500">No está inscrito en ninguna clase.</p>
+                <p className="text-sm text-gray-500">Sin horarios en el calendario.</p>
               ) : (
                 <div className="space-y-2">
-                  {client.enrollments.map((e) => (
-                    <div key={e.id} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: e.slot.class.color }} />
-                      <div>
-                        <p className="text-sm font-medium">{e.slot.class.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][e.slot.dayOfWeek]} {e.slot.startTime}–{e.slot.endTime}
-                        </p>
+                  {["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"].map((day, i) => {
+                    const dayEnrollments = client.enrollments.filter((e) => e.slot.dayOfWeek === i)
+                    if (!dayEnrollments.length) return null
+                    return (
+                      <div key={day}>
+                        <p className="text-xs font-semibold text-gray-400 uppercase">{day}</p>
+                        {dayEnrollments.map((e) => (
+                          <div key={e.id} className="flex items-center gap-2 ml-2 mt-0.5">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: e.slot.class.color }} />
+                            <p className="text-sm">{e.slot.class.name} <span className="text-gray-400 text-xs">{e.slot.startTime}–{e.slot.endTime}</span></p>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
