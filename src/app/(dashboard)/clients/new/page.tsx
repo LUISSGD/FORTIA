@@ -96,17 +96,20 @@ export default function NewClientPage() {
                   <SelectValue placeholder="Seleccionar plan..." />
                 </SelectTrigger>
                 <SelectContent className="w-[480px] max-h-80">
-                  {["FORTIA X", "PRIME ATHLETE", "PRIME ATHLETE Corporativo", "PRIME ATHLETE Atletas", "ELITE ATHLETE Head Coach", "ELITE ATHLETE Team Fortia", "FORTIA SOCIO"].map((group) => {
+                  {["FORTIA X", "PRIME ATHLETE Corporativo", "PRIME ATHLETE Atletas", "PRIME ATHLETE", "ELITE ATHLETE Head Coach", "ELITE ATHLETE Team Fortia", "FORTIA SOCIO"].map((group) => {
                     const groupPlans = plans.filter((p) => p.name.startsWith(group))
                     if (!groupPlans.length) return null
                     return (
                       <SelectGroup key={group}>
                         <SelectLabel className="text-orange-600 font-semibold">{group}</SelectLabel>
-                        {groupPlans.map((p) => (
-                          <SelectItem key={p.id} value={p.id} className="pl-4">
-                            {p.name.replace(group + " — ", "").replace(group, "").trim() || p.name} — S/ {p.price}
-                          </SelectItem>
-                        ))}
+                        {groupPlans.map((p) => {
+                          const label = p.name.replace(group + " — ", "").replace(group, "").trim() || p.name
+                          return (
+                            <SelectItem key={p.id} value={p.id} textValue={`${group} ${label}`} className="pl-4">
+                              {label} — S/ {p.price}
+                            </SelectItem>
+                          )
+                        })}
                       </SelectGroup>
                     )
                   })}
