@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
@@ -89,22 +89,33 @@ export default function NewClientPage() {
               <Label>Email</Label>
               <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Plan de membresía</Label>
-                <Select value={form.membershipPlanId} onValueChange={(v) => set("membershipPlanId", v ?? "")}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                  <SelectContent>
-                    {plans.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} — S/ {p.price}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Fecha de inicio</Label>
-                <Input type="date" value={form.membershipStart} onChange={(e) => set("membershipStart", e.target.value)} />
-              </div>
+            <div>
+              <Label>Plan de membresía</Label>
+              <Select value={form.membershipPlanId} onValueChange={(v) => set("membershipPlanId", v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar plan..." />
+                </SelectTrigger>
+                <SelectContent className="w-[480px] max-h-80">
+                  {["FORTIA X", "PRIME ATHLETE", "PRIME ATHLETE Corporativo", "PRIME ATHLETE Atletas", "ELITE ATHLETE Head Coach", "ELITE ATHLETE Team Fortia", "FORTIA SOCIO"].map((group) => {
+                    const groupPlans = plans.filter((p) => p.name.startsWith(group))
+                    if (!groupPlans.length) return null
+                    return (
+                      <SelectGroup key={group}>
+                        <SelectLabel className="text-orange-600 font-semibold">{group}</SelectLabel>
+                        {groupPlans.map((p) => (
+                          <SelectItem key={p.id} value={p.id} className="pl-4">
+                            {p.name.replace(group + " — ", "").replace(group, "").trim() || p.name} — S/ {p.price}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Fecha de inicio</Label>
+              <Input type="date" value={form.membershipStart} onChange={(e) => set("membershipStart", e.target.value)} />
             </div>
             <div>
               <Label>Notas</Label>
