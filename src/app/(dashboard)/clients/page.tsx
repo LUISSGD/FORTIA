@@ -99,7 +99,12 @@ export default async function ClientsPage({
                   <TableCell className="font-medium">
                     <Link href={`/clients/${client.id}`} className="flex items-center gap-2 hover:text-orange-500">
                       <User className="h-4 w-4 text-gray-400" />
-                      {client.firstName} {client.lastName}
+                      <span>
+                        {client.firstName} {client.lastName}
+                        {client.firstName2 && (
+                          <span className="text-xs text-gray-400 block">+ {client.firstName2} {client.lastName2}</span>
+                        )}
+                      </span>
                     </Link>
                   </TableCell>
                   <TableCell className="text-gray-600">{client.dni ?? "—"}</TableCell>

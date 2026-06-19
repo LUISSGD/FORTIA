@@ -34,6 +34,10 @@ model Client {
   email            String?
   phone            String?
   dni              String?         @unique
+  firstName2       String?
+  lastName2        String?
+  phone2           String?
+  dni2             String?         @unique
   birthDate        DateTime?
   notes            String?
   membershipPlanId String?
