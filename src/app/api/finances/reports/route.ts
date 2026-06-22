@@ -20,18 +20,22 @@ export async function GET(request: Request) {
     const end = endOfMonth(monthDate)
 
     const [incomeResult, expenseResult] = await Promise.all([
-      prisma.income.findMany({ where: { date: { gte: start, lte: end } }, select: { amount: true } }),
-      prisma.expense.findMany({ where: { date: { gte: start, lte: end } }, select: { amount: true } }),
+      prisma.income.findMany({ where: { date: { gte: start, lte: end } }, select: { amount: true, currency: true } }),
+      prisma.expense.findMany({ where: { date: { gte: start, lte: end } }, select: { amount: true, currency: true } }),
     ])
 
-    const totalIncome = incomeResult.reduce((sum, r) => sum + r.amount, 0)
-    const totalExpenses = expenseResult.reduce((sum, r) => sum + r.amount, 0)
+    const ingresosPEN = incomeResult.filter(r => r.currency === "PEN").reduce((sum, r) => sum + r.amount, 0)
+    const ingresosUSD = incomeResult.filter(r => r.currency === "USD").reduce((sum, r) => sum + r.amount, 0)
+    const egresosPEN = expenseResult.filter(r => r.currency === "PEN").reduce((sum, r) => sum + r.amount, 0)
+    const egresosUSD = expenseResult.filter(r => r.currency === "USD").reduce((sum, r) => sum + r.amount, 0)
 
     data.push({
       month: format(monthDate, "MMM yy", { locale: es }),
-      ingresos: totalIncome,
-      egresos: totalExpenses,
-      neto: totalIncome - totalExpenses,
+      ingresos: ingresosPEN,
+      ingresosUSD,
+      egresos: egresosPEN,
+      egresosUSD,
+      neto: ingresosPEN - egresosPEN,
     })
   }
 

@@ -1,12 +1,16 @@
 import { prisma } from "@/lib/prisma"
-import { formatCurrency, formatDate, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/utils"
+import { formatDate, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/utils"
 import Header from "@/components/layout/Header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, TrendingDown, DollarSign, BarChart2 } from "lucide-react"
+import { TrendingUp, TrendingDown, BarChart2 } from "lucide-react"
 import { startOfMonth, endOfMonth } from "date-fns"
+
+function fmtAmt(amount: number, currency: string) {
+  return currency === "USD" ? `$ ${amount.toFixed(2)}` : `S/ ${amount.toFixed(2)}`
+}
 
 export default async function FinancesPage() {
   const now = new Date()
@@ -27,9 +31,10 @@ export default async function FinancesPage() {
     }),
   ])
 
-  const totalIncome = incomes.reduce((s, i) => s + i.amount, 0)
-  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
-  const net = totalIncome - totalExpenses
+  const incomePEN = incomes.filter(i => i.currency === "PEN").reduce((s, i) => s + i.amount, 0)
+  const incomeUSD = incomes.filter(i => i.currency === "USD").reduce((s, i) => s + i.amount, 0)
+  const expensePEN = expenses.filter(e => e.currency === "PEN").reduce((s, e) => s + e.amount, 0)
+  const expenseUSD = expenses.filter(e => e.currency === "USD").reduce((s, e) => s + e.amount, 0)
 
   return (
     <>
@@ -38,20 +43,19 @@ export default async function FinancesPage() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Resumen del mes</h2>
           <Link href="/finances/reports">
-            <Button variant="outline" className="gap-2">
-              <BarChart2 className="h-4 w-4" />Ver reportes
-            </Button>
+            <Button variant="outline" className="gap-2"><BarChart2 className="h-4 w-4" />Ver reportes</Button>
           </Link>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <Card>
             <CardContent className="p-4 flex items-center gap-4">
               <div className="bg-green-100 p-3 rounded-full"><TrendingUp className="h-5 w-5 text-green-600" /></div>
               <div>
                 <p className="text-sm text-gray-500">Ingresos del mes</p>
-                <p className="text-xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
+                <p className="text-xl font-bold text-green-600">S/ {incomePEN.toFixed(2)}</p>
+                {incomeUSD > 0 && <p className="text-sm font-semibold text-green-500">$ {incomeUSD.toFixed(2)} USD</p>}
               </div>
             </CardContent>
           </Card>
@@ -60,21 +64,33 @@ export default async function FinancesPage() {
               <div className="bg-red-100 p-3 rounded-full"><TrendingDown className="h-5 w-5 text-red-600" /></div>
               <div>
                 <p className="text-sm text-gray-500">Egresos del mes</p>
-                <p className="text-xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
+                <p className="text-xl font-bold text-red-600">S/ {expensePEN.toFixed(2)}</p>
+                {expenseUSD > 0 && <p className="text-sm font-semibold text-red-500">$ {expenseUSD.toFixed(2)} USD</p>}
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className={`${net >= 0 ? "bg-blue-100" : "bg-orange-100"} p-3 rounded-full`}>
-                <DollarSign className={`h-5 w-5 ${net >= 0 ? "text-blue-600" : "text-orange-600"}`} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Neto del mes</p>
-                <p className={`text-xl font-bold ${net >= 0 ? "text-blue-600" : "text-orange-600"}`}>{formatCurrency(net)}</p>
-              </div>
+        </div>
+
+        {/* Neto */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <Card className="border-blue-100 bg-blue-50/30">
+            <CardContent className="p-4">
+              <p className="text-sm text-gray-500">Neto del mes (S/)</p>
+              <p className={`text-2xl font-bold ${(incomePEN - expensePEN) >= 0 ? "text-blue-600" : "text-orange-600"}`}>
+                S/ {(incomePEN - expensePEN).toFixed(2)}
+              </p>
             </CardContent>
           </Card>
+          {(incomeUSD > 0 || expenseUSD > 0) && (
+            <Card className="border-blue-100 bg-blue-50/30">
+              <CardContent className="p-4">
+                <p className="text-sm text-gray-500">Neto del mes ($)</p>
+                <p className={`text-2xl font-bold ${(incomeUSD - expenseUSD) >= 0 ? "text-blue-600" : "text-orange-600"}`}>
+                  $ {(incomeUSD - expenseUSD).toFixed(2)}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -97,7 +113,7 @@ export default async function FinancesPage() {
                       <span className="text-xs text-gray-400">{formatDate(i.date)}</span>
                     </div>
                   </div>
-                  <span className="font-semibold text-green-600">{formatCurrency(i.amount)}</span>
+                  <span className="font-semibold text-green-600 whitespace-nowrap ml-2">{fmtAmt(i.amount, i.currency)}</span>
                 </div>
               ))}
               {incomes.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Sin ingresos este mes.</p>}
@@ -124,7 +140,7 @@ export default async function FinancesPage() {
                       <span className="text-xs text-gray-400">{formatDate(e.date)}</span>
                     </div>
                   </div>
-                  <span className="font-semibold text-red-600">{formatCurrency(e.amount)}</span>
+                  <span className="font-semibold text-red-600 whitespace-nowrap ml-2">{fmtAmt(e.amount, e.currency)}</span>
                 </div>
               ))}
               {expenses.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Sin egresos este mes.</p>}
