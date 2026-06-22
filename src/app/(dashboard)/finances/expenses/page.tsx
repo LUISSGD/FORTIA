@@ -25,7 +25,7 @@ export default async function ExpensesPage() {
   return (
     <>
       <Header title="Egresos" />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-semibold">Registro de egresos</h2>

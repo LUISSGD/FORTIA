@@ -17,7 +17,7 @@ export default async function MembershipsPage() {
   return (
     <>
       <Header title="Membresías" />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Planes disponibles</h2>
           <Link href="/memberships/new">

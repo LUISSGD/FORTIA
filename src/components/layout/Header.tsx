@@ -22,9 +22,9 @@ export default async function Header({ title }: { title?: string }) {
     .join("") ?? "A"
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between">
-      <h1 className="text-lg font-semibold text-gray-900">{title ?? "FORTIA"}</h1>
-      <div className="flex items-center gap-4">
+    <header className="h-14 md:h-16 bg-white border-b border-gray-200 px-4 md:px-6 flex items-center justify-between sticky top-0 z-40">
+      <h1 className="text-base md:text-lg font-semibold text-gray-900 truncate">{title ?? "FORTIA"}</h1>
+      <div className="flex items-center gap-3">
         {expiringCount > 0 && (
           <div className="relative">
             <Bell className="h-5 w-5 text-gray-500" />
@@ -37,7 +37,7 @@ export default async function Header({ title }: { title?: string }) {
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-orange-500 text-white text-xs">{initials}</AvatarFallback>
           </Avatar>
-          <span className="text-sm text-gray-700">{session?.user?.name}</span>
+          <span className="hidden md:block text-sm text-gray-700">{session?.user?.name}</span>
         </div>
       </div>
     </header>

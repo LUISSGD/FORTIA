@@ -42,7 +42,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
   return (
     <>
       <Header title="Detalle de cliente" />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/clients">
             <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
@@ -51,7 +51,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
           <RenewalBadge membershipEnd={client.membershipEnd} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {/* Client info */}
           <Card className="lg:col-span-1">
             <CardHeader className="flex flex-row items-center justify-between pb-2">

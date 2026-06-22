@@ -61,7 +61,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: Clas
   }
 
   return (
-    <main className="flex-1 p-6">
+    <main className="flex-1 p-3 md:p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">Catálogo de clases</h2>
         <Button className="bg-orange-500 hover:bg-orange-600" onClick={() => setOpen(true)}>

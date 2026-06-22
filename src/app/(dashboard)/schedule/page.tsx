@@ -21,7 +21,7 @@ export default async function SchedulePage() {
   return (
     <>
       <Header title="Calendario de clases" />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Programación semanal</h2>
           <CreateSlotDialog classes={classes} />

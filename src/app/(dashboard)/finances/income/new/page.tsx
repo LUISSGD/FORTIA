@@ -40,7 +40,7 @@ export default function NewIncomePage() {
   const symbol = form.currency === "USD" ? "$" : "S/"
 
   return (
-    <main className="flex-1 p-6">
+    <main className="flex-1 p-3 md:p-6">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/finances/income"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
         <h1 className="text-xl font-semibold">Registrar ingreso</h1>

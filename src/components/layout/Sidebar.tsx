@@ -28,7 +28,7 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col min-h-screen">
+    <aside className="hidden md:flex w-64 bg-gray-900 text-white flex-col min-h-screen">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-800">
         <Image src="/logo.png" alt="FORTIA" width={40} height={40} className="rounded-lg" />

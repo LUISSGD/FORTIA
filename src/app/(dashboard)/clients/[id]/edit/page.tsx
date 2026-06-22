@@ -71,7 +71,7 @@ export default function EditClientPage() {
   if (!form.firstName) return <div className="p-6">Cargando...</div>
 
   return (
-    <main className="flex-1 p-6">
+    <main className="flex-1 p-3 md:p-6">
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/clients/${params.id}`}>
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
