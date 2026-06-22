@@ -11,6 +11,7 @@ import {
   CreditCard,
   BookOpen,
   LogOut,
+  Landmark,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/classes", label: "Clases", icon: BookOpen },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
   { href: "/memberships", label: "Membresías", icon: CreditCard },
+  { href: "/debts", label: "Deudas", icon: Landmark },
 ]
 
 export default function Sidebar() {
