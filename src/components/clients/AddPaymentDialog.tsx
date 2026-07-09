@@ -66,7 +66,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
         Registrar pago
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-lg w-[95vw]">
         <DialogHeader>
           <DialogTitle>Registrar pago — {clientName}</DialogTitle>
         </DialogHeader>
@@ -74,12 +74,15 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
           <div>
             <Label>Plan</Label>
             <Select value={planId} onValueChange={(v) => v && handlePlanChange(v)} required>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Seleccionar plan" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-[var(--radix-select-trigger-width)] max-h-72">
                 {plans.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name} — S/ {p.price}</SelectItem>
+                  <SelectItem key={p.id} value={p.id} className="whitespace-normal">
+                    <span className="block">{p.name}</span>
+                    <span className="text-xs text-gray-500">S/ {p.price} · {p.durationDays} días</span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
