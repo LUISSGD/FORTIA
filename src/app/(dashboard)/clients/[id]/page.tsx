@@ -73,6 +73,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
               <div><span className="text-gray-500">Teléfono:</span> <span className="font-medium">{client.phone ?? "—"}</span></div>
               <div><span className="text-gray-500">Email:</span> <span className="font-medium">{client.email ?? "—"}</span></div>
               <div><span className="text-gray-500">Plan:</span> <span className="font-medium">{client.membershipPlan?.name ?? "Sin plan"}</span></div>
+              <div><span className="text-gray-500">Entrenador:</span> <span className="font-medium">{client.trainer ?? "—"}</span></div>
               <div><span className="text-gray-500">Inicio:</span> <span className="font-medium">{formatDate(client.membershipStart)}</span></div>
               <div><span className="text-gray-500">Vencimiento:</span> <span className="font-medium">{formatDate(client.membershipEnd)}</span></div>
               {client.notes && <div><span className="text-gray-500">Notas:</span> <span className="font-medium">{client.notes}</span></div>}

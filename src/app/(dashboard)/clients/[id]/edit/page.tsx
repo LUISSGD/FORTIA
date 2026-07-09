@@ -15,7 +15,7 @@ interface Plan { id: string; name: string; price: number }
 interface Client {
   id: string; firstName: string; lastName: string; email?: string | null
   phone?: string | null; dni?: string | null; notes?: string | null
-  membershipPlanId?: string | null; membershipStart?: string | null
+  trainer?: string | null; membershipPlanId?: string | null
 }
 
 export default function EditClientPage() {
@@ -37,6 +37,7 @@ export default function EditClientPage() {
         phone: client.phone ?? "",
         dni: client.dni ?? "",
         notes: client.notes ?? "",
+        trainer: client.trainer ?? "",
         membershipPlanId: client.membershipPlanId ?? "",
       })
       setPlans(plans)
@@ -129,6 +130,19 @@ export default function EditClientPage() {
                       </SelectGroup>
                     ))
                   })()}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Entrenador</Label>
+              <Select value={form.trainer} onValueChange={(v) => set("trainer", v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sin entrenador asignado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Piero">Piero</SelectItem>
+                  <SelectItem value="Leonardo">Leonardo</SelectItem>
+                  <SelectItem value="Juliuz">Juliuz</SelectItem>
                 </SelectContent>
               </Select>
             </div>

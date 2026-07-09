@@ -33,7 +33,7 @@ export default function NewClientPage() {
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "", dni: "",
     firstName2: "", lastName2: "", phone2: "", dni2: "",
-    notes: "", membershipPlanId: "",
+    notes: "", membershipPlanId: "", trainer: "",
   })
 
   useEffect(() => {
@@ -160,6 +160,20 @@ export default function NewClientPage() {
                       ))}
                     </SelectGroup>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Entrenador</Label>
+              <Select value={form.trainer} onValueChange={(v) => set("trainer", v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sin entrenador asignado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Piero">Piero</SelectItem>
+                  <SelectItem value="Leonardo">Leonardo</SelectItem>
+                  <SelectItem value="Juliuz">Juliuz</SelectItem>
                 </SelectContent>
               </Select>
             </div>

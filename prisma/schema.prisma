@@ -40,6 +40,7 @@ model Client {
   dni2             String?         @unique
   birthDate        DateTime?
   notes            String?
+  trainer          String?
   membershipPlanId String?
   membershipPlan   MembershipPlan? @relation(fields: [membershipPlanId], references: [id])
   membershipStart  DateTime?

@@ -55,6 +55,7 @@ export async function POST(request: Request) {
       phone2: body.phone2 || null,
       dni2: body.dni2 || null,
       notes: body.notes || null,
+      trainer: body.trainer || null,
       membershipPlanId: body.membershipPlanId || null,
       membershipStart: null,
       membershipEnd: null,
