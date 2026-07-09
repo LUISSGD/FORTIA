@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { toast } from "sonner"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { format } from "date-fns"
 
 interface Plan { id: string; name: string; price: number }
 interface Client {
@@ -39,9 +38,6 @@ export default function EditClientPage() {
         dni: client.dni ?? "",
         notes: client.notes ?? "",
         membershipPlanId: client.membershipPlanId ?? "",
-        membershipStart: client.membershipStart
-          ? format(new Date(client.membershipStart), "yyyy-MM-dd")
-          : format(new Date(), "yyyy-MM-dd"),
       })
       setPlans(plans)
     })
@@ -135,10 +131,6 @@ export default function EditClientPage() {
                   })()}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Fecha inicio</Label>
-              <Input type="date" value={form.membershipStart} onChange={(e) => set("membershipStart", e.target.value)} />
             </div>
             <div>
               <Label>Notas</Label>
