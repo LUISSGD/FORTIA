@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 
-export async function GET(_req: Request, ctx: RouteContext<"/api/debts/[id]">) {
+type Ctx = { params: Promise<{ id: string }> }
+
+export async function GET(_req: Request, ctx: Ctx) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   const { id } = await ctx.params
@@ -14,7 +16,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/debts/[id]">) {
   return NextResponse.json(debt)
 }
 
-export async function PUT(request: Request, ctx: RouteContext<"/api/debts/[id]">) {
+export async function PUT(request: Request, ctx: Ctx) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   const { id } = await ctx.params
@@ -35,7 +37,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/debts/[id]">
   return NextResponse.json(debt)
 }
 
-export async function DELETE(_req: Request, ctx: RouteContext<"/api/debts/[id]">) {
+export async function DELETE(_req: Request, ctx: Ctx) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   const { id } = await ctx.params
