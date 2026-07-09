@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { addDays } from "date-fns"
-
 export async function GET(request: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
@@ -43,12 +41,6 @@ export async function POST(request: Request) {
 
   const body = await request.json()
 
-  let membershipEnd: Date | undefined
-  if (body.membershipPlanId && body.membershipStart) {
-    const plan = await prisma.membershipPlan.findUnique({ where: { id: body.membershipPlanId } })
-    if (plan) membershipEnd = addDays(new Date(body.membershipStart), plan.durationDays)
-  }
-
   const client = await prisma.client.create({
     data: {
       firstName: body.firstName,
@@ -62,8 +54,8 @@ export async function POST(request: Request) {
       dni2: body.dni2 || null,
       notes: body.notes || null,
       membershipPlanId: body.membershipPlanId || null,
-      membershipStart: body.membershipStart ? new Date(body.membershipStart) : null,
-      membershipEnd: membershipEnd ?? null,
+      membershipStart: null,
+      membershipEnd: null,
     },
     include: { membershipPlan: true },
   })

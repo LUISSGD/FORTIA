@@ -10,8 +10,6 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { toast } from "sonner"
 import Link from "next/link"
 import { ArrowLeft, Users } from "lucide-react"
-import { format } from "date-fns"
-
 interface Plan { id: string; name: string; price: number; durationDays: number }
 
 const PLAN_GROUPS = ["FORTIA X", "PRIME ATHLETE Corporativo", "PRIME ATHLETE Atletas", "PRIME ATHLETE", "ELITE ATHLETE Head Coach", "ELITE ATHLETE Team Fortia", "FORTIA SOCIO"]
@@ -35,7 +33,7 @@ export default function NewClientPage() {
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "", dni: "",
     firstName2: "", lastName2: "", phone2: "", dni2: "",
-    notes: "", membershipPlanId: "", membershipStart: format(new Date(), "yyyy-MM-dd"),
+    notes: "", membershipPlanId: "",
   })
 
   useEffect(() => {
@@ -164,11 +162,6 @@ export default function NewClientPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div>
-              <Label>Fecha de inicio</Label>
-              <Input type="date" value={form.membershipStart} onChange={(e) => set("membershipStart", e.target.value)} />
             </div>
 
             <div>
