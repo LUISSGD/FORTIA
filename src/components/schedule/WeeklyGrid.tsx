@@ -21,6 +21,31 @@ function timeToMinutes(t: string) {
   return h * 60 + m
 }
 
+function computeLayout(daySlots: Slot[]): Map<string, { col: number; totalCols: number }> {
+  const sorted = [...daySlots].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+  const layout = new Map<string, { col: number; totalCols: number }>()
+  const groups: Slot[][] = []
+
+  for (const slot of sorted) {
+    const s = timeToMinutes(slot.startTime)
+    const e = timeToMinutes(slot.endTime)
+    let placed = false
+    for (const group of groups) {
+      if (group.some(g => s < timeToMinutes(g.endTime) && e > timeToMinutes(g.startTime))) {
+        group.push(slot)
+        placed = true
+        break
+      }
+    }
+    if (!placed) groups.push([slot])
+  }
+
+  for (const group of groups) {
+    group.forEach((slot, i) => layout.set(slot.id, { col: i, totalCols: group.length }))
+  }
+  return layout
+}
+
 interface Client {
   id: string
   firstName: string
@@ -96,6 +121,7 @@ export default function WeeklyGrid({ slots }: { slots: Slot[] }) {
             {/* Day columns */}
             {DAYS_OF_WEEK.map((_, dayIndex) => {
               const daySlots = slots.filter((s) => s.dayOfWeek === dayIndex)
+              const layout = computeLayout(daySlots)
               return (
                 <div key={dayIndex} className="relative border-l border-gray-100" style={{ height: gridHeight }}>
                   {/* Hour grid lines */}
@@ -111,14 +137,19 @@ export default function WeeklyGrid({ slots }: { slots: Slot[] }) {
                   {daySlots.map((slot) => {
                     const top = getTop(slot.startTime)
                     const height = getHeight(slot.startTime, slot.endTime)
+                    const { col, totalCols } = layout.get(slot.id) ?? { col: 0, totalCols: 1 }
+                    const leftPct = (col / totalCols) * 100
+                    const widthPct = (1 / totalCols) * 100
                     return (
                       <button
                         key={slot.id}
                         onClick={() => setSelectedSlot(slot)}
-                        className="absolute left-1 right-1 rounded-md px-2 py-1 text-left hover:opacity-90 transition-opacity overflow-hidden z-10"
+                        className="absolute rounded-md px-2 py-1 text-left hover:opacity-90 transition-opacity overflow-hidden z-10"
                         style={{
                           top: top + 1,
                           height: height - 2,
+                          left: `calc(${leftPct}% + 2px)`,
+                          width: `calc(${widthPct}% - 4px)`,
                           backgroundColor: slot.class.color + "25",
                           borderLeft: `3px solid ${slot.class.color}`,
                         }}
