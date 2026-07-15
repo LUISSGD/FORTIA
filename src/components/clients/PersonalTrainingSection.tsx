@@ -541,22 +541,36 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
         })}
 
         {pastPlans.length > 0 && (
-          <details className="mt-2">
+          <details className="mt-2" open>
             <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
               Ver planes anteriores ({pastPlans.length})
             </summary>
             <div className="space-y-2 mt-2">
               {pastPlans.map(plan => (
-                <div key={plan.id} className="border rounded-lg p-2.5 bg-gray-50 opacity-70">
+                <div key={plan.id} className="border rounded-lg p-2.5 bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium">{MODALIDAD_LABELS[plan.modalidad as Modalidad] ?? plan.modalidad}</p>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[plan.status]}`}>
-                      {STATUS_LABELS[plan.status]}
-                    </span>
+                    <div>
+                      <p className="text-xs font-medium">{MODALIDAD_LABELS[plan.modalidad as Modalidad] ?? plan.modalidad}</p>
+                      <p className="text-[11px] text-gray-400">
+                        {plan.sessionsCompleted}/{plan.numPacks * plan.clasesPerPack} clases · {fmt(plan.pricePaid)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[plan.status]}`}>
+                        {STATUS_LABELS[plan.status]}
+                      </span>
+                      {plan.sessionsCompleted > 0 && (
+                        <button
+                          onClick={() => undoSession(plan.id)}
+                          disabled={undoing === plan.id}
+                          className="text-gray-400 hover:text-orange-500 p-0.5 rounded"
+                          title="Deshacer última clase"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[11px] text-gray-400">
-                    {plan.sessionsCompleted}/{plan.numPacks * plan.clasesPerPack} clases · {fmt(plan.pricePaid)}
-                  </p>
                 </div>
               ))}
             </div>
