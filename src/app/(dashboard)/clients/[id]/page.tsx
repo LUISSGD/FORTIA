@@ -6,6 +6,7 @@ import RenewalBadge from "@/components/clients/RenewalBadge"
 import WhatsAppButton from "@/components/clients/WhatsAppButton"
 import AddPaymentDialog from "@/components/clients/AddPaymentDialog"
 import ClientSchedulePanel from "@/components/clients/ClientSchedulePanel"
+import PersonalTrainingSection from "@/components/clients/PersonalTrainingSection"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +15,7 @@ import { ArrowLeft, Pencil } from "lucide-react"
 export default async function ClientDetailPage({ params }: PageProps<"/clients/[id]">) {
   const { id } = await params
 
-  const [client, plans, allSlots] = await Promise.all([
+  const [client, plans, allSlots, trainingPlans] = await Promise.all([
     prisma.client.findUnique({
       where: { id },
       include: {
@@ -32,6 +33,11 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
       where: { isActive: true },
       include: { class: true },
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+    }),
+    prisma.clientTrainingPlan.findMany({
+      where: { clientId: id },
+      include: { sessions: { orderBy: { sessionNumber: "asc" } } },
+      orderBy: { createdAt: "desc" },
     }),
   ])
 
@@ -123,6 +129,17 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
                 clientId={client.id}
                 enrollments={client.enrollments.map((e) => ({ slotId: e.slotId, slot: e.slot }))}
                 allSlots={allSlots}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Personal Training */}
+          <Card className="lg:col-span-1">
+            <CardContent className="pt-4">
+              <PersonalTrainingSection
+                clientId={client.id}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                initialPlans={trainingPlans as any}
               />
             </CardContent>
           </Card>

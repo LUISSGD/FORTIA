@@ -14,6 +14,7 @@ import {
   Landmark,
   ClipboardList,
   AlertCircle,
+  Dumbbell,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/debts", label: "Deudas", icon: Landmark },
   { href: "/finances/monthly-expenses", label: "Gastos Corrientes", icon: ClipboardList },
   { href: "/finances/pending-accumulated", label: "Pend. Acumulados", icon: AlertCircle },
+  { href: "/training-plans", label: "Entrena. Personal", icon: Dumbbell },
 ]
 
 export default function Sidebar() {

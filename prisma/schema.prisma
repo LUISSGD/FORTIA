@@ -49,9 +49,10 @@ model Client {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  payments    Payment[]
-  enrollments Enrollment[]
-  incomes     Income[]
+  payments      Payment[]
+  enrollments   Enrollment[]
+  incomes       Income[]
+  trainingPlans ClientTrainingPlan[]
 }
 
 model Payment {
@@ -161,6 +162,39 @@ model DebtPayment {
   notes       String?
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
+}
+
+model ClientTrainingPlan {
+  id                String            @id @default(cuid())
+  clientId          String
+  client            Client            @relation(fields: [clientId], references: [id])
+  modalidad         String
+  tipoEntrenador    String
+  tarifa            String
+  numPacks          Int
+  clasesPerPack     Int
+  pricePaid         Float
+  currency          String            @default("PEN")
+  sessionsCompleted Int               @default(0)
+  currentPackStart  DateTime?
+  status            String            @default("ACTIVE")
+  notes             String?
+  incomeId          String?           @unique
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  sessions TrainingSession[]
+}
+
+model TrainingSession {
+  id            String             @id @default(cuid())
+  planId        String
+  plan          ClientTrainingPlan @relation(fields: [planId], references: [id])
+  sessionNumber Int
+  packNumber    Int
+  completedAt   DateTime           @default(now())
+  notes         String?
+  createdAt     DateTime           @default(now())
 }
 
 model MonthlyExpense {

@@ -1,0 +1,215 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+import { Plus } from "lucide-react"
+import {
+  TRAINING_PRICING,
+  getTrainingPrice,
+  getAvailableModalidades,
+  getAvailableTarifas,
+  getAvailableNumPacks,
+  ENTRENADOR_LABELS,
+  MODALIDAD_LABELS,
+  TARIFA_LABELS,
+} from "@/lib/training-pricing"
+import type { Entrenador, Modalidad, Tarifa, NumPacks, ClasesPerPack } from "@/lib/training-pricing"
+
+const ENTRENADORES: Entrenador[] = ["HEAD_COACH", "TEAM_FORTIA"]
+const CLASES_OPTIONS: ClasesPerPack[] = [8, 12, 16]
+
+interface Props {
+  clientId: string
+  onAssigned: () => void
+}
+
+export default function AssignTrainingPlanDialog({ clientId, onAssigned }: Props) {
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const [entrenador, setEntrenador] = useState<Entrenador | "">("")
+  const [modalidad, setModalidad] = useState<Modalidad | "">("")
+  const [tarifa, setTarifa] = useState<Tarifa | "">("")
+  const [clasesPerPack, setClasesPerPack] = useState<ClasesPerPack | 0>(0)
+  const [numPacks, setNumPacks] = useState<NumPacks | 0>(0)
+  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0])
+  const [notes, setNotes] = useState("")
+
+  const modalidades = entrenador ? getAvailableModalidades(entrenador as Entrenador) : []
+  const tarifas = entrenador && modalidad ? getAvailableTarifas(entrenador as Entrenador, modalidad as Modalidad) : []
+  const numPacksOptions = entrenador && modalidad && tarifa
+    ? getAvailableNumPacks(entrenador as Entrenador, modalidad as Modalidad, tarifa as Tarifa)
+    : []
+  const hasMultipleTarifas = tarifas.length > 1
+
+  const price = entrenador && modalidad && tarifa && clasesPerPack && numPacks
+    ? getTrainingPrice(entrenador as Entrenador, modalidad as Modalidad, tarifa as Tarifa, numPacks as NumPacks, clasesPerPack as ClasesPerPack)
+    : null
+
+  useEffect(() => { setModalidad(""); setTarifa(""); setClasesPerPack(0); setNumPacks(0) }, [entrenador])
+  useEffect(() => {
+    setNumPacks(0)
+    if (modalidad) {
+      const available = getAvailableTarifas(entrenador as Entrenador, modalidad as Modalidad)
+      if (available.length === 1) setTarifa(available[0])
+      else setTarifa("")
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalidad])
+  useEffect(() => { setNumPacks(0) }, [tarifa])
+
+  async function handleSave() {
+    if (!entrenador || !modalidad || !tarifa || !clasesPerPack || !numPacks) {
+      toast.error("Completa todos los campos")
+      return
+    }
+    setSaving(true)
+    const res = await fetch(`/api/clients/${clientId}/training-plans`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipoEntrenador: entrenador, modalidad, tarifa, numPacks, clasesPerPack, startDate, notes }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      toast.success("Plan asignado correctamente")
+      setOpen(false)
+      onAssigned()
+    } else {
+      const err = await res.json()
+      toast.error(err.error ?? "Error al asignar plan")
+    }
+  }
+
+  function handleOpen() {
+    setEntrenador(""); setModalidad(""); setTarifa(""); setClasesPerPack(0); setNumPacks(0)
+    setStartDate(new Date().toISOString().split("T")[0])
+    setNotes("")
+    setOpen(true)
+  }
+
+  return (
+    <>
+      <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={handleOpen}>
+        <Plus className="h-3.5 w-3.5 mr-1" />Asignar plan
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Asignar entrenamiento personalizado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Tipo de entrenador</Label>
+              <Select value={entrenador} onValueChange={v => setEntrenador(v as Entrenador)}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                <SelectContent>
+                  {ENTRENADORES.map(e => (
+                    <SelectItem key={e} value={e}>{ENTRENADOR_LABELS[e]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {entrenador && (
+              <div>
+                <Label>Modalidad</Label>
+                <Select value={modalidad} onValueChange={v => setModalidad(v as Modalidad)}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {modalidades.map(m => (
+                      <SelectItem key={m} value={m}>{MODALIDAD_LABELS[m]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {modalidad && hasMultipleTarifas && (
+              <div>
+                <Label>Tarifa</Label>
+                <Select value={tarifa} onValueChange={v => setTarifa(v as Tarifa)}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {tarifas.map(t => (
+                      <SelectItem key={t} value={t}>{TARIFA_LABELS[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {tarifa && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Clases por pack</Label>
+                  <Select
+                    value={clasesPerPack ? String(clasesPerPack) : ""}
+                    onValueChange={v => setClasesPerPack(Number(v) as ClasesPerPack)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="8 / 12 / 16" /></SelectTrigger>
+                    <SelectContent>
+                      {CLASES_OPTIONS.map(c => (
+                        <SelectItem key={c} value={String(c)}>{c} clases / 4 sem.</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Número de packs</Label>
+                  <Select
+                    value={numPacks ? String(numPacks) : ""}
+                    onValueChange={v => setNumPacks(Number(v) as NumPacks)}
+                    disabled={!tarifa}
+                  >
+                    <SelectTrigger><SelectValue placeholder="01 / 03 / 06" /></SelectTrigger>
+                    <SelectContent>
+                      {numPacksOptions.map(n => (
+                        <SelectItem key={n} value={String(n)}>{String(n).padStart(2, "0")} pack{n > 1 ? "s" : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {price !== null && (
+              <div className="bg-orange-50 border border-orange-100 rounded-lg p-3">
+                <p className="text-xs text-gray-500">Precio total</p>
+                <p className="text-2xl font-bold text-orange-600">S/ {price.toLocaleString("es-PE", { minimumFractionDigits: 2 })}</p>
+                <p className="text-xs text-gray-400">{numPacks} pack{Number(numPacks) > 1 ? "s" : ""} × {clasesPerPack} clases = {Number(numPacks) * Number(clasesPerPack)} clases totales</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Fecha de inicio</Label>
+                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Notas (opcional)</Label>
+                <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Observación..." />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                className="flex-1 bg-orange-500 hover:bg-orange-600"
+                onClick={handleSave}
+                disabled={saving || !entrenador || !modalidad || !tarifa || !clasesPerPack || !numPacks}
+              >
+                {saving ? "Asignando..." : "Asignar plan"}
+              </Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
