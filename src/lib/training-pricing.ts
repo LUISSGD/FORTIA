@@ -11,6 +11,18 @@ type EntrenadorMap = Partial<Record<Entrenador, ModalidadMap>>
 
 export const TRAINING_PRICING: EntrenadorMap = {
   HEAD_COACH: {
+    ELITE_ATHLETE: {
+      OPENING: {
+        1: { 8: 780,  12: 1050, 16: 1350 },
+        3: { 8: 2125, 12: 3000, 16: 3850 },
+        6: { 8: 4000, 12: 5500, 16: 7250 },
+      },
+      REGULAR: {
+        1: { 8: 920,  12: 1200, 16: 1520 },
+        3: { 8: 2580, 12: 3400, 16: 4320 },
+        6: { 8: 4750, 12: 6250, 16: 8000 },
+      },
+    },
     ELITE_ATHLETE_PAREJAS: {
       OPENING: {
         1: { 8: 1050, 12: 1200, 16: 1520 },
