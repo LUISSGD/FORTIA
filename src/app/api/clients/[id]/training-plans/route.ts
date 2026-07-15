@@ -13,7 +13,10 @@ export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params
   const plans = await prisma.clientTrainingPlan.findMany({
     where: { clientId: id },
-    include: { sessions: { orderBy: { sessionNumber: "asc" } } },
+    include: {
+      sessions: { orderBy: { sessionNumber: "asc" } },
+      scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
+    },
     orderBy: { createdAt: "desc" },
   })
   return NextResponse.json(plans)
@@ -25,7 +28,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
   const { id } = await params
   const body = await req.json()
-  const { tipoEntrenador, modalidad, tarifa, numPacks, clasesPerPack, startDate, notes } = body
+  const { tipoEntrenador, modalidad, tarifa, numPacks, clasesPerPack, startDate, notes, scheduleDays } = body
 
   const price = getTrainingPrice(
     tipoEntrenador as Entrenador,
@@ -63,8 +66,27 @@ export async function POST(req: Request, { params }: Ctx) {
       notes: notes || null,
       incomeId: income.id,
     },
-    include: { sessions: true },
+    include: {
+      sessions: true,
+      scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
+    },
   })
+
+  if (Array.isArray(scheduleDays) && scheduleDays.length > 0) {
+    await prisma.personalTrainingSlot.createMany({
+      data: scheduleDays.map((d: { dayOfWeek: number; startTime: string; endTime: string }) => ({
+        planId: plan.id,
+        dayOfWeek: d.dayOfWeek,
+        startTime: d.startTime,
+        endTime: d.endTime,
+      })),
+    })
+    const updatedSlots = await prisma.personalTrainingSlot.findMany({
+      where: { planId: plan.id },
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+    })
+    return NextResponse.json({ ...plan, scheduleSlots: updatedSlots }, { status: 201 })
+  }
 
   return NextResponse.json(plan, { status: 201 })
 }

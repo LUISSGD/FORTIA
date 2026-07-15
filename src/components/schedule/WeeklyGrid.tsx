@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Dumbbell } from "lucide-react"
 import SlotDetailModal from "./SlotDetailModal"
 import { DAYS_OF_WEEK } from "@/lib/utils"
 
@@ -33,7 +34,7 @@ interface Enrollment {
   client: Client
 }
 
-interface Slot {
+export interface Slot {
   id: string
   dayOfWeek: number
   startTime: string
@@ -41,6 +42,9 @@ interface Slot {
   instructor?: string | null
   class: { name: string; color: string; maxCapacity: number }
   enrollments: Enrollment[]
+  isPT?: boolean
+  planId?: string
+  clientId?: string
 }
 
 export default function WeeklyGrid({ slots }: { slots: Slot[] }) {
@@ -119,8 +123,9 @@ export default function WeeklyGrid({ slots }: { slots: Slot[] }) {
                           borderLeft: `3px solid ${slot.class.color}`,
                         }}
                       >
-                        <p className="text-xs font-semibold leading-tight truncate" style={{ color: slot.class.color }}>
-                          {slot.class.name}
+                        <p className="text-xs font-semibold leading-tight truncate flex items-center gap-0.5" style={{ color: slot.class.color }}>
+                          {slot.isPT && <Dumbbell className="inline h-2.5 w-2.5 flex-shrink-0" />}
+                          <span className="truncate">{slot.class.name}</span>
                         </p>
                         <p className="text-xs text-gray-500 leading-tight">
                           {slot.startTime}–{slot.endTime}
@@ -128,9 +133,11 @@ export default function WeeklyGrid({ slots }: { slots: Slot[] }) {
                         {slot.instructor && (
                           <p className="text-xs text-gray-400 leading-tight truncate">{slot.instructor}</p>
                         )}
-                        <p className="text-xs text-gray-400 leading-tight">
-                          {slot.enrollments.length}/{slot.class.maxCapacity}
-                        </p>
+                        {!slot.isPT && (
+                          <p className="text-xs text-gray-400 leading-tight">
+                            {slot.enrollments.length}/{slot.class.maxCapacity}
+                          </p>
+                        )}
                       </button>
                     )
                   })}

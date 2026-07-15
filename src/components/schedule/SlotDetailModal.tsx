@@ -8,30 +8,16 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-import { X, UserPlus, Pencil, Trash2, Check } from "lucide-react"
+import { X, UserPlus, Pencil, Trash2, Check, Dumbbell, ExternalLink } from "lucide-react"
+import Link from "next/link"
 import { DAYS_OF_WEEK } from "@/lib/utils"
+import type { Slot } from "./WeeklyGrid"
 
 interface Client {
   id: string
   firstName: string
   lastName: string
   phone?: string | null
-}
-
-interface Enrollment {
-  id: string
-  clientId: string
-  client: Client
-}
-
-interface Slot {
-  id: string
-  dayOfWeek: number
-  startTime: string
-  endTime: string
-  instructor?: string | null
-  class: { name: string; color: string; maxCapacity: number }
-  enrollments: Enrollment[]
 }
 
 interface Props {
@@ -42,7 +28,7 @@ interface Props {
 
 export default function SlotDetailModal({ slot, open, onClose }: Props) {
   const router = useRouter()
-  const [enrollments, setEnrollments] = useState<Enrollment[]>(slot?.enrollments ?? [])
+  const [enrollments, setEnrollments] = useState(slot?.enrollments ?? [])
   const [allClients, setAllClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState("")
   const [loading, setLoading] = useState(false)
@@ -56,7 +42,9 @@ export default function SlotDetailModal({ slot, open, onClose }: Props) {
       setEditForm({ startTime: slot.startTime, endTime: slot.endTime, instructor: slot.instructor ?? "" })
       setEditing(false)
       setConfirmDelete(false)
-      fetch("/api/clients").then((r) => r.json()).then(setAllClients)
+      if (!slot.isPT) {
+        fetch("/api/clients").then((r) => r.json()).then(setAllClients)
+      }
     }
   }, [open, slot])
 
@@ -124,8 +112,80 @@ export default function SlotDetailModal({ slot, open, onClose }: Props) {
     onClose()
   }
 
+  async function deletePTSlot() {
+    if (!slot || !slot.clientId || !slot.planId) return
+    setLoading(true)
+    const res = await fetch(
+      `/api/clients/${slot.clientId}/training-plans/${slot.planId}/schedule?slotId=${slot.id}`,
+      { method: "DELETE" }
+    )
+    setLoading(false)
+    if (res.ok) {
+      toast.success("Horario de PT eliminado")
+      router.refresh()
+      onClose()
+    } else {
+      toast.error("Error al eliminar")
+    }
+  }
+
   if (!slot) return null
 
+  // PT slot view
+  if (slot.isPT) {
+    const client = slot.enrollments[0]?.client
+    return (
+      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Dumbbell className="h-4 w-4 text-orange-500" />
+              Entrenamiento Personal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-sm space-y-2">
+            <p className="text-gray-500">
+              {DAYS_OF_WEEK[slot.dayOfWeek]} · {slot.startTime} – {slot.endTime}
+            </p>
+            {slot.instructor && (
+              <p className="text-gray-500">Entrenador: <span className="font-medium text-gray-700">{slot.instructor}</span></p>
+            )}
+            {client && (
+              <Link
+                href={`/clients/${client.id}`}
+                className="flex items-center gap-1 font-medium text-orange-600 hover:underline"
+                onClick={onClose}
+              >
+                {client.firstName} {client.lastName}
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            )}
+          </div>
+          <div className="pt-2 border-t">
+            {confirmDelete ? (
+              <div className="flex gap-2">
+                <Button size="sm" variant="destructive" className="flex-1" onClick={deletePTSlot} disabled={loading}>
+                  {loading ? "..." : "Confirmar eliminar"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setConfirmDelete(false)}>No</Button>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full text-red-500 hover:text-red-600 gap-1"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />Quitar del calendario
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  // Regular slot view
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">

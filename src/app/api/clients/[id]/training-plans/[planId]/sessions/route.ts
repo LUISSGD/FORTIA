@@ -47,3 +47,36 @@ export async function POST(req: Request, { params }: Ctx) {
 
   return NextResponse.json(updated)
 }
+
+export async function DELETE(_req: Request, { params }: Ctx) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+
+  const { planId } = await params
+
+  const plan = await prisma.clientTrainingPlan.findUnique({ where: { id: planId } })
+  if (!plan) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 })
+  if (plan.sessionsCompleted === 0) return NextResponse.json({ error: "No hay clases para deshacer" }, { status: 400 })
+
+  const lastSession = await prisma.trainingSession.findFirst({
+    where: { planId },
+    orderBy: { sessionNumber: "desc" },
+  })
+  if (!lastSession) return NextResponse.json({ error: "No hay sesiones registradas" }, { status: 400 })
+
+  await prisma.trainingSession.delete({ where: { id: lastSession.id } })
+
+  const newSessionsCompleted = plan.sessionsCompleted - 1
+  const wasCompleted = plan.status === "COMPLETED"
+
+  const updated = await prisma.clientTrainingPlan.update({
+    where: { id: planId },
+    data: {
+      sessionsCompleted: newSessionsCompleted,
+      status: wasCompleted ? "ACTIVE" : plan.status,
+    },
+    include: { sessions: { orderBy: { sessionNumber: "asc" } } },
+  })
+
+  return NextResponse.json(updated)
+}

@@ -36,7 +36,10 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
     }),
     prisma.clientTrainingPlan.findMany({
       where: { clientId: id },
-      include: { sessions: { orderBy: { sessionNumber: "asc" } } },
+      include: {
+        sessions: { orderBy: { sessionNumber: "asc" } },
+        scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
+      },
       orderBy: { createdAt: "desc" },
     }),
   ])

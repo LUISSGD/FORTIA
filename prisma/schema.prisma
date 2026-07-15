@@ -183,7 +183,19 @@ model ClientTrainingPlan {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  sessions TrainingSession[]
+  sessions      TrainingSession[]
+  scheduleSlots PersonalTrainingSlot[]
+}
+
+model PersonalTrainingSlot {
+  id        String             @id @default(cuid())
+  planId    String
+  plan      ClientTrainingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 }
 
 model TrainingSession {
