@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { getTrainingPrice } from "@/lib/training-pricing"
 import type { Entrenador, Modalidad, Tarifa, NumPacks, ClasesPerPack } from "@/lib/training-pricing"
 
+
 type Ctx = { params: Promise<{ id: string }> }
 
 export async function GET(_req: Request, { params }: Ctx) {
@@ -41,17 +42,6 @@ export async function POST(req: Request, { params }: Ctx) {
     return NextResponse.json({ error: "Combinación de plan no válida" }, { status: 400 })
   }
 
-  const income = await prisma.income.create({
-    data: {
-      amount: price,
-      currency: "PEN",
-      category: "PERSONAL_TRAINING",
-      description: `${modalidad === "ELITE_ATHLETE_PAREJAS" ? "Elite Athlete Parejas" : "Elite Athlete"} — ${tipoEntrenador === "HEAD_COACH" ? "Head Coach" : "Team Fortia"} — ${numPacks} pack(s) x ${clasesPerPack} clases`,
-      clientId: id,
-      date: startDate ? new Date(startDate) : new Date(),
-    },
-  })
-
   const plan = await prisma.clientTrainingPlan.create({
     data: {
       clientId: id,
@@ -64,7 +54,6 @@ export async function POST(req: Request, { params }: Ctx) {
       currency: "PEN",
       currentPackStart: startDate ? new Date(startDate) : new Date(),
       notes: notes || null,
-      incomeId: income.id,
     },
     include: {
       sessions: true,

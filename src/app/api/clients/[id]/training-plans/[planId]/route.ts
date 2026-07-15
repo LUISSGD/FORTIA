@@ -39,10 +39,5 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   // Delete plan (CASCADE removes sessions + scheduleSlots)
   await prisma.clientTrainingPlan.delete({ where: { id: planId } })
 
-  // Delete linked income if it exists
-  if (plan.incomeId) {
-    await prisma.income.delete({ where: { id: plan.incomeId } }).catch(() => null)
-  }
-
   return NextResponse.json({ ok: true })
 }
