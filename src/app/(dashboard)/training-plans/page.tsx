@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { prisma } from "@/lib/prisma"
 import Header from "@/components/layout/Header"
 import Link from "next/link"
