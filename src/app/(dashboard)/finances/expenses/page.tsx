@@ -14,13 +14,16 @@ function formatAmount(amount: number, currency: string) {
 }
 
 export default async function ExpensesPage() {
-  const expenses = await prisma.expense.findMany({
-    orderBy: { date: "desc" },
-    take: 100,
-  })
+  const [expenses, aggPEN, aggUSD] = await Promise.all([
+    prisma.expense.findMany({
+      orderBy: { date: "desc" },
+    }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { currency: "PEN" } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { currency: "USD" } }),
+  ])
 
-  const totalPEN = expenses.filter((e) => e.currency === "PEN").reduce((s, e) => s + e.amount, 0)
-  const totalUSD = expenses.filter((e) => e.currency === "USD").reduce((s, e) => s + e.amount, 0)
+  const totalPEN = aggPEN._sum.amount ?? 0
+  const totalUSD = aggUSD._sum.amount ?? 0
 
   return (
     <>

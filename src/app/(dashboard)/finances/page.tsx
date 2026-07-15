@@ -17,24 +17,29 @@ export default async function FinancesPage() {
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
 
-  const [incomes, expenses] = await Promise.all([
+  const monthWhere = { date: { gte: monthStart, lte: monthEnd } }
+  const [incomes, expenses, aggIncomePEN, aggIncomeUSD, aggExpensePEN, aggExpenseUSD] = await Promise.all([
     prisma.income.findMany({
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: monthWhere,
       include: { client: { select: { firstName: true, lastName: true } } },
       orderBy: { date: "desc" },
       take: 10,
     }),
     prisma.expense.findMany({
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: monthWhere,
       orderBy: { date: "desc" },
       take: 10,
     }),
+    prisma.income.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "PEN" } }),
+    prisma.income.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "USD" } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "PEN" } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "USD" } }),
   ])
 
-  const incomePEN = incomes.filter(i => i.currency === "PEN").reduce((s, i) => s + i.amount, 0)
-  const incomeUSD = incomes.filter(i => i.currency === "USD").reduce((s, i) => s + i.amount, 0)
-  const expensePEN = expenses.filter(e => e.currency === "PEN").reduce((s, e) => s + e.amount, 0)
-  const expenseUSD = expenses.filter(e => e.currency === "USD").reduce((s, e) => s + e.amount, 0)
+  const incomePEN = aggIncomePEN._sum.amount ?? 0
+  const incomeUSD = aggIncomeUSD._sum.amount ?? 0
+  const expensePEN = aggExpensePEN._sum.amount ?? 0
+  const expenseUSD = aggExpenseUSD._sum.amount ?? 0
 
   return (
     <>

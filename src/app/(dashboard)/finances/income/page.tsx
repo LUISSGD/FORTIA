@@ -14,14 +14,17 @@ function formatAmount(amount: number, currency: string) {
 }
 
 export default async function IncomePage() {
-  const incomes = await prisma.income.findMany({
-    orderBy: { date: "desc" },
-    include: { client: { select: { firstName: true, lastName: true } } },
-    take: 100,
-  })
+  const [incomes, aggPEN, aggUSD] = await Promise.all([
+    prisma.income.findMany({
+      orderBy: { date: "desc" },
+      include: { client: { select: { firstName: true, lastName: true } } },
+    }),
+    prisma.income.aggregate({ _sum: { amount: true }, where: { currency: "PEN" } }),
+    prisma.income.aggregate({ _sum: { amount: true }, where: { currency: "USD" } }),
+  ])
 
-  const totalPEN = incomes.filter((i) => i.currency === "PEN").reduce((s, i) => s + i.amount, 0)
-  const totalUSD = incomes.filter((i) => i.currency === "USD").reduce((s, i) => s + i.amount, 0)
+  const totalPEN = aggPEN._sum.amount ?? 0
+  const totalUSD = aggUSD._sum.amount ?? 0
 
   return (
     <>
