@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { toast } from "sonner"
-import { Dumbbell, CheckCircle2, PauseCircle, PlayCircle, ChevronRight, RotateCcw, CalendarDays, Plus, Trash2 } from "lucide-react"
+import { Dumbbell, CheckCircle2, PauseCircle, PlayCircle, ChevronRight, RotateCcw, CalendarDays, Plus, Trash2, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -212,6 +212,118 @@ function ScheduleDialog({ planId, clientId, slots, onUpdate }: ScheduleDialogPro
   )
 }
 
+interface EditDialogProps {
+  plan: Plan
+  clientId: string
+  onSaved: (updated: Plan) => void
+  onDeleted: (planId: string) => void
+}
+
+function EditPlanDialog({ plan, clientId, onSaved, onDeleted }: EditDialogProps) {
+  const [open, setOpen] = useState(false)
+  const [notes, setNotes] = useState(plan.notes ?? "")
+  const [pricePaid, setPricePaid] = useState(String(plan.pricePaid))
+  const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  function handleOpen() {
+    setNotes(plan.notes ?? "")
+    setPricePaid(String(plan.pricePaid))
+    setConfirmDelete(false)
+    setOpen(true)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const res = await fetch(`/api/clients/${clientId}/training-plans/${plan.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: notes || null, pricePaid: Number(pricePaid) }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      const updated = await res.json()
+      onSaved({ ...updated, scheduleSlots: plan.scheduleSlots })
+      toast.success("Plan actualizado")
+      setOpen(false)
+    } else {
+      toast.error("Error al actualizar")
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    const res = await fetch(`/api/clients/${clientId}/training-plans/${plan.id}`, { method: "DELETE" })
+    setDeleting(false)
+    if (res.ok) {
+      onDeleted(plan.id)
+      toast.success("Plan eliminado")
+      setOpen(false)
+    } else {
+      toast.error("Error al eliminar")
+    }
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-1">
+        <button onClick={handleOpen} className="text-gray-400 hover:text-orange-500 p-0.5 rounded" title="Editar plan">
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={() => { setConfirmDelete(true); setOpen(true) }} className="text-gray-400 hover:text-red-500 p-0.5 rounded" title="Eliminar plan">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{confirmDelete ? "Eliminar plan" : "Editar plan"}</DialogTitle>
+          </DialogHeader>
+
+          {confirmDelete ? (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                ¿Seguro que quieres eliminar este plan? Se borrarán todas las clases registradas y el ingreso asociado.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? "Eliminando..." : "Sí, eliminar"}
+                </Button>
+                <Button variant="outline" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <Label>Precio pagado (S/)</Label>
+                <Input
+                  type="number"
+                  value={pricePaid}
+                  onChange={e => setPricePaid(e.target.value)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <Label>Notas</Label>
+                <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Observación..." />
+              </div>
+              <div className="flex gap-2">
+                <Button className="flex-1 bg-orange-500 hover:bg-orange-600" onClick={handleSave} disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar cambios"}
+                </Button>
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 export default function PersonalTrainingSection({ clientId, initialPlans }: Props) {
   const [plans, setPlans] = useState<Plan[]>(initialPlans)
   const [marking, setMarking] = useState<string | null>(null)
@@ -273,6 +385,14 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
     setPlans(prev => prev.map(p => p.id === planId ? { ...p, scheduleSlots: slots } : p))
   }
 
+  function handlePlanSaved(updated: Plan) {
+    setPlans(prev => prev.map(p => p.id === updated.id ? updated : p))
+  }
+
+  function handlePlanDeleted(planId: string) {
+    setPlans(prev => prev.filter(p => p.id !== planId))
+  }
+
   const activePlans = plans.filter(p => p.status === "ACTIVE" || p.status === "PAUSED")
   const pastPlans = plans.filter(p => p.status === "COMPLETED" || p.status === "CANCELLED")
 
@@ -310,9 +430,17 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                     {" · "}{fmt(plan.pricePaid)}
                   </p>
                 </div>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[plan.status]}`}>
-                  {STATUS_LABELS[plan.status]}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[plan.status]}`}>
+                    {STATUS_LABELS[plan.status]}
+                  </span>
+                  <EditPlanDialog
+                    plan={plan}
+                    clientId={clientId}
+                    onSaved={handlePlanSaved}
+                    onDeleted={handlePlanDeleted}
+                  />
+                </div>
               </div>
 
               {/* Pack progress */}
