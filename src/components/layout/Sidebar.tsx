@@ -13,6 +13,7 @@ import {
   LogOut,
   Landmark,
   ClipboardList,
+  AlertCircle,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/memberships", label: "Membresías", icon: CreditCard },
   { href: "/debts", label: "Deudas", icon: Landmark },
   { href: "/finances/monthly-expenses", label: "Gastos Corrientes", icon: ClipboardList },
+  { href: "/finances/pending-accumulated", label: "Pend. Acumulados", icon: AlertCircle },
 ]
 
 export default function Sidebar() {
