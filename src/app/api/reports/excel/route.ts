@@ -75,30 +75,38 @@ export async function GET(request: Request) {
     { key: "value", width: 20 },
   ]
 
-  const totalIncome = incomes.reduce((s, i) => s + i.amount, 0)
-  const totalExpense = expenses.reduce((s, e) => s + e.amount, 0)
-  const net = totalIncome - totalExpense
+  const totalIncomePEN = incomes.filter(i => i.currency === "PEN").reduce((s, i) => s + i.amount, 0)
+  const totalIncomeUSD = incomes.filter(i => i.currency === "USD").reduce((s, i) => s + i.amount, 0)
+  const totalExpensePEN = expenses.filter(e => e.currency === "PEN").reduce((s, e) => s + e.amount, 0)
+  const totalExpenseUSD = expenses.filter(e => e.currency === "USD").reduce((s, e) => s + e.amount, 0)
+  const netPEN = totalIncomePEN - totalExpensePEN
+  const netUSD = totalIncomeUSD - totalExpenseUSD
 
   const titleRow = summary.addRow(["REPORTE FORTIA", `${from} al ${to}`])
   titleRow.font = { bold: true, size: 14 }
   titleRow.height = 28
   summary.addRow([])
 
-  const rows = [
-    ["Total Ingresos", totalIncome],
-    ["Total Egresos", totalExpense],
-    ["Neto del período", net],
+  const summaryRows: [string, number | string, string?][] = [
+    ["Total Ingresos (S/)", totalIncomePEN, '"S/"#,##0.00'],
+    ["Total Ingresos (USD)", totalIncomeUSD, '"$"#,##0.00'],
+    ["Total Egresos (S/)", totalExpensePEN, '"S/"#,##0.00'],
+    ["Total Egresos (USD)", totalExpenseUSD, '"$"#,##0.00'],
+    ["Neto del período (S/)", netPEN, '"S/"#,##0.00'],
+    ["Neto del período (USD)", netUSD, '"$"#,##0.00'],
     ["N° transacciones ingreso", incomes.length],
     ["N° transacciones egreso", expenses.length],
     ["Clientes activos totales", clients],
     ["Nuevos clientes en período", newClients.length],
   ]
 
-  rows.forEach(([label, value], i) => {
+  summaryRows.forEach(([label, value, numFmt], i) => {
     const row = summary.addRow([label, value])
-    if (typeof value === "number" && i < 3) {
-      row.getCell(2).numFmt = '"S/"#,##0.00'
-      row.getCell(2).font = { bold: true, color: { argb: i === 2 && net < 0 ? "FFCC0000" : "FF006600" } }
+    if (numFmt && typeof value === "number") {
+      row.getCell(2).numFmt = numFmt
+      const isNet = i === 4 || i === 5
+      const isNeg = (i === 4 && netPEN < 0) || (i === 5 && netUSD < 0)
+      row.getCell(2).font = { bold: true, color: { argb: isNet && isNeg ? "FFCC0000" : "FF006600" } }
     }
     row.height = 18
   })
@@ -110,7 +118,8 @@ export async function GET(request: Request) {
     { key: "description", header: "Descripción", width: 35 },
     { key: "category", header: "Categoría", width: 18 },
     { key: "client", header: "Cliente", width: 25 },
-    { key: "amount", header: "Monto (S/)", width: 14 },
+    { key: "currency", header: "Moneda", width: 10 },
+    { key: "amount", header: "Monto", width: 14 },
   ]
 
   const INCOME_CAT: Record<string, string> = {
@@ -125,16 +134,23 @@ export async function GET(request: Request) {
       description: inc.description ?? "",
       category: INCOME_CAT[inc.category] ?? inc.category,
       client: inc.client ? `${inc.client.firstName} ${inc.client.lastName}` : "",
+      currency: inc.currency === "USD" ? "USD" : "SOLES",
       amount: inc.amount,
     })
-    row.getCell("amount").numFmt = '"S/"#,##0.00'
+    row.getCell("amount").numFmt = inc.currency === "USD" ? '"$"#,##0.00' : '"S/"#,##0.00'
     styleData(row, idx % 2 === 0)
   })
 
-  const incTotal = incSheet.addRow({ description: "TOTAL", amount: totalIncome })
-  incTotal.font = { bold: true }
-  incTotal.getCell("amount").numFmt = '"S/"#,##0.00'
-  incTotal.getCell("amount").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9F2D9" } }
+  const incTotalPEN = incSheet.addRow({ description: "TOTAL SOLES", currency: "SOLES", amount: totalIncomePEN })
+  incTotalPEN.font = { bold: true }
+  incTotalPEN.getCell("amount").numFmt = '"S/"#,##0.00'
+  incTotalPEN.getCell("amount").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9F2D9" } }
+  if (totalIncomeUSD > 0) {
+    const incTotalUSD = incSheet.addRow({ description: "TOTAL USD", currency: "USD", amount: totalIncomeUSD })
+    incTotalUSD.font = { bold: true }
+    incTotalUSD.getCell("amount").numFmt = '"$"#,##0.00'
+    incTotalUSD.getCell("amount").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9F2D9" } }
+  }
 
   // ── Hoja 3: EGRESOS ──────────────────────────────────────────
   const expSheet = workbook.addWorksheet("Egresos")
@@ -143,7 +159,8 @@ export async function GET(request: Request) {
     { key: "description", header: "Descripción", width: 35 },
     { key: "category", header: "Categoría", width: 18 },
     { key: "vendor", header: "Proveedor", width: 25 },
-    { key: "amount", header: "Monto (S/)", width: 14 },
+    { key: "currency", header: "Moneda", width: 10 },
+    { key: "amount", header: "Monto", width: 14 },
   ]
 
   const EXP_CAT: Record<string, string> = {
@@ -159,16 +176,23 @@ export async function GET(request: Request) {
       description: exp.description ?? "",
       category: EXP_CAT[exp.category] ?? exp.category,
       vendor: exp.vendor ?? "",
+      currency: exp.currency === "USD" ? "USD" : "SOLES",
       amount: exp.amount,
     })
-    row.getCell("amount").numFmt = '"S/"#,##0.00'
+    row.getCell("amount").numFmt = exp.currency === "USD" ? '"$"#,##0.00' : '"S/"#,##0.00'
     styleData(row, idx % 2 === 0)
   })
 
-  const expTotal = expSheet.addRow({ description: "TOTAL", amount: totalExpense })
-  expTotal.font = { bold: true }
-  expTotal.getCell("amount").numFmt = '"S/"#,##0.00'
-  expTotal.getCell("amount").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFD9D9" } }
+  const expTotalPEN = expSheet.addRow({ description: "TOTAL SOLES", currency: "SOLES", amount: totalExpensePEN })
+  expTotalPEN.font = { bold: true }
+  expTotalPEN.getCell("amount").numFmt = '"S/"#,##0.00'
+  expTotalPEN.getCell("amount").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFD9D9" } }
+  if (totalExpenseUSD > 0) {
+    const expTotalUSD = expSheet.addRow({ description: "TOTAL USD", currency: "USD", amount: totalExpenseUSD })
+    expTotalUSD.font = { bold: true }
+    expTotalUSD.getCell("amount").numFmt = '"$"#,##0.00'
+    expTotalUSD.getCell("amount").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFD9D9" } }
+  }
 
   // ── Hoja 4: NUEVOS CLIENTES ───────────────────────────────────
   const cliSheet = workbook.addWorksheet("Nuevos Clientes")
