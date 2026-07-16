@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
   const body = await request.json()
-  const { clientId, planId, amount, method, concept } = body
+  const { clientId, planId, amount, method, concept, receiptUrl } = body
 
   const client = await prisma.client.findUnique({
     where: { id: clientId },
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       periodStart,
       periodEnd,
       incomeId: income.id,
+      receiptUrl: receiptUrl ?? null,
     },
   })
 

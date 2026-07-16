@@ -66,6 +66,7 @@ model Payment {
   periodEnd   DateTime
   paidAt      DateTime @default(now())
   createdAt   DateTime @default(now())
+  receiptUrl  String?
 
   income   Income? @relation(fields: [incomeId], references: [id])
   incomeId String? @unique
