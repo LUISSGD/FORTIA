@@ -235,6 +235,7 @@ export default function AssignTrainingPlanDialog({ clientId, onAssigned }: Props
             {/* Schedule section */}
             <div className="border rounded-lg p-3 space-y-2">
               <p className="text-xs font-semibold text-gray-600">Horario semanal (opcional)</p>
+              <p className="text-xs text-gray-400">Selecciona los días con el mismo horario y haz clic en Agregar. Repite para horarios distintos.</p>
 
               {scheduleDays.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -268,21 +269,19 @@ export default function AssignTrainingPlanDialog({ clientId, onAssigned }: Props
                 ))}
               </div>
 
-              {selectedDays.length > 0 && (
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Label className="text-xs">Inicio</Label>
-                    <Input type="time" value={schedStartTime} onChange={e => setSchedStartTime(e.target.value)} className="h-8 text-xs" />
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs">Fin</Label>
-                    <Input type="time" value={schedEndTime} onChange={e => setSchedEndTime(e.target.value)} className="h-8 text-xs" />
-                  </div>
-                  <Button size="sm" type="button" className="h-8 bg-orange-500 hover:bg-orange-600 text-xs" onClick={addScheduleDays}>
-                    Agregar
-                  </Button>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Label className="text-xs">Inicio</Label>
+                  <Input type="time" value={schedStartTime} onChange={e => setSchedStartTime(e.target.value)} className="h-8 text-xs" />
                 </div>
-              )}
+                <div className="flex-1">
+                  <Label className="text-xs">Fin</Label>
+                  <Input type="time" value={schedEndTime} onChange={e => setSchedEndTime(e.target.value)} className="h-8 text-xs" />
+                </div>
+                <Button size="sm" type="button" className="h-8 bg-orange-500 hover:bg-orange-600 text-xs" onClick={addScheduleDays} disabled={selectedDays.length === 0}>
+                  Agregar
+                </Button>
+              </div>
             </div>
 
             <div className="flex gap-2 pt-1">
