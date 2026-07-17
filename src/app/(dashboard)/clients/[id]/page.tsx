@@ -1,16 +1,17 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import { formatDate, formatCurrency, PAYMENT_METHODS } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
 import Header from "@/components/layout/Header"
 import RenewalBadge from "@/components/clients/RenewalBadge"
 import WhatsAppButton from "@/components/clients/WhatsAppButton"
 import AddPaymentDialog from "@/components/clients/AddPaymentDialog"
 import ClientSchedulePanel from "@/components/clients/ClientSchedulePanel"
 import PersonalTrainingSection from "@/components/clients/PersonalTrainingSection"
+import PaymentHistory from "@/components/clients/PaymentHistory"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Pencil, ImageIcon } from "lucide-react"
+import { ArrowLeft, Pencil } from "lucide-react"
 
 export default async function ClientDetailPage({ params }: PageProps<"/clients/[id]">) {
   const { id } = await params
@@ -102,32 +103,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
           <Card className="lg:col-span-1">
             <CardHeader><CardTitle className="text-base">Historial de pagos</CardTitle></CardHeader>
             <CardContent>
-              {client.payments.length === 0 ? (
-                <p className="text-sm text-gray-500">Sin pagos registrados.</p>
-              ) : (
-                <div className="space-y-3">
-                  {client.payments.map((p) => (
-                    <div key={p.id} className="border-l-2 border-orange-300 pl-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-sm font-medium">{formatCurrency(p.amount)}</p>
-                          <p className="text-xs text-gray-500">{PAYMENT_METHODS[p.method] ?? p.method}</p>
-                          <p className="text-xs text-gray-400">{formatDate(p.periodStart)} — {formatDate(p.periodEnd)}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {p.receiptUrl && (
-                            <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" title="Ver comprobante">
-                              <ImageIcon className="h-4 w-4 text-orange-400 hover:text-orange-600" />
-                            </a>
-                          )}
-                          <p className="text-xs text-gray-400">{formatDate(p.paidAt)}</p>
-                        </div>
-                      </div>
-                      {p.concept && <p className="text-xs text-gray-500 mt-1">{p.concept}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <PaymentHistory payments={client.payments} />
             </CardContent>
           </Card>
 
