@@ -33,6 +33,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
   const [planId, setPlanId] = useState(currentPlanId ?? "")
   const [amount, setAmount] = useState("")
   const [method, setMethod] = useState("CASH")
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -92,7 +93,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId, planId, amount, method, receiptUrl }),
+        body: JSON.stringify({ clientId, planId, amount, method, receiptUrl, startDate }),
       })
 
       if (res.ok) {
@@ -151,6 +152,17 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label>Inicio del plan</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                required
+              />
+              <p className="text-xs text-gray-400 mt-1">El vencimiento se calculará desde esta fecha.</p>
             </div>
 
             {/* Receipt photo */}

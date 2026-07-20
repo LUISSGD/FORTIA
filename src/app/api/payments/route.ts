@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
   const body = await request.json()
-  const { clientId, planId, amount, method, concept, receiptUrl } = body
+  const { clientId, planId, amount, method, concept, receiptUrl, startDate } = body
 
   const client = await prisma.client.findUnique({
     where: { id: clientId },
@@ -23,10 +23,9 @@ export async function POST(request: Request) {
   if (!plan) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 })
 
   const now = new Date()
-  const periodStart = now
-  const currentEnd = client.membershipEnd ? new Date(client.membershipEnd) : now
-  const baseDate = currentEnd > now ? currentEnd : now
-  const periodEnd = addDays(baseDate, plan.durationDays)
+  // Use manually entered start date if provided, otherwise fall back to today
+  const periodStart = startDate ? new Date(startDate + "T00:00:00") : now
+  const periodEnd = addDays(periodStart, plan.durationDays)
 
   // Create income record
   const income = await prisma.income.create({
