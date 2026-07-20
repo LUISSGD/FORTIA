@@ -39,6 +39,7 @@ const userNavItems = [
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/schedule", label: "Calendario", icon: Calendar },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
+  { href: "/training-plans", label: "Entrena. Personal", icon: Dumbbell },
 ]
 
 export default function Sidebar() {

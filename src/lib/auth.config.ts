@@ -5,7 +5,6 @@ const USER_BLOCKED = [
   "/debts",
   "/classes",
   "/memberships",
-  "/training-plans",
   "/finances/reports",
   "/finances/income",
   "/finances/expenses",
