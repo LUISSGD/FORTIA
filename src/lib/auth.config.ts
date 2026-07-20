@@ -1,16 +1,21 @@
 import type { NextAuthConfig } from "next-auth"
 
-const USER_BLOCKED = [
+// Rutas bloqueadas para USER (exact prefix match, except where noted)
+const USER_BLOCKED_PREFIXES = [
   "/dashboard",
   "/debts",
   "/classes",
   "/memberships",
   "/finances/reports",
-  "/finances/income",
-  "/finances/expenses",
   "/finances/monthly-expenses",
   "/finances/pending-accumulated",
   "/settings",
+]
+
+// Rutas exactas bloqueadas para USER (la lista completa, no el formulario de creación)
+const USER_BLOCKED_EXACT = [
+  "/finances/income",
+  "/finances/expenses",
 ]
 
 export const authConfig: NextAuthConfig = {
@@ -34,8 +39,12 @@ export const authConfig: NextAuthConfig = {
       // Block restricted routes for USER role
       const role = (auth?.user as { role?: string })?.role ?? "ADMIN"
       if (role === "USER") {
-        const blocked = USER_BLOCKED.some(r => nextUrl.pathname.startsWith(r))
-        if (blocked) return Response.redirect(new URL("/clients", nextUrl))
+        const path = nextUrl.pathname
+        const blockedByPrefix = USER_BLOCKED_PREFIXES.some(r => path.startsWith(r))
+        const blockedByExact = USER_BLOCKED_EXACT.includes(path)
+        if (blockedByPrefix || blockedByExact) {
+          return Response.redirect(new URL("/clients", nextUrl))
+        }
       }
 
       return true
