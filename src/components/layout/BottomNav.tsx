@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { LayoutDashboard, Users, Calendar, DollarSign, Dumbbell } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const navItems = [
+const adminNavItems = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/schedule", label: "Agenda", icon: Calendar },
@@ -13,8 +14,17 @@ const navItems = [
   { href: "/training-plans", label: "Entrena.", icon: Dumbbell },
 ]
 
+const userNavItems = [
+  { href: "/clients", label: "Clientes", icon: Users },
+  { href: "/schedule", label: "Agenda", icon: Calendar },
+  { href: "/finances", label: "Finanzas", icon: DollarSign },
+]
+
 export default function BottomNav() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const role = session?.user?.role ?? "ADMIN"
+  const navItems = role === "USER" ? userNavItems : adminNavItems
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800">

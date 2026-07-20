@@ -3,6 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 import {
   LayoutDashboard,
   Users,
@@ -15,11 +16,12 @@ import {
   ClipboardList,
   AlertCircle,
   Dumbbell,
+  UserCog,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 
-const navItems = [
+const adminNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/schedule", label: "Calendario", icon: Calendar },
@@ -30,10 +32,20 @@ const navItems = [
   { href: "/finances/monthly-expenses", label: "Gastos Corrientes", icon: ClipboardList },
   { href: "/finances/pending-accumulated", label: "Pend. Acumulados", icon: AlertCircle },
   { href: "/training-plans", label: "Entrena. Personal", icon: Dumbbell },
+  { href: "/settings/users", label: "Usuarios", icon: UserCog },
+]
+
+const userNavItems = [
+  { href: "/clients", label: "Clientes", icon: Users },
+  { href: "/schedule", label: "Calendario", icon: Calendar },
+  { href: "/finances", label: "Finanzas", icon: DollarSign },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const role = session?.user?.role ?? "ADMIN"
+  const navItems = role === "USER" ? userNavItems : adminNavItems
 
   return (
     <aside className="hidden md:flex w-64 bg-gray-900 text-white flex-col min-h-screen">
@@ -46,7 +58,7 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+          const isActive = pathname === item.href || (item.href !== "/finances" && pathname.startsWith(item.href + "/"))
           return (
             <Link
               key={item.href}
@@ -65,8 +77,11 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Sign out */}
-      <div className="px-3 py-4 border-t border-gray-800">
+      {/* User info + Sign out */}
+      <div className="px-3 py-4 border-t border-gray-800 space-y-1">
+        {session?.user?.name && (
+          <p className="px-3 text-xs text-gray-500 truncate">{session.user.name}</p>
+        )}
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white w-full transition-colors"
