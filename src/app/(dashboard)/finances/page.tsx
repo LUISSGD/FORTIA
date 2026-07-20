@@ -7,12 +7,17 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, TrendingDown, BarChart2 } from "lucide-react"
 import { startOfMonth, endOfMonth } from "date-fns"
+import { auth } from "@/lib/auth"
 
 function fmtAmt(amount: number, currency: string) {
   return currency === "USD" ? `$ ${amount.toFixed(2)}` : `S/ ${amount.toFixed(2)}`
 }
 
 export default async function FinancesPage() {
+  const session = await auth()
+  const role = (session?.user as { role?: string })?.role ?? "ADMIN"
+  const isUser = role === "USER"
+
   const now = new Date()
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
@@ -30,10 +35,10 @@ export default async function FinancesPage() {
       orderBy: { date: "desc" },
       take: 10,
     }),
-    prisma.income.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "PEN" } }),
-    prisma.income.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "USD" } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "PEN" } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "USD" } }),
+    isUser ? Promise.resolve({ _sum: { amount: null } }) : prisma.income.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "PEN" } }),
+    isUser ? Promise.resolve({ _sum: { amount: null } }) : prisma.income.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "USD" } }),
+    isUser ? Promise.resolve({ _sum: { amount: null } }) : prisma.expense.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "PEN" } }),
+    isUser ? Promise.resolve({ _sum: { amount: null } }) : prisma.expense.aggregate({ _sum: { amount: true }, where: { ...monthWhere, currency: "USD" } }),
   ])
 
   const incomePEN = aggIncomePEN._sum.amount ?? 0
@@ -47,56 +52,61 @@ export default async function FinancesPage() {
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Resumen del mes</h2>
-          <Link href="/finances/reports">
-            <Button variant="outline" className="gap-2"><BarChart2 className="h-4 w-4" />Ver reportes</Button>
-          </Link>
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="bg-green-100 p-3 rounded-full"><TrendingUp className="h-5 w-5 text-green-600" /></div>
-              <div>
-                <p className="text-sm text-gray-500">Ingresos del mes</p>
-                <p className="text-xl font-bold text-green-600">S/ {incomePEN.toFixed(2)}</p>
-                {incomeUSD > 0 && <p className="text-sm font-semibold text-green-500">$ {incomeUSD.toFixed(2)} USD</p>}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="bg-red-100 p-3 rounded-full"><TrendingDown className="h-5 w-5 text-red-600" /></div>
-              <div>
-                <p className="text-sm text-gray-500">Egresos del mes</p>
-                <p className="text-xl font-bold text-red-600">S/ {expensePEN.toFixed(2)}</p>
-                {expenseUSD > 0 && <p className="text-sm font-semibold text-red-500">$ {expenseUSD.toFixed(2)} USD</p>}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Neto */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <Card className="border-blue-100 bg-blue-50/30">
-            <CardContent className="p-4">
-              <p className="text-sm text-gray-500">Neto del mes (S/)</p>
-              <p className={`text-2xl font-bold ${(incomePEN - expensePEN) >= 0 ? "text-blue-600" : "text-orange-600"}`}>
-                S/ {(incomePEN - expensePEN).toFixed(2)}
-              </p>
-            </CardContent>
-          </Card>
-          {(incomeUSD > 0 || expenseUSD > 0) && (
-            <Card className="border-blue-100 bg-blue-50/30">
-              <CardContent className="p-4">
-                <p className="text-sm text-gray-500">Neto del mes ($)</p>
-                <p className={`text-2xl font-bold ${(incomeUSD - expenseUSD) >= 0 ? "text-blue-600" : "text-orange-600"}`}>
-                  $ {(incomeUSD - expenseUSD).toFixed(2)}
-                </p>
-              </CardContent>
-            </Card>
+          {!isUser && (
+            <Link href="/finances/reports">
+              <Button variant="outline" className="gap-2"><BarChart2 className="h-4 w-4" />Ver reportes</Button>
+            </Link>
           )}
         </div>
+
+        {/* KPI Cards — solo ADMIN */}
+        {!isUser && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <Card>
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="bg-green-100 p-3 rounded-full"><TrendingUp className="h-5 w-5 text-green-600" /></div>
+                  <div>
+                    <p className="text-sm text-gray-500">Ingresos del mes</p>
+                    <p className="text-xl font-bold text-green-600">S/ {incomePEN.toFixed(2)}</p>
+                    {incomeUSD > 0 && <p className="text-sm font-semibold text-green-500">$ {incomeUSD.toFixed(2)} USD</p>}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="bg-red-100 p-3 rounded-full"><TrendingDown className="h-5 w-5 text-red-600" /></div>
+                  <div>
+                    <p className="text-sm text-gray-500">Egresos del mes</p>
+                    <p className="text-xl font-bold text-red-600">S/ {expensePEN.toFixed(2)}</p>
+                    {expenseUSD > 0 && <p className="text-sm font-semibold text-red-500">$ {expenseUSD.toFixed(2)} USD</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <Card className="border-blue-100 bg-blue-50/30">
+                <CardContent className="p-4">
+                  <p className="text-sm text-gray-500">Neto del mes (S/)</p>
+                  <p className={`text-2xl font-bold ${(incomePEN - expensePEN) >= 0 ? "text-blue-600" : "text-orange-600"}`}>
+                    S/ {(incomePEN - expensePEN).toFixed(2)}
+                  </p>
+                </CardContent>
+              </Card>
+              {(incomeUSD > 0 || expenseUSD > 0) && (
+                <Card className="border-blue-100 bg-blue-50/30">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-500">Neto del mes ($)</p>
+                    <p className={`text-2xl font-bold ${(incomeUSD - expenseUSD) >= 0 ? "text-blue-600" : "text-orange-600"}`}>
+                      $ {(incomeUSD - expenseUSD).toFixed(2)}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Incomes */}
@@ -104,7 +114,7 @@ export default async function FinancesPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-700">Últimos ingresos</h3>
               <div className="flex gap-2">
-                <Link href="/finances/income"><Button variant="outline" size="sm">Ver todos</Button></Link>
+                {!isUser && <Link href="/finances/income"><Button variant="outline" size="sm">Ver todos</Button></Link>}
                 <Link href="/finances/income/new"><Button size="sm" className="bg-green-500 hover:bg-green-600">+ Ingreso</Button></Link>
               </div>
             </div>
@@ -130,7 +140,7 @@ export default async function FinancesPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-700">Últimos egresos</h3>
               <div className="flex gap-2">
-                <Link href="/finances/expenses"><Button variant="outline" size="sm">Ver todos</Button></Link>
+                {!isUser && <Link href="/finances/expenses"><Button variant="outline" size="sm">Ver todos</Button></Link>}
                 <Link href="/finances/expenses/new"><Button size="sm" className="bg-red-500 hover:bg-red-600">+ Egreso</Button></Link>
               </div>
             </div>
