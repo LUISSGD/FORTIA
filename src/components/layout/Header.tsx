@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { Bell } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 
 async function getExpiringCount() {
   const now = new Date()
@@ -26,12 +27,12 @@ export default async function Header({ title }: { title?: string }) {
       <h1 className="text-base md:text-lg font-semibold text-gray-900 truncate">{title ?? "FORTIA"}</h1>
       <div className="flex items-center gap-3">
         {expiringCount > 0 && (
-          <div className="relative">
+          <Link href="/dashboard" className="relative hover:opacity-80 transition-opacity">
             <Bell className="h-5 w-5 text-gray-500" />
             <Badge className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-orange-500">
               {expiringCount}
             </Badge>
-          </div>
+          </Link>
         )}
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">

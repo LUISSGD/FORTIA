@@ -8,6 +8,7 @@ import AddPaymentDialog from "@/components/clients/AddPaymentDialog"
 import ClientSchedulePanel from "@/components/clients/ClientSchedulePanel"
 import PersonalTrainingSection from "@/components/clients/PersonalTrainingSection"
 import PaymentHistory from "@/components/clients/PaymentHistory"
+import PhysicalTrackingSection from "@/components/clients/PhysicalTrackingSection"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +17,7 @@ import { ArrowLeft, Pencil } from "lucide-react"
 export default async function ClientDetailPage({ params }: PageProps<"/clients/[id]">) {
   const { id } = await params
 
-  const [client, plans, allSlots, trainingPlans] = await Promise.all([
+  const [client, plans, allSlots, trainingPlans, physicalRecords] = await Promise.all([
     prisma.client.findUnique({
       where: { id },
       include: {
@@ -42,6 +43,10 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
         scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
       },
       orderBy: { createdAt: "desc" },
+    }),
+    prisma.physicalRecord.findMany({
+      where: { clientId: id },
+      orderBy: { date: "desc" },
     }),
   ])
 
@@ -126,6 +131,17 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
                 clientId={client.id}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 initialPlans={trainingPlans as any}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Physical tracking */}
+          <Card className="lg:col-span-1">
+            <CardContent className="pt-4">
+              <PhysicalTrackingSection
+                clientId={client.id}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                initialRecords={physicalRecords as any}
               />
             </CardContent>
           </Card>

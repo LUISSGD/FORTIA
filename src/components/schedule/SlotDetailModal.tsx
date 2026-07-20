@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-import { X, UserPlus, Pencil, Trash2, Check, Dumbbell, ExternalLink } from "lucide-react"
+import { X, UserPlus, Pencil, Trash2, Check, Dumbbell, ExternalLink, ClipboardCheck } from "lucide-react"
 import Link from "next/link"
 import { DAYS_OF_WEEK } from "@/lib/utils"
 import type { Slot } from "./WeeklyGrid"
@@ -20,11 +20,20 @@ interface Client {
   phone?: string | null
 }
 
+interface AttendanceRecord {
+  clientId: string
+  firstName: string
+  lastName: string
+  attended: boolean
+}
+
 interface Props {
   slot: Slot | null
   open: boolean
   onClose: () => void
 }
+
+type Tab = "inscritos" | "asistencia"
 
 export default function SlotDetailModal({ slot, open, onClose }: Props) {
   const router = useRouter()
@@ -35,6 +44,10 @@ export default function SlotDetailModal({ slot, open, onClose }: Props) {
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editForm, setEditForm] = useState({ startTime: "", endTime: "", instructor: "" })
+  const [tab, setTab] = useState<Tab>("inscritos")
+  const [attendanceDate, setAttendanceDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
+  const [attendanceLoading, setAttendanceLoading] = useState(false)
 
   useEffect(() => {
     if (open && slot) {
@@ -42,11 +55,41 @@ export default function SlotDetailModal({ slot, open, onClose }: Props) {
       setEditForm({ startTime: slot.startTime, endTime: slot.endTime, instructor: slot.instructor ?? "" })
       setEditing(false)
       setConfirmDelete(false)
+      setTab("inscritos")
       if (!slot.isPT) {
         fetch("/api/clients").then((r) => r.json()).then(setAllClients)
       }
     }
   }, [open, slot])
+
+  useEffect(() => {
+    if (tab === "asistencia" && slot && !slot.isPT) {
+      loadAttendance()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, attendanceDate, slot])
+
+  async function loadAttendance() {
+    if (!slot) return
+    setAttendanceLoading(true)
+    const res = await fetch(`/api/schedule/slots/${slot.id}/attendance?date=${attendanceDate}`)
+    if (res.ok) setAttendance(await res.json())
+    setAttendanceLoading(false)
+  }
+
+  async function toggleAttendance(clientId: string, current: boolean) {
+    if (!slot) return
+    const res = await fetch(`/api/schedule/slots/${slot.id}/attendance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId, date: attendanceDate, attended: !current }),
+    })
+    if (res.ok) {
+      setAttendance((prev) =>
+        prev.map((a) => (a.clientId === clientId ? { ...a, attended: !current } : a))
+      )
+    }
+  }
 
   const enrolledIds = new Set(enrollments.map((e) => e.clientId))
   const availableClients = allClients.filter((c) => !enrolledIds.has(c.id))
@@ -185,6 +228,8 @@ export default function SlotDetailModal({ slot, open, onClose }: Props) {
     )
   }
 
+  const presentCount = attendance.filter((a) => a.attended).length
+
   // Regular slot view
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -232,7 +277,7 @@ export default function SlotDetailModal({ slot, open, onClose }: Props) {
         {!editing && (
           <div className="flex gap-2">
             <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5" />Editar horario
+              <Pencil className="h-3.5 w-3.5" />Editar
             </Button>
             {confirmDelete ? (
               <div className="flex gap-1 flex-1">
@@ -249,39 +294,104 @@ export default function SlotDetailModal({ slot, open, onClose }: Props) {
           </div>
         )}
 
-        {/* Enrolled list */}
-        <div className="space-y-2 max-h-48 overflow-y-auto border-t pt-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase">Clientes inscritos</p>
-          {enrollments.length === 0 ? (
-            <p className="text-sm text-gray-400">Sin clientes inscritos.</p>
-          ) : (
-            enrollments.map((e) => (
-              <div key={e.id} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
-                <span className="text-sm">{e.client.firstName} {e.client.lastName}</span>
-                <button onClick={() => removeClient(e.clientId)} className="text-red-400 hover:text-red-600">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
+        {/* Tabs */}
+        {!editing && (
+          <div className="border-t pt-3">
+            <div className="flex gap-1 mb-3">
+              <button
+                onClick={() => setTab("inscritos")}
+                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === "inscritos" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+              >
+                Inscritos ({enrollments.length})
+              </button>
+              <button
+                onClick={() => setTab("asistencia")}
+                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1 ${tab === "asistencia" ? "bg-orange-500 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+              >
+                <ClipboardCheck className="h-3.5 w-3.5" />Asistencia
+              </button>
+            </div>
 
-        {/* Add client */}
-        {enrollments.length < slot.class.maxCapacity && (
-          <div className="flex gap-2 pt-2 border-t">
-            <Select value={selectedClientId} onValueChange={(v) => setSelectedClientId(v ?? "")}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Agregar cliente..." />
-              </SelectTrigger>
-              <SelectContent>
-                {availableClients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" onClick={addClient} disabled={!selectedClientId || loading} className="bg-orange-500 hover:bg-orange-600">
-              <UserPlus className="h-4 w-4" />
-            </Button>
+            {/* Tab: Inscritos */}
+            {tab === "inscritos" && (
+              <>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {enrollments.length === 0 ? (
+                    <p className="text-sm text-gray-400">Sin clientes inscritos.</p>
+                  ) : (
+                    enrollments.map((e) => (
+                      <div key={e.id} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                        <span className="text-sm">{e.client.firstName} {e.client.lastName}</span>
+                        <button onClick={() => removeClient(e.clientId)} className="text-red-400 hover:text-red-600">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {enrollments.length < slot.class.maxCapacity && (
+                  <div className="flex gap-2 pt-3 border-t mt-3">
+                    <Select value={selectedClientId} onValueChange={(v) => setSelectedClientId(v ?? "")}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Agregar cliente..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableClients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" onClick={addClient} disabled={!selectedClientId || loading} className="bg-orange-500 hover:bg-orange-600">
+                      <UserPlus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Tab: Asistencia */}
+            {tab === "asistencia" && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs whitespace-nowrap">Fecha</Label>
+                  <Input
+                    type="date"
+                    value={attendanceDate}
+                    onChange={(e) => setAttendanceDate(e.target.value)}
+                    className="text-sm h-8"
+                  />
+                  {attendance.length > 0 && (
+                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                      {presentCount}/{attendance.length} presentes
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {attendanceLoading ? (
+                    <p className="text-sm text-gray-400 text-center py-3">Cargando...</p>
+                  ) : attendance.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-3">Sin clientes inscritos.</p>
+                  ) : (
+                    attendance.map((a) => (
+                      <button
+                        key={a.clientId}
+                        onClick={() => toggleAttendance(a.clientId, a.attended)}
+                        className={`w-full flex items-center justify-between rounded px-3 py-2 text-sm transition-colors ${
+                          a.attended
+                            ? "bg-green-50 border border-green-200 text-green-800"
+                            : "bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100"
+                        }`}
+                      >
+                        <span>{a.firstName} {a.lastName}</span>
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${a.attended ? "bg-green-500" : "bg-gray-200"}`}>
+                          {a.attended && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

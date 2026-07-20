@@ -50,10 +50,12 @@ model Client {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  payments      Payment[]
-  enrollments   Enrollment[]
-  incomes       Income[]
-  trainingPlans ClientTrainingPlan[]
+  payments        Payment[]
+  enrollments     Enrollment[]
+  incomes         Income[]
+  trainingPlans   ClientTrainingPlan[]
+  attendances     Attendance[]
+  physicalRecords PhysicalRecord[]
 }
 
 model Payment {
@@ -98,6 +100,7 @@ model ScheduleSlot {
   createdAt  DateTime @default(now())
 
   enrollments Enrollment[]
+  attendances Attendance[]
 
   @@unique([dayOfWeek, startTime, classId])
 }
@@ -209,6 +212,36 @@ model TrainingSession {
   completedAt   DateTime           @default(now())
   notes         String?
   createdAt     DateTime           @default(now())
+}
+
+model Attendance {
+  id        String       @id @default(cuid())
+  slotId    String
+  slot      ScheduleSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date      DateTime
+  attended  Boolean      @default(false)
+  markedAt  DateTime     @default(now())
+
+  @@unique([slotId, clientId, date])
+}
+
+model PhysicalRecord {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date      DateTime
+  weight    Float?
+  height    Float?
+  bodyFat   Float?
+  chest     Float?
+  waist     Float?
+  hips      Float?
+  arms      Float?
+  legs      Float?
+  notes     String?
+  createdAt DateTime @default(now())
 }
 
 model MonthlyExpense {
