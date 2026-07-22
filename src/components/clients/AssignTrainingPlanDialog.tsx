@@ -20,7 +20,7 @@ import {
 import type { Entrenador, Modalidad, Tarifa, NumPacks, ClasesPerPack } from "@/lib/training-pricing"
 
 const ENTRENADORES: Entrenador[] = ["HEAD_COACH", "TEAM_FORTIA"]
-const CLASES_OPTIONS: ClasesPerPack[] = [8, 12, 16]
+const CLASES_OPTIONS: ClasesPerPack[] = [4, 8, 12, 16]
 const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
 interface ScheduleDay {
@@ -187,7 +187,7 @@ export default function AssignTrainingPlanDialog({ clientId, onAssigned }: Props
                     value={clasesPerPack ? String(clasesPerPack) : ""}
                     onValueChange={v => setClasesPerPack(Number(v) as ClasesPerPack)}
                   >
-                    <SelectTrigger><SelectValue placeholder="8 / 12 / 16" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="4 / 8 / 12 / 16" /></SelectTrigger>
                     <SelectContent>
                       {CLASES_OPTIONS.map(c => (
                         <SelectItem key={c} value={String(c)}>{c} clases / 4 sem.</SelectItem>

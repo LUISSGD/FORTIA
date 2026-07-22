@@ -2,7 +2,7 @@ export type Entrenador = "HEAD_COACH" | "TEAM_FORTIA"
 export type Modalidad = "ELITE_ATHLETE" | "ELITE_ATHLETE_PAREJAS"
 export type Tarifa = "OPENING" | "REGULAR"
 export type NumPacks = 1 | 3 | 6
-export type ClasesPerPack = 8 | 12 | 16
+export type ClasesPerPack = 4 | 8 | 12 | 16
 
 type PriceMap = Partial<Record<NumPacks, Partial<Record<ClasesPerPack, number>>>>
 type TarifaMap = Partial<Record<Tarifa, PriceMap>>
@@ -39,7 +39,7 @@ export const TRAINING_PRICING: EntrenadorMap = {
   TEAM_FORTIA: {
     ELITE_ATHLETE: {
       REGULAR: {
-        1: { 8: 840, 12: 1050, 16: 1350 },
+        1: { 4: 420, 8: 840, 12: 1050, 16: 1350 },
         3: { 8: 2250, 12: 2780, 16: 3700 },
       },
     },
