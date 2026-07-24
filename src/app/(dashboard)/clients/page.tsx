@@ -15,23 +15,32 @@ export default async function ClientsPage({
 }: PageProps<"/clients">) {
   const params = await searchParams
   const search = (params?.search as string) ?? ""
+  const planFilter = (params?.plan as string) ?? ""
   const now = new Date()
   const sevenDays = addDays(now, 7)
 
-  const clients = await prisma.client.findMany({
-    where: {
-      isActive: true,
-      ...(search && {
-        OR: [
-          { firstName: { contains: search } },
-          { lastName: { contains: search } },
-          { dni: { contains: search } },
-        ],
-      }),
-    },
-    include: { membershipPlan: true },
-    orderBy: { createdAt: "desc" },
-  })
+  const [clients, plans] = await Promise.all([
+    prisma.client.findMany({
+      where: {
+        isActive: true,
+        ...(search && {
+          OR: [
+            { firstName: { contains: search } },
+            { lastName: { contains: search } },
+            { dni: { contains: search } },
+          ],
+        }),
+        ...(planFilter === "none"
+          ? { membershipPlanId: null }
+          : planFilter
+          ? { membershipPlanId: planFilter }
+          : {}),
+      },
+      include: { membershipPlan: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.membershipPlan.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+  ])
 
   const expiring = clients.filter((c) => {
     if (!c.membershipEnd) return false
@@ -70,14 +79,36 @@ export default async function ClientsPage({
           </div>
         )}
 
-        {/* Search */}
-        <form className="mb-4">
+        {/* Search + Plan filter */}
+        <form className="mb-4 flex flex-wrap gap-2">
           <input
             name="search"
             defaultValue={search}
             placeholder="Buscar por nombre, DNI..."
-            className="w-full max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 w-56"
           />
+          <select
+            name="plan"
+            defaultValue={planFilter}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+          >
+            <option value="">Todos los planes</option>
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+            <option value="none">Sin plan</option>
+          </select>
+          <button
+            type="submit"
+            className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-2 rounded-lg"
+          >
+            Filtrar
+          </button>
+          {(search || planFilter) && (
+            <a href="/clients" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
+              Limpiar
+            </a>
+          )}
         </form>
 
         <div className="bg-white rounded-lg border">
