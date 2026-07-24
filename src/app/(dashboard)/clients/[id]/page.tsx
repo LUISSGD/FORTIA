@@ -102,8 +102,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
                 />
                 <ExtendPlanDialog
                   clientId={client.id}
-                  membershipEnd={client.membershipEnd}
-                  onUpdated={() => {}}
+                  membershipEnd={client.membershipEnd ? client.membershipEnd.toISOString() : null}
                 />
                 <WhatsAppButton phone={client.phone} name={fullName} membershipEnd={client.membershipEnd} />
               </div>
