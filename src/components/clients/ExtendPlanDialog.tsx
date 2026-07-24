@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { CalendarPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "sonner"
@@ -54,11 +55,9 @@ export default function ExtendPlanDialog({ clientId, membershipEnd, onUpdated }:
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <CalendarPlus className="h-3.5 w-3.5 mr-1" />
-          Extender plan
-        </Button>
+      <DialogTrigger className="inline-flex items-center gap-1 text-xs border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-2.5 py-1.5 rounded-md font-medium transition-colors">
+        <CalendarPlus className="h-3.5 w-3.5" />
+        Extender plan
       </DialogTrigger>
       <DialogContent className="max-w-sm">
         <DialogHeader>
