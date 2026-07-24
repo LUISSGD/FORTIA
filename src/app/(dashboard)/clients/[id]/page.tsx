@@ -9,6 +9,7 @@ import ClientSchedulePanel from "@/components/clients/ClientSchedulePanel"
 import PersonalTrainingSection from "@/components/clients/PersonalTrainingSection"
 import PaymentHistory from "@/components/clients/PaymentHistory"
 import PhysicalTrackingSection from "@/components/clients/PhysicalTrackingSection"
+import ExtendPlanDialog from "@/components/clients/ExtendPlanDialog"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -92,12 +93,17 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
               <div><span className="text-gray-500">Inicio:</span> <span className="font-medium">{formatDate(client.membershipStart)}</span></div>
               <div><span className="text-gray-500">Vencimiento:</span> <span className="font-medium">{formatDate(client.membershipEnd)}</span></div>
               {client.notes && <div><span className="text-gray-500">Notas:</span> <span className="font-medium">{client.notes}</span></div>}
-              <div className="pt-2 flex gap-2">
+              <div className="pt-2 flex flex-wrap gap-2">
                 <AddPaymentDialog
                   clientId={client.id}
                   clientName={fullName}
                   plans={plans}
                   currentPlanId={client.membershipPlanId}
+                />
+                <ExtendPlanDialog
+                  clientId={client.id}
+                  membershipEnd={client.membershipEnd}
+                  onUpdated={() => {}}
                 />
                 <WhatsAppButton phone={client.phone} name={fullName} membershipEnd={client.membershipEnd} />
               </div>

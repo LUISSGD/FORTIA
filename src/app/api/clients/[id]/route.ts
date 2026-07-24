@@ -38,6 +38,8 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/clients/[id]
       notes: body.notes || null,
       trainer: body.trainer || null,
       membershipPlanId: body.membershipPlanId || null,
+      membershipStart: body.membershipStart ? new Date(body.membershipStart + "T00:00:00") : undefined,
+      membershipEnd: body.membershipEnd ? new Date(body.membershipEnd + "T00:00:00") : undefined,
     },
     include: { membershipPlan: true },
   })

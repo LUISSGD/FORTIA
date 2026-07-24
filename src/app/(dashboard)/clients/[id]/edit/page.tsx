@@ -16,6 +16,7 @@ interface Client {
   id: string; firstName: string; lastName: string; email?: string | null
   phone?: string | null; dni?: string | null; notes?: string | null
   trainer?: string | null; membershipPlanId?: string | null
+  membershipStart?: string | null; membershipEnd?: string | null
 }
 
 export default function EditClientPage() {
@@ -39,6 +40,8 @@ export default function EditClientPage() {
         notes: client.notes ?? "",
         trainer: client.trainer ?? "",
         membershipPlanId: client.membershipPlanId ?? "",
+        membershipStart: client.membershipStart ? client.membershipStart.slice(0, 10) : "",
+        membershipEnd: client.membershipEnd ? client.membershipEnd.slice(0, 10) : "",
       })
       setPlans(plans)
     })
@@ -145,6 +148,16 @@ export default function EditClientPage() {
                   <SelectItem value="Juliuz">Juliuz</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Inicio de membresía</Label>
+                <Input type="date" value={form.membershipStart} onChange={(e) => set("membershipStart", e.target.value)} />
+              </div>
+              <div>
+                <Label>Vencimiento de membresía</Label>
+                <Input type="date" value={form.membershipEnd} onChange={(e) => set("membershipEnd", e.target.value)} />
+              </div>
             </div>
             <div>
               <Label>Notas</Label>
