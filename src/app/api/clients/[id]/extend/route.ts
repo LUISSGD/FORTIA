@@ -2,12 +2,13 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { addDays, format } from "date-fns"
-import { es } from "date-fns/locale"
 
-export async function POST(request: Request, ctx: RouteContext<"/api/clients/[id]/extend">) {
+type Ctx = { params: Promise<{ id: string }> }
+
+export async function POST(request: Request, { params }: Ctx) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-  const { id } = await ctx.params
+  const { id } = await params
   const { days, reason } = await request.json()
 
   if (!days || days <= 0) return NextResponse.json({ error: "Días inválidos" }, { status: 400 })
