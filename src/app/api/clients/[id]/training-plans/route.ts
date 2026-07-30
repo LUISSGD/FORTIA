@@ -41,7 +41,47 @@ export async function GET(_req: Request, { params }: Ctx) {
     },
     orderBy: { createdAt: "desc" },
   })
-  return NextResponse.json(plans)
+
+  // Auto-fill missing session records for plans created before this feature
+  let needsRefresh = false
+  for (const plan of plans) {
+    const total = plan.numPacks * plan.clasesPerPack
+    const normalSessions = plan.sessions.filter((s) => !s.isRescheduled)
+    if (normalSessions.length < total) {
+      const existing = new Set(normalSessions.map((s) => s.sessionNumber))
+      const planStart = plan.currentPackStart ?? plan.createdAt
+      const sessionDates = generateSessionDates(planStart, plan.scheduleSlots, total)
+      const toCreate = []
+      for (let i = 1; i <= total; i++) {
+        if (!existing.has(i)) {
+          toCreate.push({
+            planId: plan.id,
+            sessionNumber: i,
+            packNumber: Math.floor((i - 1) / plan.clasesPerPack) + 1,
+            scheduledDate: sessionDates[i - 1] ?? null,
+            attended: null as boolean | null,
+            completedAt: null as Date | null,
+          })
+        }
+      }
+      if (toCreate.length > 0) {
+        await prisma.trainingSession.createMany({ data: toCreate })
+        needsRefresh = true
+      }
+    }
+  }
+
+  if (!needsRefresh) return NextResponse.json(plans)
+
+  const refreshed = await prisma.clientTrainingPlan.findMany({
+    where: { clientId: id },
+    include: {
+      sessions: { orderBy: [{ isRescheduled: "asc" }, { sessionNumber: "asc" }] },
+      scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
+    },
+    orderBy: { createdAt: "desc" },
+  })
+  return NextResponse.json(refreshed)
 }
 
 export async function POST(req: Request, { params }: Ctx) {
