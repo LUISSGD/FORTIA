@@ -17,6 +17,8 @@ interface Client {
   phone?: string | null; dni?: string | null; notes?: string | null
   trainer?: string | null; membershipPlanId?: string | null
   membershipStart?: string | null; membershipEnd?: string | null
+  firstName2?: string | null; lastName2?: string | null
+  phone2?: string | null; dni2?: string | null
 }
 
 export default function EditClientPage() {
@@ -42,6 +44,10 @@ export default function EditClientPage() {
         membershipPlanId: client.membershipPlanId ?? "",
         membershipStart: client.membershipStart ? client.membershipStart.slice(0, 10) : "",
         membershipEnd: client.membershipEnd ? client.membershipEnd.slice(0, 10) : "",
+        firstName2: client.firstName2 ?? "",
+        lastName2: client.lastName2 ?? "",
+        phone2: client.phone2 ?? "",
+        dni2: client.dni2 ?? "",
       })
       setPlans(plans)
     })
@@ -157,6 +163,27 @@ export default function EditClientPage() {
               <div>
                 <Label>Vencimiento de membresía</Label>
                 <Input type="date" value={form.membershipEnd} onChange={(e) => set("membershipEnd", e.target.value)} />
+              </div>
+            </div>
+            <div className="border-t pt-4">
+              <p className="text-sm font-medium text-gray-700 mb-3">Persona 2 (pareja / grupo)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombre</Label>
+                  <Input value={form.firstName2} onChange={(e) => set("firstName2", e.target.value)} placeholder="Opcional" />
+                </div>
+                <div>
+                  <Label>Apellido</Label>
+                  <Input value={form.lastName2} onChange={(e) => set("lastName2", e.target.value)} placeholder="Opcional" />
+                </div>
+                <div>
+                  <Label>DNI</Label>
+                  <Input value={form.dni2} onChange={(e) => set("dni2", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Teléfono</Label>
+                  <Input value={form.phone2} onChange={(e) => set("phone2", e.target.value)} />
+                </div>
               </div>
             </div>
             <div>

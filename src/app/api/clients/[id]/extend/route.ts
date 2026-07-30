@@ -16,16 +16,26 @@ export async function POST(request: Request, { params }: Ctx) {
   const client = await prisma.client.findUnique({ where: { id } })
   if (!client) return NextResponse.json({ error: "No encontrado" }, { status: 404 })
 
-  const baseDate = client.membershipEnd ? new Date(client.membershipEnd) : new Date()
-  const newEnd = addDays(baseDate, days)
+  const oldEnd = client.membershipEnd ? new Date(client.membershipEnd) : new Date()
+  const newEnd = addDays(oldEnd, days)
+  const concept = `Extensión +${days} días — ${reason}`
 
-  const logEntry = `[${format(new Date(), "dd/MM/yyyy")}] +${days} días — ${reason || "Sin justificación"}`
-  const updatedNotes = client.notes ? `${client.notes}\n${logEntry}` : logEntry
+  // Record in payment history (amount 0, so it's visible but doesn't affect finances)
+  await prisma.payment.create({
+    data: {
+      clientId: id,
+      amount: 0,
+      method: "EXTENSION",
+      concept,
+      periodStart: oldEnd,
+      periodEnd: newEnd,
+    },
+  })
 
   const updated = await prisma.client.update({
     where: { id },
-    data: { membershipEnd: newEnd, notes: updatedNotes },
+    data: { membershipEnd: newEnd },
   })
 
-  return NextResponse.json({ membershipEnd: updated.membershipEnd, notes: updated.notes })
+  return NextResponse.json({ membershipEnd: updated.membershipEnd })
 }

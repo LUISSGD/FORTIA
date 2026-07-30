@@ -91,13 +91,19 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
   return (
     <>
       <div className="space-y-3">
-        {payments.map((p) => (
-          <div key={p.id} className="border-l-2 border-orange-300 pl-3">
+        {payments.map((p) => {
+          const isExtension = p.method === "EXTENSION"
+          return (
+          <div key={p.id} className={`border-l-2 pl-3 ${isExtension ? "border-blue-300" : "border-orange-300"}`}>
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium">{formatCurrency(p.amount)}</p>
-                <p className="text-xs text-gray-500">{PAYMENT_METHODS[p.method] ?? p.method}</p>
-                <p className="text-xs text-gray-400">{formatDate(p.periodStart)} — {formatDate(p.periodEnd)}</p>
+                {isExtension ? (
+                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Extensión de plan</p>
+                ) : (
+                  <p className="text-sm font-medium">{formatCurrency(p.amount)}</p>
+                )}
+                {!isExtension && <p className="text-xs text-gray-500">{PAYMENT_METHODS[p.method] ?? p.method}</p>}
+                <p className="text-xs text-gray-400">{formatDate(p.periodStart)} → {formatDate(p.periodEnd)}</p>
               </div>
               <div className="flex items-center gap-1.5">
                 {p.receiptUrl && (
@@ -125,7 +131,8 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
             </div>
             {p.concept && <p className="text-xs text-gray-500 mt-1">{p.concept}</p>}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null) }}>
