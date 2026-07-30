@@ -55,6 +55,30 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
 
   const fullName = `${client.firstName} ${client.lastName}`
 
+  const serializedPlans = trainingPlans.map(plan => ({
+    ...plan,
+    createdAt: plan.createdAt.toISOString(),
+    updatedAt: plan.updatedAt.toISOString(),
+    currentPackStart: plan.currentPackStart?.toISOString() ?? null,
+    sessions: plan.sessions.map(s => ({
+      ...s,
+      scheduledDate: s.scheduledDate?.toISOString() ?? null,
+      completedAt: s.completedAt?.toISOString() ?? null,
+      createdAt: s.createdAt.toISOString(),
+    })),
+    scheduleSlots: plan.scheduleSlots.map(sl => ({
+      ...sl,
+      createdAt: sl.createdAt.toISOString(),
+      updatedAt: sl.updatedAt.toISOString(),
+    })),
+  }))
+
+  const serializedRecords = physicalRecords.map(r => ({
+    ...r,
+    date: r.date.toISOString(),
+    createdAt: r.createdAt.toISOString(),
+  }))
+
   return (
     <>
       <Header title="Detalle de cliente" />
@@ -134,8 +158,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
             <CardContent className="pt-4">
               <PersonalTrainingSection
                 clientId={client.id}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                initialPlans={trainingPlans as any}
+                initialPlans={serializedPlans}
               />
             </CardContent>
           </Card>
@@ -145,8 +168,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
             <CardContent className="pt-4">
               <PhysicalTrackingSection
                 clientId={client.id}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                initialRecords={physicalRecords as any}
+                initialRecords={serializedRecords}
               />
             </CardContent>
           </Card>
