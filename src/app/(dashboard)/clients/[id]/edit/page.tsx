@@ -70,7 +70,8 @@ export default function EditClientPage() {
       toast.success("Cliente actualizado")
       router.push(`/clients/${params.id}`)
     } else {
-      toast.error("Error al actualizar")
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? "Error al actualizar")
     }
   }
 
@@ -188,7 +189,12 @@ export default function EditClientPage() {
             </div>
             <div>
               <Label>Notas</Label>
-              <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+              <textarea
+                value={form.notes}
+                onChange={(e) => set("notes", e.target.value)}
+                rows={3}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+              />
             </div>
             <div className="flex gap-3 pt-2">
               <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={loading}>
