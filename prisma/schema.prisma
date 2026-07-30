@@ -209,7 +209,10 @@ model TrainingSession {
   plan          ClientTrainingPlan @relation(fields: [planId], references: [id])
   sessionNumber Int
   packNumber    Int
-  completedAt   DateTime           @default(now())
+  scheduledDate DateTime?
+  completedAt   DateTime?
+  attended      Boolean?
+  isRescheduled Boolean            @default(false)
   notes         String?
   createdAt     DateTime           @default(now())
 }

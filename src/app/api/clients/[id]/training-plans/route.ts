@@ -3,9 +3,30 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { getTrainingPrice } from "@/lib/training-pricing"
 import type { Entrenador, Modalidad, Tarifa, NumPacks, ClasesPerPack } from "@/lib/training-pricing"
-
+import { addDays } from "date-fns"
 
 type Ctx = { params: Promise<{ id: string }> }
+
+function generateSessionDates(
+  startDate: Date,
+  scheduleDays: { dayOfWeek: number }[],
+  total: number
+): (Date | null)[] {
+  if (!scheduleDays.length) return Array(total).fill(null)
+  const sorted = [...scheduleDays].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+  const dates: Date[] = []
+  let current = new Date(startDate)
+  let iterations = 0
+  while (dates.length < total && iterations < total * 14) {
+    const dow = current.getDay() === 0 ? 6 : current.getDay() - 1 // Mon=0 … Sun=6
+    if (sorted.some((d) => d.dayOfWeek === dow)) {
+      dates.push(new Date(current))
+    }
+    current = addDays(current, 1)
+    iterations++
+  }
+  return dates.length ? dates : Array(total).fill(null)
+}
 
 export async function GET(_req: Request, { params }: Ctx) {
   const session = await auth()
@@ -15,7 +36,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   const plans = await prisma.clientTrainingPlan.findMany({
     where: { clientId: id },
     include: {
-      sessions: { orderBy: { sessionNumber: "asc" } },
+      sessions: { orderBy: [{ isRescheduled: "asc" }, { sessionNumber: "asc" }] },
       scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
     },
     orderBy: { createdAt: "desc" },
@@ -42,6 +63,8 @@ export async function POST(req: Request, { params }: Ctx) {
     return NextResponse.json({ error: "Combinación de plan no válida" }, { status: 400 })
   }
 
+  const planStart = startDate ? new Date(startDate) : new Date()
+
   const plan = await prisma.clientTrainingPlan.create({
     data: {
       clientId: id,
@@ -52,7 +75,7 @@ export async function POST(req: Request, { params }: Ctx) {
       clasesPerPack,
       pricePaid: price,
       currency: "PEN",
-      currentPackStart: startDate ? new Date(startDate) : new Date(),
+      currentPackStart: planStart,
       notes: notes || null,
     },
     include: {
@@ -61,6 +84,25 @@ export async function POST(req: Request, { params }: Ctx) {
     },
   })
 
+  // Auto-generate session slots
+  const total = numPacks * clasesPerPack
+  const sessionDates = generateSessionDates(
+    planStart,
+    Array.isArray(scheduleDays) ? scheduleDays : [],
+    total
+  )
+
+  const sessionData = Array.from({ length: total }, (_, i) => ({
+    planId: plan.id,
+    sessionNumber: i + 1,
+    packNumber: Math.floor(i / clasesPerPack) + 1,
+    scheduledDate: sessionDates[i] ?? null,
+    attended: null as boolean | null,
+    completedAt: null as Date | null,
+  }))
+  await prisma.trainingSession.createMany({ data: sessionData })
+
+  // Create schedule slots
   if (Array.isArray(scheduleDays) && scheduleDays.length > 0) {
     await prisma.personalTrainingSlot.createMany({
       data: scheduleDays.map((d: { dayOfWeek: number; startTime: string; endTime: string }) => ({
@@ -70,12 +112,15 @@ export async function POST(req: Request, { params }: Ctx) {
         endTime: d.endTime,
       })),
     })
-    const updatedSlots = await prisma.personalTrainingSlot.findMany({
-      where: { planId: plan.id },
-      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-    })
-    return NextResponse.json({ ...plan, scheduleSlots: updatedSlots }, { status: 201 })
   }
 
-  return NextResponse.json(plan, { status: 201 })
+  const finalPlan = await prisma.clientTrainingPlan.findUnique({
+    where: { id: plan.id },
+    include: {
+      sessions: { orderBy: [{ isRescheduled: "asc" }, { sessionNumber: "asc" }] },
+      scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
+    },
+  })
+
+  return NextResponse.json(finalPlan, { status: 201 })
 }

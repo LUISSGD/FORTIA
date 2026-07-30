@@ -2,7 +2,10 @@
 
 import { useState, useCallback } from "react"
 import { toast } from "sonner"
-import { Dumbbell, CheckCircle2, PauseCircle, PlayCircle, ChevronRight, RotateCcw, CalendarDays, Plus, Trash2, Pencil } from "lucide-react"
+import {
+  Dumbbell, PauseCircle, PlayCircle, ChevronRight, CalendarDays,
+  Plus, Trash2, Pencil, CheckCircle2, XCircle
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -12,12 +15,17 @@ import { ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS } from "@/lib/traini
 import type { Entrenador, Modalidad, Tarifa } from "@/lib/training-pricing"
 
 const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+const MONTH_NAMES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
 interface TrainingSession {
   id: string
   sessionNumber: number
   packNumber: number
-  completedAt: string
+  scheduledDate?: string | null
+  completedAt?: string | null
+  attended?: boolean | null
+  isRescheduled?: boolean
+  notes?: string | null
 }
 
 interface ScheduleSlot {
@@ -67,6 +75,24 @@ function fmt(n: number) {
   return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`
 }
 
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
+}
+
+function dayLabel(iso: string | null | undefined): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1
+  return DAY_LABELS[dow]
+}
+
+function toInputValue(iso: string | null | undefined): string {
+  if (!iso) return ""
+  return iso.slice(0, 10)
+}
+
 function formatSchedule(slots: ScheduleSlot[]) {
   if (!slots || slots.length === 0) return null
   const byTime: Record<string, number[]> = {}
@@ -81,6 +107,7 @@ function formatSchedule(slots: ScheduleSlot[]) {
   }).join(" | ")
 }
 
+/* ── Schedule Dialog (unchanged) ─────────────────────────────── */
 interface ScheduleDialogProps {
   planId: string
   clientId: string
@@ -212,6 +239,7 @@ function ScheduleDialog({ planId, clientId, slots, onUpdate }: ScheduleDialogPro
   )
 }
 
+/* ── Edit Plan Dialog (unchanged) ─────────────────────────────── */
 interface EditDialogProps {
   plan: Plan
   clientId: string
@@ -324,48 +352,210 @@ function EditPlanDialog({ plan, clientId, onSaved, onDeleted }: EditDialogProps)
   )
 }
 
+/* ── Add Reschedule Dialog ─────────────────────────────────────── */
+interface AddRescheduleProps {
+  planId: string
+  clientId: string
+  onAdded: (updated: Plan) => void
+}
+
+function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) {
+  const [open, setOpen] = useState(false)
+  const [date, setDate] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  async function handleAdd() {
+    setSaving(true)
+    const res = await fetch(`/api/clients/${clientId}/training-plans/${planId}/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scheduledDate: date || null }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      const updated = await res.json()
+      onAdded(updated)
+      toast.success("Sesión de reprogramación agregada")
+      setDate("")
+      setOpen(false)
+    } else {
+      toast.error("Error al agregar")
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 font-medium mt-1"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Agregar reprogramación
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Sesión de reprogramación</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Fecha (opcional)</Label>
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 h-8 text-xs" onClick={handleAdd} disabled={saving}>
+                {saving ? "Guardando..." : "Agregar"}
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setOpen(false)}>Cancelar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+/* ── Session Row ───────────────────────────────────────────────── */
+interface SessionRowProps {
+  session: TrainingSession
+  label: string
+  planId: string
+  clientId: string
+  onUpdated: (updated: Plan) => void
+}
+
+function SessionRow({ session, label, planId, clientId, onUpdated }: SessionRowProps) {
+  const [busy, setBusy] = useState(false)
+  const [editingDate, setEditingDate] = useState(false)
+  const [dateVal, setDateVal] = useState(toInputValue(session.scheduledDate))
+
+  // Retrocompat: if attended null but completedAt set, treat as attended
+  const effectiveAttended = session.attended ?? (session.completedAt ? true : null)
+
+  async function patch(data: Record<string, unknown>) {
+    setBusy(true)
+    const res = await fetch(`/api/clients/${clientId}/training-plans/${planId}/sessions/${session.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    setBusy(false)
+    if (res.ok) {
+      onUpdated(await res.json())
+    } else {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? "Error")
+    }
+  }
+
+  async function saveDate() {
+    await patch({ scheduledDate: dateVal || null })
+    setEditingDate(false)
+  }
+
+  const displayDate = session.scheduledDate ?? session.completedAt
+  const isRescheduled = session.isRescheduled
+
+  return (
+    <div className={`flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0 ${isRescheduled ? "bg-blue-50/40" : ""}`}>
+      {/* Label */}
+      <span className={`text-[11px] font-bold w-6 text-center shrink-0 ${
+        isRescheduled ? "text-blue-600" : "text-gray-500"
+      }`}>
+        {label}
+      </span>
+
+      {/* Day */}
+      <span className="text-[11px] text-gray-400 w-7 shrink-0">
+        {dayLabel(displayDate)}
+      </span>
+
+      {/* Date */}
+      <div className="flex-1 min-w-0">
+        {effectiveAttended !== null ? (
+          <span className="text-xs text-gray-500">{fmtDate(displayDate) || "—"}</span>
+        ) : editingDate ? (
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              value={dateVal}
+              onChange={e => setDateVal(e.target.value)}
+              className="h-6 text-xs px-1.5 py-0"
+              autoFocus
+              onKeyDown={e => { if (e.key === "Enter") saveDate(); if (e.key === "Escape") setEditingDate(false) }}
+            />
+            <button onClick={saveDate} className="text-orange-500 hover:text-orange-600 text-[11px] font-medium">ok</button>
+            <button onClick={() => setEditingDate(false)} className="text-gray-400 hover:text-gray-600 text-[11px]">✕</button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setEditingDate(true)}
+            className="text-xs text-gray-400 hover:text-gray-700 text-left"
+          >
+            {fmtDate(session.scheduledDate) || <span className="italic text-gray-300">sin fecha</span>}
+          </button>
+        )}
+      </div>
+
+      {/* Attendance buttons */}
+      <div className="flex items-center gap-1 shrink-0">
+        {effectiveAttended === true ? (
+          <button
+            onClick={() => patch({ attended: null })}
+            disabled={busy}
+            className="flex items-center gap-0.5 text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium hover:bg-green-200 transition-colors"
+            title="Click para revertir"
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            Asistió
+          </button>
+        ) : effectiveAttended === false ? (
+          <button
+            onClick={() => patch({ attended: null })}
+            disabled={busy}
+            className="flex items-center gap-0.5 text-[11px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium hover:bg-red-200 transition-colors"
+            title="Click para revertir"
+          >
+            <XCircle className="h-3 w-3" />
+            No asistió
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => patch({ attended: true })}
+              disabled={busy}
+              className="text-[11px] bg-orange-500 text-white px-2 py-0.5 rounded-full font-medium hover:bg-orange-600 transition-colors disabled:opacity-50"
+            >
+              {busy ? "..." : "Asistió"}
+            </button>
+            <button
+              onClick={() => patch({ attended: false })}
+              disabled={busy}
+              className="text-[11px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium hover:bg-gray-300 transition-colors disabled:opacity-50"
+            >
+              No asistió
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── Main Component ─────────────────────────────────────────────── */
 export default function PersonalTrainingSection({ clientId, initialPlans }: Props) {
   const [plans, setPlans] = useState<Plan[]>(initialPlans)
-  const [marking, setMarking] = useState<string | null>(null)
-  const [undoing, setUndoing] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/clients/${clientId}/training-plans`)
     if (res.ok) setPlans(await res.json())
   }, [clientId])
 
-  async function markSession(planId: string) {
-    setMarking(planId)
-    const res = await fetch(`/api/clients/${clientId}/training-plans/${planId}/sessions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    })
-    setMarking(null)
-    if (res.ok) {
-      const updated = await res.json()
-      setPlans(prev => prev.map(p => p.id === planId ? { ...updated, scheduleSlots: p.scheduleSlots } : p))
-      toast.success("Clase marcada")
-    } else {
-      const err = await res.json()
-      toast.error(err.error ?? "Error")
-    }
-  }
-
-  async function undoSession(planId: string) {
-    setUndoing(planId)
-    const res = await fetch(`/api/clients/${clientId}/training-plans/${planId}/sessions`, {
-      method: "DELETE",
-    })
-    setUndoing(null)
-    if (res.ok) {
-      const updated = await res.json()
-      setPlans(prev => prev.map(p => p.id === planId ? { ...updated, scheduleSlots: p.scheduleSlots } : p))
-      toast.success("Clase desmarcada")
-    } else {
-      const err = await res.json()
-      toast.error(err.error ?? "Error")
-    }
+  function updatePlan(updated: Plan) {
+    setPlans(prev => prev.map(p =>
+      p.id === updated.id ? { ...updated, scheduleSlots: p.scheduleSlots ?? updated.scheduleSlots } : p
+    ))
   }
 
   async function toggleStatus(plan: Plan) {
@@ -413,14 +603,22 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
       <div className="space-y-3">
         {activePlans.map(plan => {
           const totalClases = plan.numPacks * plan.clasesPerPack
-          const currentPack = Math.min(Math.floor(plan.sessionsCompleted / plan.clasesPerPack) + 1, plan.numPacks)
-          const sessionsInCurrentPack = plan.sessionsCompleted % plan.clasesPerPack
-          const progressPct = plan.clasesPerPack > 0 ? (sessionsInCurrentPack / plan.clasesPerPack) * 100 : 0
-          const isCompleted = plan.status === "COMPLETED"
+          const normalSessions = plan.sessions.filter(s => !s.isRescheduled)
+          const rescheduledSessions = plan.sessions.filter(s => s.isRescheduled)
           const scheduleLabel = formatSchedule(plan.scheduleSlots ?? [])
+
+          // Progress counts
+          const attended = plan.sessions.filter(s => (s.attended ?? (s.completedAt ? true : null)) === true).length
+          const missed = plan.sessions.filter(s => s.attended === false).length
+          const pending = plan.sessions.filter(s => (s.attended ?? (s.completedAt ? true : null)) === null).length
+
+          // Pack progress for header
+          const currentPack = Math.min(Math.floor(plan.sessionsCompleted / plan.clasesPerPack) + 1, plan.numPacks)
+          const isCompleted = plan.status === "COMPLETED"
 
           return (
             <div key={plan.id} className="border rounded-xl p-3 bg-white space-y-2">
+              {/* Header */}
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold">{MODALIDAD_LABELS[plan.modalidad as Modalidad] ?? plan.modalidad}</p>
@@ -443,23 +641,10 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                 </div>
               </div>
 
-              {/* Pack progress */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-gray-500">
-                    Pack {currentPack} de {plan.numPacks} · {sessionsInCurrentPack}/{plan.clasesPerPack} clases
-                  </span>
-                  <span className="text-xs text-gray-400">{plan.sessionsCompleted}/{totalClases} totales</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div
-                    className="bg-orange-400 h-2 rounded-full transition-all"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
-                {/* Pack dots */}
+              {/* Pack pills */}
+              <div className="flex items-center gap-2">
                 {plan.numPacks > 1 && (
-                  <div className="flex items-center gap-1 mt-1.5">
+                  <div className="flex items-center gap-1">
                     {Array.from({ length: plan.numPacks }).map((_, i) => {
                       const packSessions = Math.max(0, Math.min(plan.clasesPerPack, plan.sessionsCompleted - i * plan.clasesPerPack))
                       const isDone = packSessions >= plan.clasesPerPack
@@ -475,18 +660,22 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                     })}
                   </div>
                 )}
+                <span className="text-xs text-gray-500 ml-auto">
+                  <span className="text-green-600 font-medium">{attended}</span> asistidas
+                  {" · "}
+                  <span className="text-gray-400">{pending}</span> pendientes
+                  {missed > 0 && <><span> · </span><span className="text-red-400">{missed}</span> no asistidas</>}
+                </span>
               </div>
 
-              {/* Schedule info */}
+              {/* Schedule label */}
               <div className="flex items-center justify-between">
                 {scheduleLabel ? (
                   <p className="text-xs text-gray-400 flex items-center gap-1">
                     <CalendarDays className="h-3 w-3" />
                     {scheduleLabel}
                   </p>
-                ) : (
-                  <span />
-                )}
+                ) : <span />}
                 <ScheduleDialog
                   planId={plan.id}
                   clientId={clientId}
@@ -495,31 +684,54 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                 />
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-1 flex-wrap">
-                {plan.status === "ACTIVE" && (
-                  <Button
-                    size="sm"
-                    className="bg-orange-500 hover:bg-orange-600 h-7 text-xs"
-                    onClick={() => markSession(plan.id)}
-                    disabled={marking === plan.id || undoing === plan.id}
-                  >
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    {marking === plan.id ? "..." : "Marcar clase"}
-                  </Button>
+              {/* Session table */}
+              <div className="border rounded-lg overflow-hidden bg-gray-50/50">
+                {/* Normal sessions */}
+                <div className="px-2 pt-1">
+                  {normalSessions.length === 0 ? (
+                    <p className="text-xs text-gray-400 py-2 text-center">Sin sesiones registradas</p>
+                  ) : (
+                    normalSessions.map((session) => (
+                      <SessionRow
+                        key={session.id}
+                        session={session}
+                        label={`S${session.sessionNumber}`}
+                        planId={plan.id}
+                        clientId={clientId}
+                        onUpdated={updatePlan}
+                      />
+                    ))
+                  )}
+                </div>
+
+                {/* Rescheduled sessions */}
+                {rescheduledSessions.length > 0 && (
+                  <div className="px-2 border-t border-blue-100">
+                    {rescheduledSessions.map((session, idx) => (
+                      <SessionRow
+                        key={session.id}
+                        session={session}
+                        label={`R${idx + 1}`}
+                        planId={plan.id}
+                        clientId={clientId}
+                        onUpdated={updatePlan}
+                      />
+                    ))}
+                  </div>
                 )}
-                {plan.sessionsCompleted > 0 && (plan.status === "ACTIVE" || plan.status === "PAUSED") && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs text-gray-500"
-                    onClick={() => undoSession(plan.id)}
-                    disabled={marking === plan.id || undoing === plan.id}
-                  >
-                    <RotateCcw className="h-3 w-3 mr-1" />
-                    {undoing === plan.id ? "..." : "Deshacer"}
-                  </Button>
-                )}
+
+                {/* Add reschedule button */}
+                <div className="px-2 pb-2">
+                  <AddRescheduleDialog
+                    planId={plan.id}
+                    clientId={clientId}
+                    onAdded={updatePlan}
+                  />
+                </div>
+              </div>
+
+              {/* Plan actions */}
+              <div className="flex gap-2 flex-wrap">
                 {(plan.status === "ACTIVE" || plan.status === "PAUSED") && (
                   <Button
                     size="sm"
@@ -540,39 +752,57 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
           )
         })}
 
+        {/* Past plans */}
         {pastPlans.length > 0 && (
-          <details className="mt-2" open>
+          <details className="mt-2">
             <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
               Ver planes anteriores ({pastPlans.length})
             </summary>
             <div className="space-y-2 mt-2">
-              {pastPlans.map(plan => (
-                <div key={plan.id} className="border rounded-lg p-2.5 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium">{MODALIDAD_LABELS[plan.modalidad as Modalidad] ?? plan.modalidad}</p>
-                      <p className="text-[11px] text-gray-400">
-                        {plan.sessionsCompleted}/{plan.numPacks * plan.clasesPerPack} clases · {fmt(plan.pricePaid)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
+              {pastPlans.map(plan => {
+                const attended = plan.sessions.filter(s => (s.attended ?? (s.completedAt ? true : null)) === true).length
+                const totalClases = plan.numPacks * plan.clasesPerPack
+                return (
+                  <div key={plan.id} className="border rounded-lg p-2.5 bg-gray-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-medium">{MODALIDAD_LABELS[plan.modalidad as Modalidad] ?? plan.modalidad}</p>
+                        <p className="text-[11px] text-gray-400">
+                          {attended}/{totalClases} clases · {fmt(plan.pricePaid)}
+                        </p>
+                      </div>
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[plan.status]}`}>
                         {STATUS_LABELS[plan.status]}
                       </span>
-                      {plan.sessionsCompleted > 0 && (
-                        <button
-                          onClick={() => undoSession(plan.id)}
-                          disabled={undoing === plan.id}
-                          className="text-gray-400 hover:text-orange-500 p-0.5 rounded"
-                          title="Deshacer última clase"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" />
-                        </button>
-                      )}
                     </div>
+                    {/* Compact session list for past plans */}
+                    {plan.sessions.length > 0 && (
+                      <div className="mt-2 border rounded px-2 bg-white">
+                        {plan.sessions.filter(s => !s.isRescheduled).map(s => (
+                          <SessionRow
+                            key={s.id}
+                            session={s}
+                            label={`S${s.sessionNumber}`}
+                            planId={plan.id}
+                            clientId={clientId}
+                            onUpdated={updatePlan}
+                          />
+                        ))}
+                        {plan.sessions.filter(s => s.isRescheduled).map((s, idx) => (
+                          <SessionRow
+                            key={s.id}
+                            session={s}
+                            label={`R${idx + 1}`}
+                            planId={plan.id}
+                            clientId={clientId}
+                            onUpdated={updatePlan}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </details>
         )}
