@@ -78,13 +78,13 @@ function fmt(n: number) {
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return ""
   const d = new Date(iso)
-  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
+  return `${d.getUTCDate()} ${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
 function dayLabel(iso: string | null | undefined): string {
   if (!iso) return ""
   const d = new Date(iso)
-  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1
+  const dow = d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1
   return DAY_LABELS[dow]
 }
 

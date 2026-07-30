@@ -20,7 +20,9 @@ function generateSessionDates(
   while (dates.length < total && iterations < total * 14) {
     const dow = current.getDay() === 0 ? 6 : current.getDay() - 1 // Mon=0 … Sun=6
     if (sorted.some((d) => d.dayOfWeek === dow)) {
-      dates.push(new Date(current))
+      const d = new Date(current)
+      d.setUTCHours(12, 0, 0, 0) // noon UTC so any timezone shows the correct calendar day
+      dates.push(d)
     }
     current = addDays(current, 1)
     iterations++
