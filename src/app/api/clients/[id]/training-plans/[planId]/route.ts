@@ -36,7 +36,8 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const plan = await prisma.clientTrainingPlan.findUnique({ where: { id: planId } })
   if (!plan) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 })
 
-  // Delete plan (CASCADE removes sessions + scheduleSlots)
+  // Delete sessions first (no CASCADE defined on TrainingSession)
+  await prisma.trainingSession.deleteMany({ where: { planId } })
   await prisma.clientTrainingPlan.delete({ where: { id: planId } })
 
   return NextResponse.json({ ok: true })
