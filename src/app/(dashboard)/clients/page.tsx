@@ -9,38 +9,54 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, User } from "lucide-react"
 import { addDays } from "date-fns"
 import DeleteButton from "@/components/ui/DeleteButton"
+export const dynamic = "force-dynamic"
 
 export default async function ClientsPage({
   searchParams,
 }: PageProps<"/clients">) {
   const params = await searchParams
   const search = (params?.search as string) ?? ""
-  const planFilter = (params?.plan as string) ?? ""
+  const programa = (params?.programa as string) ?? ""
+  const entrenador = (params?.entrenador as string) ?? ""
   const now = new Date()
   const sevenDays = addDays(now, 7)
 
-  const [clients, plans] = await Promise.all([
-    prisma.client.findMany({
-      where: {
-        isActive: true,
-        ...(search && {
-          OR: [
-            { firstName: { contains: search } },
-            { lastName: { contains: search } },
-            { dni: { contains: search } },
-          ],
-        }),
-        ...(planFilter === "none"
-          ? { membershipPlanId: null }
-          : planFilter
-          ? { membershipPlanId: planFilter }
-          : {}),
-      },
-      include: { membershipPlan: true },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.membershipPlan.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-  ])
+  const PROGRAMA_PREFIX: Record<string, string> = {
+    "elite-individual": "Elite Athlete —",
+    "elite-parejas":    "Elite Athlete Parejas",
+    "prime":            "Prime Athlete",
+    "fortia-x":        "Fortia X",
+  }
+  const ENTRENADOR_KEYWORD: Record<string, string> = {
+    "head-coach":   "Head Coach",
+    "team-fortia":  "Team Fortia",
+  }
+
+  const planNameFilter = {
+    ...(programa && programa !== "none" ? { startsWith: PROGRAMA_PREFIX[programa] } : {}),
+    ...(entrenador ? { contains: ENTRENADOR_KEYWORD[entrenador] } : {}),
+  }
+  const hasPlanNameFilter = Object.keys(planNameFilter).length > 0
+
+  const clients = await prisma.client.findMany({
+    where: {
+      isActive: true,
+      ...(search && {
+        OR: [
+          { firstName: { contains: search } },
+          { lastName: { contains: search } },
+          { dni: { contains: search } },
+        ],
+      }),
+      ...(programa === "none"
+        ? { membershipPlanId: null }
+        : hasPlanNameFilter
+        ? { membershipPlan: { name: planNameFilter } }
+        : {}),
+    },
+    include: { membershipPlan: true },
+    orderBy: { createdAt: "desc" },
+  })
 
   const expiring = clients.filter((c) => {
     if (!c.membershipEnd) return false
@@ -79,24 +95,34 @@ export default async function ClientsPage({
           </div>
         )}
 
-        {/* Search + Plan filter */}
+        {/* Search + filters */}
         <form className="mb-4 flex flex-wrap gap-2">
           <input
             name="search"
             defaultValue={search}
             placeholder="Buscar por nombre, DNI..."
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 w-56"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 w-48"
           />
           <select
-            name="plan"
-            defaultValue={planFilter}
+            name="programa"
+            defaultValue={programa}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
           >
-            <option value="">Todos los planes</option>
-            {plans.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
+            <option value="">Todos los programas</option>
+            <option value="elite-individual">Elite Athlete</option>
+            <option value="elite-parejas">Elite Athlete Parejas</option>
+            <option value="prime">Prime Athlete</option>
+            <option value="fortia-x">Fortia X</option>
             <option value="none">Sin plan</option>
+          </select>
+          <select
+            name="entrenador"
+            defaultValue={entrenador}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+          >
+            <option value="">Todos los entrenadores</option>
+            <option value="head-coach">Head Coach</option>
+            <option value="team-fortia">Team Fortia</option>
           </select>
           <button
             type="submit"
@@ -104,7 +130,7 @@ export default async function ClientsPage({
           >
             Filtrar
           </button>
-          {(search || planFilter) && (
+          {(search || programa || entrenador) && (
             <a href="/clients" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
               Limpiar
             </a>
