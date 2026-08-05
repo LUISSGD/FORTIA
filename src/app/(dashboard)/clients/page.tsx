@@ -21,22 +21,34 @@ export default async function ClientsPage({
   const now = new Date()
   const sevenDays = addDays(now, 7)
 
-  const PROGRAMA_PREFIX: Record<string, string> = {
-    "elite-individual": "Elite Athlete —",
-    "elite-parejas":    "Elite Athlete Parejas",
-    "prime":            "Prime Athlete",
-    "fortia-x":        "Fortia X",
-  }
   const ENTRENADOR_KEYWORD: Record<string, string> = {
-    "head-coach":   "Head Coach",
-    "team-fortia":  "Team Fortia",
+    "head-coach":  "Head Coach",
+    "team-fortia": "Team Fortia",
   }
 
-  const planNameFilter = {
-    ...(programa && programa !== "none" ? { startsWith: PROGRAMA_PREFIX[programa] } : {}),
-    ...(entrenador ? { contains: ENTRENADOR_KEYWORD[entrenador] } : {}),
+  // Build membership plan filter — case-insensitive, combinable via AND
+  type NameFilter = { name: { contains: string; mode: "insensitive" } }
+  const planConditions: (NameFilter | { NOT: NameFilter })[] = []
+
+  if (programa === "elite-parejas") {
+    planConditions.push({ name: { contains: "Parejas", mode: "insensitive" } })
+  } else if (programa === "elite-individual") {
+    planConditions.push({ name: { contains: "Elite Athlete", mode: "insensitive" } })
+    planConditions.push({ NOT: { name: { contains: "Parejas", mode: "insensitive" } } })
+  } else if (programa === "prime") {
+    planConditions.push({ name: { contains: "Prime", mode: "insensitive" } })
+  } else if (programa === "fortia-x") {
+    planConditions.push({ name: { contains: "Fortia X", mode: "insensitive" } })
   }
-  const hasPlanNameFilter = Object.keys(planNameFilter).length > 0
+
+  if (entrenador && ENTRENADOR_KEYWORD[entrenador]) {
+    planConditions.push({ name: { contains: ENTRENADOR_KEYWORD[entrenador], mode: "insensitive" } })
+  }
+
+  const membershipPlanWhere =
+    planConditions.length === 0 ? null
+    : planConditions.length === 1 ? planConditions[0]
+    : { AND: planConditions }
 
   const clients = await prisma.client.findMany({
     where: {
@@ -50,8 +62,8 @@ export default async function ClientsPage({
       }),
       ...(programa === "none"
         ? { membershipPlanId: null }
-        : hasPlanNameFilter
-        ? { membershipPlan: { name: planNameFilter } }
+        : membershipPlanWhere
+        ? { membershipPlan: membershipPlanWhere }
         : {}),
     },
     include: { membershipPlan: true },
