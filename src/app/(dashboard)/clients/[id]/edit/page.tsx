@@ -27,6 +27,7 @@ export default function EditClientPage() {
   const params = useParams<{ id: string }>()
   const [loading, setLoading] = useState(false)
   const [plans, setPlans] = useState<Plan[]>([])
+  const [inactivePlan, setInactivePlan] = useState<Plan | null>(null)
   const [form, setForm] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -50,13 +51,12 @@ export default function EditClientPage() {
         phone2: client.phone2 ?? "",
         dni2: client.dni2 ?? "",
       })
-      // If the client's current plan is inactive/not in list, prepend it so the Select renders it correctly
+      // Separate active plans from the client's current plan (which may be inactive)
       const planInList = activePlans.find((p) => p.id === client.membershipPlanId)
       if (!planInList && client.membershipPlan) {
-        setPlans([client.membershipPlan, ...activePlans])
-      } else {
-        setPlans(activePlans)
+        setInactivePlan(client.membershipPlan)
       }
+      setPlans(activePlans)
     })
   }, [params.id])
 
@@ -128,27 +128,22 @@ export default function EditClientPage() {
                 </SelectTrigger>
                 <SelectContent className="w-[480px] max-h-80">
                   {(() => {
-                    const activePlanIds = new Set(plans.map((p) => p.id))
-                    // Detect if the first plan is the client's old inactive plan
-                    const currentPlan = form.membershipPlanId ? plans.find((p) => p.id === form.membershipPlanId) : null
-                    const isCurrentInactive = currentPlan && plans.indexOf(currentPlan) === 0 && plans.length > 1
-
-                    const GROUPS = ["Fortia X", "FORTIA X", "Prime Athlete", "PRIME ATHLETE", "Elite Athlete Parejas", "Elite Athlete", "ELITE ATHLETE"]
+                    const GROUPS = ["Fortia X", "Prime Athlete", "Elite Athlete Parejas", "Elite Athlete"]
                     const grouped = GROUPS.flatMap((group) => {
-                      const gp = plans.filter((p) => p.name.toLowerCase().startsWith(group.toLowerCase()) && activePlanIds.has(p.id))
+                      const gp = plans.filter((p) => p.name.toLowerCase().startsWith(group.toLowerCase()))
                       return gp.length ? [{ label: group, items: gp }] : []
                     })
                     const assignedIds = new Set(grouped.flatMap((g) => g.items.map((p) => p.id)))
-                    const others = plans.filter((p) => !assignedIds.has(p.id) && (!isCurrentInactive || p.id !== currentPlan?.id))
+                    const others = plans.filter((p) => !assignedIds.has(p.id))
                     if (others.length) grouped.push({ label: "Otros planes", items: others })
 
                     return (
                       <>
-                        {isCurrentInactive && currentPlan && (
+                        {inactivePlan && (
                           <SelectGroup>
                             <SelectLabel className="text-gray-400 font-semibold">Plan actual (inactivo)</SelectLabel>
-                            <SelectItem value={currentPlan.id} className="pl-4 text-gray-500 italic">
-                              {currentPlan.name} — S/ {currentPlan.price}
+                            <SelectItem value={inactivePlan.id} className="pl-4 text-gray-500 italic">
+                              {inactivePlan.name} — S/ {inactivePlan.price}
                             </SelectItem>
                           </SelectGroup>
                         )}
