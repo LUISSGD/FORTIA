@@ -147,6 +147,14 @@ export default function EditClientPage() {
                             </SelectItem>
                           </SelectGroup>
                         )}
+                        {!inactivePlan && form.membershipPlanId && !plans.find((p) => p.id === form.membershipPlanId) && (
+                          <SelectGroup>
+                            <SelectLabel className="text-gray-400 font-semibold">Plan anterior</SelectLabel>
+                            <SelectItem value={form.membershipPlanId} className="pl-4 text-gray-400 italic">
+                              Plan eliminado — seleccionar uno nuevo
+                            </SelectItem>
+                          </SelectGroup>
+                        )}
                         {grouped.map(({ label, items }) => (
                           <SelectGroup key={label}>
                             <SelectLabel className="text-orange-600 font-semibold">{label}</SelectLabel>
