@@ -19,6 +19,7 @@ interface Client {
   membershipStart?: string | null; membershipEnd?: string | null
   firstName2?: string | null; lastName2?: string | null
   phone2?: string | null; dni2?: string | null
+  membershipPlan?: Plan | null
 }
 
 export default function EditClientPage() {
@@ -32,7 +33,7 @@ export default function EditClientPage() {
     Promise.all([
       fetch(`/api/clients/${params.id}`).then((r) => r.json()),
       fetch("/api/memberships").then((r) => r.json()),
-    ]).then(([client, plans]: [Client, Plan[]]) => {
+    ]).then(([client, activePlans]: [Client, Plan[]]) => {
       setForm({
         firstName: client.firstName,
         lastName: client.lastName,
@@ -49,7 +50,13 @@ export default function EditClientPage() {
         phone2: client.phone2 ?? "",
         dni2: client.dni2 ?? "",
       })
-      setPlans(plans)
+      // If the client's current plan is inactive/not in list, prepend it so the Select renders it correctly
+      const planInList = activePlans.find((p) => p.id === client.membershipPlanId)
+      if (!planInList && client.membershipPlan) {
+        setPlans([client.membershipPlan, ...activePlans])
+      } else {
+        setPlans(activePlans)
+      }
     })
   }, [params.id])
 
@@ -121,24 +128,42 @@ export default function EditClientPage() {
                 </SelectTrigger>
                 <SelectContent className="w-[480px] max-h-80">
                   {(() => {
-                    const GROUPS = ["FORTIA X", "PRIME ATHLETE Corporativo", "PRIME ATHLETE Atletas", "PRIME ATHLETE", "ELITE ATHLETE Head Coach", "ELITE ATHLETE Team Fortia", "FORTIA SOCIO"]
+                    const activePlanIds = new Set(plans.map((p) => p.id))
+                    // Detect if the first plan is the client's old inactive plan
+                    const currentPlan = form.membershipPlanId ? plans.find((p) => p.id === form.membershipPlanId) : null
+                    const isCurrentInactive = currentPlan && plans.indexOf(currentPlan) === 0 && plans.length > 1
+
+                    const GROUPS = ["Fortia X", "FORTIA X", "Prime Athlete", "PRIME ATHLETE", "Elite Athlete Parejas", "Elite Athlete", "ELITE ATHLETE"]
                     const grouped = GROUPS.flatMap((group) => {
-                      const gp = plans.filter((p) => p.name.startsWith(group))
+                      const gp = plans.filter((p) => p.name.toLowerCase().startsWith(group.toLowerCase()) && activePlanIds.has(p.id))
                       return gp.length ? [{ label: group, items: gp }] : []
                     })
                     const assignedIds = new Set(grouped.flatMap((g) => g.items.map((p) => p.id)))
-                    const others = plans.filter((p) => !assignedIds.has(p.id))
-                    if (others.length) grouped.push({ label: "Otros", items: others })
-                    return grouped.map(({ label, items }) => (
-                      <SelectGroup key={label}>
-                        <SelectLabel className="text-orange-600 font-semibold">{label}</SelectLabel>
-                        {items.map((p) => (
-                          <SelectItem key={p.id} value={p.id} className="pl-4">
-                            {p.name} — S/ {p.price}
-                          </SelectItem>
+                    const others = plans.filter((p) => !assignedIds.has(p.id) && (!isCurrentInactive || p.id !== currentPlan?.id))
+                    if (others.length) grouped.push({ label: "Otros planes", items: others })
+
+                    return (
+                      <>
+                        {isCurrentInactive && currentPlan && (
+                          <SelectGroup>
+                            <SelectLabel className="text-gray-400 font-semibold">Plan actual (inactivo)</SelectLabel>
+                            <SelectItem value={currentPlan.id} className="pl-4 text-gray-500 italic">
+                              {currentPlan.name} — S/ {currentPlan.price}
+                            </SelectItem>
+                          </SelectGroup>
+                        )}
+                        {grouped.map(({ label, items }) => (
+                          <SelectGroup key={label}>
+                            <SelectLabel className="text-orange-600 font-semibold">{label}</SelectLabel>
+                            {items.map((p) => (
+                              <SelectItem key={p.id} value={p.id} className="pl-4">
+                                {p.name} — S/ {p.price}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         ))}
-                      </SelectGroup>
-                    ))
+                      </>
+                    )
                   })()}
                 </SelectContent>
               </Select>
