@@ -67,7 +67,7 @@ export default async function ClientsPage({
         : {}),
     },
     include: { membershipPlan: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   })
 
   const expiring = clients.filter((c) => {
