@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
   const body = await request.json()
-  const { clientId, amount, method, concept, receiptUrl, paymentType } = body
+  const { clientId, amount, currency = "PEN", method, concept, receiptUrl, paymentType } = body
 
   const client = await prisma.client.findUnique({ where: { id: clientId } })
   if (!client) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 })
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     ].join(" · ")
 
     const income = await prisma.income.create({
-      data: { amount: Number(amount), category: "PERSONAL_TRAINING", description, clientId, date: now },
+      data: { amount: Number(amount), currency, category: "PERSONAL_TRAINING", description, clientId, date: now },
     })
     const payment = await prisma.payment.create({
       data: {
@@ -66,6 +66,7 @@ export async function POST(request: Request) {
   const income = await prisma.income.create({
     data: {
       amount: Number(amount),
+      currency,
       category: "MEMBERSHIP",
       description: concept ?? `Renovación ${plan.name} - ${client.firstName} ${client.lastName}`,
       clientId,

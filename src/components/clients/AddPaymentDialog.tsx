@@ -64,6 +64,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
 
   // Shared
   const [amount, setAmount] = useState("")
+  const [currency, setCurrency] = useState<"PEN" | "USD">("PEN")
   const [method, setMethod] = useState("CASH")
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -174,10 +175,11 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           paymentType === "membership"
-            ? { clientId, planId, amount, method, receiptUrl, startDate }
+            ? { clientId, planId, amount, currency, method, receiptUrl, startDate }
             : {
                 clientId,
                 amount,
+                currency,
                 method,
                 receiptUrl,
                 paymentType: "training",
@@ -364,17 +366,37 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
               </>
             )}
 
-            {/* Shared: amount */}
+            {/* Shared: amount + currency */}
             <div>
-              <Label>Monto (S/)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                min="0"
-              />
+              <Label>Monto</Label>
+              <div className="flex gap-2 mt-1">
+                <div className="flex rounded-md border border-gray-300 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setCurrency("PEN")}
+                    className={`px-3 py-2 text-sm font-medium transition-colors ${currency === "PEN" ? "bg-orange-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                  >
+                    S/ PEN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrency("USD")}
+                    className={`px-3 py-2 text-sm font-medium transition-colors ${currency === "USD" ? "bg-orange-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                  >
+                    $ USD
+                  </button>
+                </div>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                  min="0"
+                  placeholder={currency === "USD" ? "0.00 USD" : "0.00"}
+                  className="flex-1"
+                />
+              </div>
             </div>
 
             {/* Shared: method */}
