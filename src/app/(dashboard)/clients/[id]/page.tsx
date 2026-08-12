@@ -23,7 +23,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
       where: { id },
       include: {
         membershipPlan: true,
-        payments: { orderBy: { paidAt: "desc" } },
+        payments: { orderBy: { paidAt: "desc" }, include: { income: { select: { currency: true } } } },
         enrollments: {
           include: {
             slot: { include: { class: true } },

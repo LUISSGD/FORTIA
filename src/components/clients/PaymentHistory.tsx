@@ -20,6 +20,7 @@ interface Payment {
   periodEnd: Date | string
   paidAt: Date | string
   receiptUrl: string | null
+  income?: { currency: string } | null
 }
 
 export default function PaymentHistory({ payments: initial }: { payments: Payment[] }) {
@@ -100,7 +101,7 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
                 {isExtension ? (
                   <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Extensión de plan</p>
                 ) : (
-                  <p className="text-sm font-medium">{formatCurrency(p.amount)}</p>
+                  <p className="text-sm font-medium">{formatCurrency(p.amount, p.income?.currency ?? "PEN")}</p>
                 )}
                 {!isExtension && <p className="text-xs text-gray-500">{PAYMENT_METHODS[p.method] ?? p.method}</p>}
                 <p className="text-xs text-gray-400">{formatDate(p.periodStart)} → {formatDate(p.periodEnd)}</p>
