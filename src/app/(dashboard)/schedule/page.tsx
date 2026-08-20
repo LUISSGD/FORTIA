@@ -22,6 +22,7 @@ export default async function SchedulePage() {
     }),
     prisma.class.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.personalTrainingSlot.findMany({
+      where: { plan: { status: "ACTIVE" } },
       include: {
         plan: {
           include: {
