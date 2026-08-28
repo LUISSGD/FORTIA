@@ -6,10 +6,35 @@ import WhatsAppButton from "@/components/clients/WhatsAppButton"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, User } from "lucide-react"
+import { Plus, User, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import { addDays } from "date-fns"
 import DeleteButton from "@/components/ui/DeleteButton"
+
 export const dynamic = "force-dynamic"
+
+type SortKey = "nombre" | "plan" | "vencimiento" | "estado"
+
+function sortHref(
+  col: SortKey,
+  currentOrden: string,
+  filters: { search: string; programa: string; entrenador: string; estado: string }
+): string {
+  const p = new URLSearchParams()
+  if (filters.search) p.set("search", filters.search)
+  if (filters.programa) p.set("programa", filters.programa)
+  if (filters.entrenador) p.set("entrenador", filters.entrenador)
+  if (filters.estado) p.set("estado", filters.estado)
+  p.set("orden", currentOrden === `${col}-asc` ? `${col}-desc` : `${col}-asc`)
+  return `/clients?${p.toString()}`
+}
+
+function SortIcon({ col, currentOrden }: { col: SortKey; currentOrden: string }) {
+  if (currentOrden === `${col}-asc`)
+    return <ChevronUp className="h-3.5 w-3.5 text-orange-500" />
+  if (currentOrden === `${col}-desc`)
+    return <ChevronDown className="h-3.5 w-3.5 text-orange-500" />
+  return <ChevronsUpDown className="h-3.5 w-3.5 text-gray-300" />
+}
 
 export default async function ClientsPage({
   searchParams,
@@ -19,16 +44,18 @@ export default async function ClientsPage({
   const programa = (params?.programa as string) ?? ""
   const entrenador = (params?.entrenador as string) ?? ""
   const estado = (params?.estado as string) ?? ""
-  const orden = (params?.orden as string) ?? "nombre"
+  const orden = (params?.orden as string) ?? "nombre-asc"
   const now = new Date()
   const sevenDays = addDays(now, 7)
+  const five = addDays(now, 5)
+  const ten = addDays(now, 10)
 
   const ENTRENADOR_KEYWORD: Record<string, string> = {
     "head-coach":  "Head Coach",
     "team-fortia": "Team Fortia",
   }
 
-  // Build membership plan filter — case-insensitive, combinable via AND
+  // Membership plan filter — case-insensitive, combinable via AND
   type NameFilter = { name: { contains: string; mode: "insensitive" } }
   const planConditions: (NameFilter | { NOT: NameFilter })[] = []
 
@@ -42,30 +69,30 @@ export default async function ClientsPage({
   } else if (programa === "fortia-x") {
     planConditions.push({ name: { contains: "Fortia X", mode: "insensitive" } })
   }
-
   if (entrenador && ENTRENADOR_KEYWORD[entrenador]) {
     planConditions.push({ name: { contains: ENTRENADOR_KEYWORD[entrenador], mode: "insensitive" } })
   }
-
   const membershipPlanWhere =
     planConditions.length === 0 ? null
     : planConditions.length === 1 ? planConditions[0]
     : { AND: planConditions }
 
   // Estado filter → date-based where clause
-  const five = addDays(now, 5)
-  const ten = addDays(now, 10)
   const estadoWhere: Record<string, unknown> =
-    estado === "vencido"    ? { membershipEnd: { lt: now } }
-    : estado === "urgente"  ? { membershipEnd: { gte: now, lte: five } }
+    estado === "vencido"      ? { membershipEnd: { lt: now } }
+    : estado === "urgente"    ? { membershipEnd: { gte: now, lte: five } }
     : estado === "por-vencer" ? { membershipEnd: { gt: five, lte: ten } }
-    : estado === "activo"   ? { membershipEnd: { gt: ten } }
-    : estado === "sin-fecha" ? { membershipEnd: null }
+    : estado === "activo"     ? { membershipEnd: { gt: ten } }
+    : estado === "sin-fecha"  ? { membershipEnd: null }
     : {}
 
+  // Order by from col-dir pattern
   const orderBy =
-    orden === "vencimiento-asc"  ? [{ membershipEnd: "asc" as const }]
-    : orden === "vencimiento-desc" ? [{ membershipEnd: "desc" as const }]
+    orden === "nombre-desc"       ? [{ firstName: "desc" as const }]
+    : orden === "plan-asc"        ? [{ membershipPlan: { name: "asc" as const } }]
+    : orden === "plan-desc"       ? [{ membershipPlan: { name: "desc" as const } }]
+    : orden === "vencimiento-asc" || orden === "estado-asc"  ? [{ membershipEnd: "asc" as const }]
+    : orden === "vencimiento-desc" || orden === "estado-desc" ? [{ membershipEnd: "desc" as const }]
     : [{ firstName: "asc" as const }]
 
   const clients = await prisma.client.findMany({
@@ -98,6 +125,9 @@ export default async function ClientsPage({
     return end >= now && end <= sevenDays
   })
 
+  const filters = { search, programa, entrenador, estado }
+  const hasFilters = !!(search || programa || entrenador || estado)
+
   return (
     <>
       <Header title="Clientes" />
@@ -129,7 +159,7 @@ export default async function ClientsPage({
           </div>
         )}
 
-        {/* Search + filters */}
+        {/* Filters */}
         <form className="mb-4 space-y-2">
           <div className="flex flex-wrap gap-2 items-end">
             <div className="flex flex-col gap-1">
@@ -188,19 +218,6 @@ export default async function ClientsPage({
                 <option value="sin-fecha">Sin fecha de vencimiento</option>
               </select>
             </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="orden" className="text-xs font-medium text-gray-500">Ordenar por</label>
-              <select
-                id="orden"
-                name="orden"
-                defaultValue={orden}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-              >
-                <option value="nombre">Nombre A–Z</option>
-                <option value="vencimiento-asc">Vencimiento próximo</option>
-                <option value="vencimiento-desc">Vencimiento lejano</option>
-              </select>
-            </div>
             <div className="flex gap-2 items-end">
               <button
                 type="submit"
@@ -208,14 +225,14 @@ export default async function ClientsPage({
               >
                 Filtrar
               </button>
-              {(search || programa || entrenador || estado || orden !== "nombre") && (
+              {hasFilters && (
                 <a href="/clients" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
                   Limpiar
                 </a>
               )}
             </div>
           </div>
-          {(search || programa || entrenador || estado) && (
+          {hasFilters && (
             <p className="text-xs text-gray-400">
               {clients.length} resultado{clients.length !== 1 ? "s" : ""} con los filtros aplicados
             </p>
@@ -226,12 +243,40 @@ export default async function ClientsPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
+                <TableHead>
+                  <a
+                    href={sortHref("nombre", orden, filters)}
+                    className="flex items-center gap-1 select-none hover:text-orange-500 transition-colors"
+                  >
+                    Nombre <SortIcon col="nombre" currentOrden={orden} />
+                  </a>
+                </TableHead>
                 <TableHead>DNI</TableHead>
                 <TableHead>Teléfono</TableHead>
-                <TableHead>Plan</TableHead>
-                <TableHead>Vencimiento</TableHead>
-                <TableHead>Estado</TableHead>
+                <TableHead>
+                  <a
+                    href={sortHref("plan", orden, filters)}
+                    className="flex items-center gap-1 select-none hover:text-orange-500 transition-colors"
+                  >
+                    Plan <SortIcon col="plan" currentOrden={orden} />
+                  </a>
+                </TableHead>
+                <TableHead>
+                  <a
+                    href={sortHref("vencimiento", orden, filters)}
+                    className="flex items-center gap-1 select-none hover:text-orange-500 transition-colors"
+                  >
+                    Vencimiento <SortIcon col="vencimiento" currentOrden={orden} />
+                  </a>
+                </TableHead>
+                <TableHead>
+                  <a
+                    href={sortHref("estado", orden, filters)}
+                    className="flex items-center gap-1 select-none hover:text-orange-500 transition-colors"
+                  >
+                    Estado <SortIcon col="estado" currentOrden={orden} />
+                  </a>
+                </TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
