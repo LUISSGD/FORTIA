@@ -18,6 +18,8 @@ export default async function ClientsPage({
   const search = (params?.search as string) ?? ""
   const programa = (params?.programa as string) ?? ""
   const entrenador = (params?.entrenador as string) ?? ""
+  const estado = (params?.estado as string) ?? ""
+  const orden = (params?.orden as string) ?? "nombre"
   const now = new Date()
   const sevenDays = addDays(now, 7)
 
@@ -50,14 +52,33 @@ export default async function ClientsPage({
     : planConditions.length === 1 ? planConditions[0]
     : { AND: planConditions }
 
+  // Estado filter → date-based where clause
+  const five = addDays(now, 5)
+  const ten = addDays(now, 10)
+  const estadoWhere: Record<string, unknown> =
+    estado === "vencido"    ? { membershipEnd: { lt: now } }
+    : estado === "urgente"  ? { membershipEnd: { gte: now, lte: five } }
+    : estado === "por-vencer" ? { membershipEnd: { gt: five, lte: ten } }
+    : estado === "activo"   ? { membershipEnd: { gt: ten } }
+    : estado === "sin-fecha" ? { membershipEnd: null }
+    : {}
+
+  const orderBy =
+    orden === "vencimiento-asc"  ? [{ membershipEnd: "asc" as const }]
+    : orden === "vencimiento-desc" ? [{ membershipEnd: "desc" as const }]
+    : [{ firstName: "asc" as const }]
+
   const clients = await prisma.client.findMany({
     where: {
       isActive: true,
       ...(search && {
         OR: [
-          { firstName: { contains: search } },
-          { lastName: { contains: search } },
+          { firstName: { contains: search, mode: "insensitive" } },
+          { lastName: { contains: search, mode: "insensitive" } },
+          { firstName2: { contains: search, mode: "insensitive" } },
+          { lastName2: { contains: search, mode: "insensitive" } },
           { dni: { contains: search } },
+          { dni2: { contains: search } },
         ],
       }),
       ...(programa === "none"
@@ -65,9 +86,10 @@ export default async function ClientsPage({
         : membershipPlanWhere
         ? { membershipPlan: membershipPlanWhere }
         : {}),
+      ...estadoWhere,
     },
     include: { membershipPlan: true },
-    orderBy: { firstName: "asc" },
+    orderBy,
   })
 
   const expiring = clients.filter((c) => {
@@ -108,44 +130,95 @@ export default async function ClientsPage({
         )}
 
         {/* Search + filters */}
-        <form className="mb-4 flex flex-wrap gap-2">
-          <input
-            name="search"
-            defaultValue={search}
-            placeholder="Buscar por nombre, DNI..."
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 w-48"
-          />
-          <select
-            name="programa"
-            defaultValue={programa}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-          >
-            <option value="">Todos los programas</option>
-            <option value="elite-individual">Elite Athlete</option>
-            <option value="elite-parejas">Elite Athlete Parejas</option>
-            <option value="prime">Prime Athlete</option>
-            <option value="fortia-x">Fortia X</option>
-            <option value="none">Sin plan</option>
-          </select>
-          <select
-            name="entrenador"
-            defaultValue={entrenador}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-          >
-            <option value="">Todos los entrenadores</option>
-            <option value="head-coach">Head Coach</option>
-            <option value="team-fortia">Team Fortia</option>
-          </select>
-          <button
-            type="submit"
-            className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-2 rounded-lg"
-          >
-            Filtrar
-          </button>
-          {(search || programa || entrenador) && (
-            <a href="/clients" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
-              Limpiar
-            </a>
+        <form className="mb-4 space-y-2">
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="search" className="text-xs font-medium text-gray-500">Buscar</label>
+              <input
+                id="search"
+                name="search"
+                defaultValue={search}
+                placeholder="Nombre, DNI..."
+                autoComplete="off"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 w-44"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="programa" className="text-xs font-medium text-gray-500">Programa</label>
+              <select
+                id="programa"
+                name="programa"
+                defaultValue={programa}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+              >
+                <option value="">Todos</option>
+                <option value="elite-individual">Elite Athlete</option>
+                <option value="elite-parejas">Elite Athlete Parejas</option>
+                <option value="prime">Prime Athlete</option>
+                <option value="fortia-x">Fortia X</option>
+                <option value="none">Sin plan</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="entrenador" className="text-xs font-medium text-gray-500">Entrenador</label>
+              <select
+                id="entrenador"
+                name="entrenador"
+                defaultValue={entrenador}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+              >
+                <option value="">Todos</option>
+                <option value="head-coach">Head Coach</option>
+                <option value="team-fortia">Team Fortia</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="estado" className="text-xs font-medium text-gray-500">Estado</label>
+              <select
+                id="estado"
+                name="estado"
+                defaultValue={estado}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+              >
+                <option value="">Todos</option>
+                <option value="activo">Activo (&gt;10 días)</option>
+                <option value="por-vencer">Por vencer (6–10 días)</option>
+                <option value="urgente">Urgente (≤5 días)</option>
+                <option value="vencido">Vencido</option>
+                <option value="sin-fecha">Sin fecha de vencimiento</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="orden" className="text-xs font-medium text-gray-500">Ordenar por</label>
+              <select
+                id="orden"
+                name="orden"
+                defaultValue={orden}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+              >
+                <option value="nombre">Nombre A–Z</option>
+                <option value="vencimiento-asc">Vencimiento próximo</option>
+                <option value="vencimiento-desc">Vencimiento lejano</option>
+              </select>
+            </div>
+            <div className="flex gap-2 items-end">
+              <button
+                type="submit"
+                className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-2 rounded-lg font-medium"
+              >
+                Filtrar
+              </button>
+              {(search || programa || entrenador || estado || orden !== "nombre") && (
+                <a href="/clients" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
+                  Limpiar
+                </a>
+              )}
+            </div>
+          </div>
+          {(search || programa || entrenador || estado) && (
+            <p className="text-xs text-gray-400">
+              {clients.length} resultado{clients.length !== 1 ? "s" : ""} con los filtros aplicados
+            </p>
           )}
         </form>
 
