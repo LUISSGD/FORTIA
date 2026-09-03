@@ -61,6 +61,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
   const [tarifa, setTarifa] = useState<Tarifa>("REGULAR")
   const [numPacks, setNumPacks] = useState<NumPacks>(1)
   const [clasesPerPack, setClasesPerPack] = useState<ClasesPerPack>(8)
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   // Shared
   const [amount, setAmount] = useState("")
@@ -188,6 +189,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                 tarifa,
                 numPacks,
                 clasesPerPack,
+                paymentDate,
               }
         ),
       })
@@ -353,6 +355,16 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                       )
                     })}
                   </div>
+                </div>
+                <div>
+                  <Label>Fecha de pago</Label>
+                  <Input
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Define en qué mes se registra el ingreso.</p>
                 </div>
                 {trainingPrice && (
                   <div className="bg-orange-50 border border-orange-200 rounded-md px-3 py-2 text-sm text-orange-800">

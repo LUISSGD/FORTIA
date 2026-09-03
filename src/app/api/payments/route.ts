@@ -18,12 +18,14 @@ export async function POST(request: Request) {
 
   // ── Entrenamiento Personal ──────────────────────────────────────────────
   if (paymentType === "training") {
-    const { entrenador, modalidad, tarifa, numPacks, clasesPerPack } = body as {
+    const { entrenador, modalidad, tarifa, numPacks, clasesPerPack, paymentDate } = body as {
       entrenador: Entrenador; modalidad: Modalidad; tarifa: Tarifa
-      numPacks: NumPacks; clasesPerPack: ClasesPerPack
+      numPacks: NumPacks; clasesPerPack: ClasesPerPack; paymentDate?: string
     }
     const price = getTrainingPrice(entrenador, modalidad, tarifa, numPacks, clasesPerPack)
     if (!price) return NextResponse.json({ error: "Combinación no válida" }, { status: 400 })
+
+    const incomeDate = paymentDate ? new Date(paymentDate + "T00:00:00") : now
 
     const description = concept ?? [
       ENTRENADOR_LABELS[entrenador],
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
     ].join(" · ")
 
     const income = await prisma.income.create({
-      data: { amount: Number(amount), currency, category: "PERSONAL_TRAINING", description, clientId, date: now },
+      data: { amount: Number(amount), currency, category: "PERSONAL_TRAINING", description, clientId, date: incomeDate },
     })
     const payment = await prisma.payment.create({
       data: {
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
       category: "MEMBERSHIP",
       description: concept ?? `Renovación ${plan.name} - ${client.firstName} ${client.lastName}`,
       clientId,
-      date: now,
+      date: periodStart,
     },
   })
   const payment = await prisma.payment.create({
