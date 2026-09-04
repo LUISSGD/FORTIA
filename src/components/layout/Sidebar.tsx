@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Dumbbell,
   UserCog,
+  LineChart,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -31,6 +32,7 @@ const adminNavItems = [
   { href: "/debts", label: "Deudas", icon: Landmark },
   { href: "/finances/monthly-expenses", label: "Gastos Corrientes", icon: ClipboardList },
   { href: "/finances/pending-accumulated", label: "Pend. Acumulados", icon: AlertCircle },
+  { href: "/finances/proyeccion", label: "Proyección renov.", icon: LineChart },
   { href: "/training-plans", label: "Entrena. Personal", icon: Dumbbell },
   { href: "/settings/users", label: "Usuarios", icon: UserCog },
 ]

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, TrendingDown, BarChart2 } from "lucide-react"
+import { TrendingUp, TrendingDown, BarChart2, LineChart } from "lucide-react"
 import { startOfMonth, endOfMonth } from "date-fns"
 import { auth } from "@/lib/auth"
 
@@ -53,9 +53,14 @@ export default async function FinancesPage() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Resumen del mes</h2>
           {!isUser && (
-            <Link href="/finances/reports">
-              <Button variant="outline" className="gap-2"><BarChart2 className="h-4 w-4" />Ver reportes</Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/finances/proyeccion">
+                <Button variant="outline" className="gap-2"><LineChart className="h-4 w-4" />Proyección</Button>
+              </Link>
+              <Link href="/finances/reports">
+                <Button variant="outline" className="gap-2"><BarChart2 className="h-4 w-4" />Ver reportes</Button>
+              </Link>
+            </div>
           )}
         </div>
 

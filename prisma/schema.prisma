@@ -56,6 +56,7 @@ model Client {
   trainingPlans   ClientTrainingPlan[]
   attendances     Attendance[]
   physicalRecords PhysicalRecord[]
+  renewalSkips    RenewalProjectionSkip[]
 }
 
 model Payment {
@@ -245,6 +246,16 @@ model PhysicalRecord {
   legs      Float?
   notes     String?
   createdAt DateTime @default(now())
+}
+
+model RenewalProjectionSkip {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  yearMonth String   // "YYYY-MM"
+  createdAt DateTime @default(now())
+
+  @@unique([clientId, yearMonth])
 }
 
 model MonthlyExpense {
