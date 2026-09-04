@@ -5,8 +5,7 @@ import Header from "@/components/layout/Header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, TrendingUp, Users, XCircle } from "lucide-react"
-import { format, addMonths, subMonths } from "date-fns"
-import { es } from "date-fns/locale"
+import { addMonths, subMonths } from "date-fns"
 import Link from "next/link"
 
 interface ClientRow {
@@ -27,7 +26,7 @@ interface ProjectionData {
 }
 
 function toYearMonth(d: Date) {
-  return format(d, "yyyy-MM")
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
 }
 
 function fmtDate(s: string) {
@@ -92,7 +91,7 @@ export default function ProyeccionPage() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-lg font-semibold capitalize">
-            {format(currentDate, "MMMM yyyy", { locale: es })}
+            {new Intl.DateTimeFormat("es-PE", { month: "long", year: "numeric" }).format(currentDate)}
           </h2>
           <Button
             variant="outline"
