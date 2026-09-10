@@ -39,6 +39,9 @@ export default function MonthlyExpensesClient() {
   const [form, setForm] = useState({ concept: "", currency: "PEN", amount: "", notes: "" })
   const [saving, setSaving] = useState(false)
   const [copyLoading, setCopyLoading] = useState(false)
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false)
+  const [prevItems, setPrevItems] = useState<Item[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -112,22 +115,47 @@ export default function MonthlyExpensesClient() {
     else toast.error("Error al eliminar")
   }
 
-  async function copyFromPrevMonth() {
+  async function openCopyDialog() {
     const prevM = month === 1 ? 12 : month - 1
     const prevY = month === 1 ? year - 1 : year
     setCopyLoading(true)
     const res = await fetch(`/api/finances/monthly-expenses?month=${prevM}&year=${prevY}`)
-    const prevItems: Item[] = await res.json()
-    if (prevItems.length === 0) { toast.error("No hay gastos en el mes anterior"); setCopyLoading(false); return }
-    await Promise.all(prevItems.map(item =>
+    const data: Item[] = await res.json()
+    setCopyLoading(false)
+    if (data.length === 0) { toast.error("No hay gastos en el mes anterior"); return }
+    setPrevItems(data)
+    setSelectedIds(new Set(data.map((_, i) => i)))
+    setCopyDialogOpen(true)
+  }
+
+  function toggleSelect(idx: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(idx) ? next.delete(idx) : next.add(idx)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelectedIds(prev =>
+      prev.size === prevItems.length ? new Set() : new Set(prevItems.map((_, i) => i))
+    )
+  }
+
+  async function confirmCopy() {
+    const toCopy = prevItems.filter((_, i) => selectedIds.has(i))
+    if (toCopy.length === 0) { toast.error("Selecciona al menos un gasto"); return }
+    setCopyLoading(true)
+    await Promise.all(toCopy.map(item =>
       fetch("/api/finances/monthly-expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ concept: item.concept, currency: item.currency, amount: item.amount, month, year, status: "PENDIENTE", notes: item.notes }),
       })
     ))
-    toast.success(`${prevItems.length} gastos copiados como PENDIENTE`)
+    toast.success(`${toCopy.length} gasto${toCopy.length > 1 ? "s" : ""} copiado${toCopy.length > 1 ? "s" : ""} como PENDIENTE`)
     fetchItems()
+    setCopyDialogOpen(false)
     setCopyLoading(false)
   }
 
@@ -146,9 +174,9 @@ export default function MonthlyExpensesClient() {
           <button onClick={nextMonth} className="p-1.5 rounded-lg border hover:bg-gray-50"><ChevronRight className="h-4 w-4" /></button>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={copyFromPrevMonth} disabled={copyLoading || items.length > 0}>
+          <Button variant="outline" size="sm" onClick={openCopyDialog} disabled={copyLoading}>
             <Copy className="h-4 w-4 mr-1" />
-            {copyLoading ? "Copiando..." : "Copiar mes anterior"}
+            {copyLoading ? "Cargando..." : "Copiar mes anterior"}
           </Button>
           <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={openNew}>
             <Plus className="h-4 w-4 mr-1" />Agregar
@@ -227,7 +255,62 @@ export default function MonthlyExpensesClient() {
         </div>
       )}
 
-      {/* Dialog */}
+      {/* Copy Dialog */}
+      <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Copiar del mes anterior</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500 -mt-2">Selecciona los gastos que quieres copiar a {MONTH_NAMES[month - 1]} {year}:</p>
+          <div className="border rounded-lg overflow-hidden">
+            {/* Select all row */}
+            <div
+              className="flex items-center gap-3 px-4 py-2.5 bg-gray-50 border-b cursor-pointer hover:bg-gray-100"
+              onClick={toggleAll}
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.size === prevItems.length && prevItems.length > 0}
+                onChange={toggleAll}
+                className="h-4 w-4 accent-orange-500"
+              />
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Seleccionar todos ({selectedIds.size}/{prevItems.length})
+              </span>
+            </div>
+            <div className="divide-y max-h-72 overflow-y-auto">
+              {prevItems.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50"
+                  onClick={() => toggleSelect(i)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(i)}
+                    onChange={() => toggleSelect(i)}
+                    className="h-4 w-4 accent-orange-500"
+                  />
+                  <span className="flex-1 text-sm font-medium">{item.concept}</span>
+                  <span className="text-sm font-mono text-gray-600">{fmt(item.amount, item.currency)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button
+              className="bg-orange-500 hover:bg-orange-600 flex-1"
+              onClick={confirmCopy}
+              disabled={copyLoading || selectedIds.size === 0}
+            >
+              {copyLoading ? "Copiando..." : `Copiar ${selectedIds.size} gasto${selectedIds.size !== 1 ? "s" : ""}`}
+            </Button>
+            <Button variant="outline" onClick={() => setCopyDialogOpen(false)}>Cancelar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit/New Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
