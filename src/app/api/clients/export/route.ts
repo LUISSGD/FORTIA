@@ -34,7 +34,7 @@ export async function GET() {
       payments: {
         orderBy: { paidAt: "desc" },
         take: 1,
-        select: { paidAt: true, amount: true, currency: true },
+        select: { paidAt: true, amount: true },
       },
     },
     orderBy: [{ isActive: "desc" }, { firstName: "asc" }],
@@ -59,7 +59,7 @@ export async function GET() {
       .filter(Boolean).join(" ")
     const lastPayment = c.payments[0]
     const montoUltimoPago = lastPayment
-      ? `${lastPayment.currency === "USD" ? "$ " : "S/ "}${lastPayment.amount.toFixed(2)}`
+      ? `S/ ${lastPayment.amount.toFixed(2)}`
       : ""
 
     return [
