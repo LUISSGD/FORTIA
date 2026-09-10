@@ -102,12 +102,12 @@ export async function GET() {
   // Freeze header row
   sheet.views = [{ state: "frozen", ySplit: 1 }]
 
-  // Alternating row background
+  // Alternating row background (only cells without explicit fill)
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return
     if (rowNumber % 2 === 0) {
       row.eachCell({ includeEmpty: true }, (cell) => {
-        if (!cell.fill || (cell.fill as ExcelJS.FillPattern).fgColor?.argb === undefined) {
+        if (!cell.fill) {
           cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } }
         }
       })
