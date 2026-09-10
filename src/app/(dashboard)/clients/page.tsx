@@ -140,7 +140,7 @@ export default async function ClientsPage({
             <a href="/api/clients/export">
               <Button variant="outline" className="gap-2">
                 <FileSpreadsheet className="h-4 w-4" />
-                Exportar Excel
+                Exportar
               </Button>
             </a>
             <Link href="/clients/new">

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import ExcelJS from "exceljs"
 
-function getEstado(membershipEnd: Date | null): string {
+function getEstado(membershipEnd: Date | null, isActive: boolean): string {
+  if (!isActive) return "Inactivo"
   if (!membershipEnd) return "Sin fecha"
   const now = new Date()
   const diff = (membershipEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
@@ -15,6 +15,15 @@ function getEstado(membershipEnd: Date | null): string {
 function fmt(d: Date | null | undefined): string {
   if (!d) return ""
   return d.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
+function csvCell(value: string | number | null | undefined): string {
+  const str = String(value ?? "")
+  // Wrap in quotes if contains comma, newline, or quote
+  if (str.includes(",") || str.includes("\n") || str.includes('"')) {
+    return `"${str.replace(/"/g, '""')}"`
+  }
+  return str
 }
 
 export async function GET() {
@@ -30,98 +39,52 @@ export async function GET() {
     orderBy: [{ isActive: "desc" }, { firstName: "asc" }],
   })
 
-  const workbook = new ExcelJS.Workbook()
-  workbook.creator = "FORTIA"
-  workbook.created = new Date()
-
-  const sheet = workbook.addWorksheet("Clientes")
-
-  // Column definitions
-  sheet.columns = [
-    { header: "Nombre", key: "nombre", width: 30 },
-    { header: "DNI", key: "dni", width: 12 },
-    { header: "Teléfono", key: "telefono", width: 15 },
-    { header: "Email", key: "email", width: 28 },
-    { header: "Plan", key: "plan", width: 28 },
-    { header: "Inicio membresía", key: "inicio", width: 18 },
-    { header: "Fin membresía", key: "fin", width: 18 },
-    { header: "Estado", key: "estado", width: 14 },
-    { header: "Último pago", key: "ultimoPago", width: 18 },
-    { header: "Monto último pago", key: "montoUltimoPago", width: 20 },
-    { header: "Activo", key: "activo", width: 10 },
+  const headers = [
+    "Nombre",
+    "DNI",
+    "Teléfono",
+    "Email",
+    "Plan",
+    "Inicio membresía",
+    "Fin membresía",
+    "Estado",
+    "Último pago",
+    "Monto último pago",
+    "Activo",
   ]
 
-  // Header row styling
-  const headerRow = sheet.getRow(1)
-  headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } }
-  headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF97316" } }
-  headerRow.alignment = { vertical: "middle", horizontal: "center" }
-  headerRow.height = 20
-
-  // Estado color map
-  const estadoColor: Record<string, string> = {
-    Activo: "FF22C55E",
-    "Por vencer": "FFFBBF24",
-    Urgente: "FFEF4444",
-    Vencido: "FF6B7280",
-    "Sin fecha": "FFD1D5DB",
-  }
-
-  for (const c of clients) {
+  const rows = clients.map((c) => {
     const nombre = [c.firstName, c.lastName, c.firstName2, c.lastName2]
       .filter(Boolean).join(" ")
-    const estado = c.isActive ? getEstado(c.membershipEnd) : "Inactivo"
     const lastPayment = c.payments[0]
+    const montoUltimoPago = lastPayment
+      ? `${lastPayment.currency === "USD" ? "$ " : "S/ "}${lastPayment.amount.toFixed(2)}`
+      : ""
 
-    const row = sheet.addRow({
+    return [
       nombre,
-      dni: c.dni ?? c.dni2 ?? "",
-      telefono: c.phone ?? c.phone2 ?? "",
-      email: c.email ?? "",
-      plan: c.membershipPlan?.name ?? "",
-      inicio: fmt(c.membershipStart),
-      fin: fmt(c.membershipEnd),
-      estado,
-      ultimoPago: lastPayment ? fmt(lastPayment.paidAt) : "",
-      montoUltimoPago: lastPayment
-        ? `${lastPayment.currency === "USD" ? "$ " : "S/ "}${lastPayment.amount.toFixed(2)}`
-        : "",
-      activo: c.isActive ? "Sí" : "No",
-    })
-
-    row.alignment = { vertical: "middle" }
-
-    // Color the Estado cell
-    const estadoCell = row.getCell("estado")
-    const color = estadoColor[estado] ?? "FFD1D5DB"
-    estadoCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: color } }
-    estadoCell.font = { color: { argb: estado === "Por vencer" ? "FF000000" : "FFFFFFFF" }, bold: true }
-    estadoCell.alignment = { horizontal: "center" }
-  }
-
-  // Freeze header row
-  sheet.views = [{ state: "frozen", ySplit: 1 }]
-
-  // Alternating row background (only cells without explicit fill)
-  sheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return
-    if (rowNumber % 2 === 0) {
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        if (!cell.fill) {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } }
-        }
-      })
-    }
+      c.dni ?? c.dni2 ?? "",
+      c.phone ?? c.phone2 ?? "",
+      c.email ?? "",
+      c.membershipPlan?.name ?? "",
+      fmt(c.membershipStart),
+      fmt(c.membershipEnd),
+      getEstado(c.membershipEnd, c.isActive),
+      lastPayment ? fmt(lastPayment.paidAt) : "",
+      montoUltimoPago,
+      c.isActive ? "Sí" : "No",
+    ].map(csvCell).join(",")
   })
 
-  const buffer = await workbook.xlsx.writeBuffer()
+  // UTF-8 BOM so Excel opens it correctly with accents
+  const csv = "﻿" + [headers.map(csvCell).join(","), ...rows].join("\r\n")
 
   const date = new Date().toISOString().split("T")[0]
-  return new NextResponse(buffer, {
+  return new NextResponse(csv, {
     status: 200,
     headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="clientes-fortia-${date}.xlsx"`,
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="clientes-fortia-${date}.csv"`,
     },
   })
 }
