@@ -6,7 +6,7 @@ import WhatsAppButton from "@/components/clients/WhatsAppButton"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, User, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
+import { Plus, User, ChevronUp, ChevronDown, ChevronsUpDown, FileSpreadsheet } from "lucide-react"
 import { addDays } from "date-fns"
 import DeleteButton from "@/components/ui/DeleteButton"
 
@@ -136,12 +136,20 @@ export default async function ClientsPage({
           <h2 className="text-xl font-semibold text-gray-800">
             Clientes registrados ({clients.length})
           </h2>
-          <Link href="/clients/new">
-            <Button className="bg-orange-500 hover:bg-orange-600">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo cliente
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <a href="/api/clients/export">
+              <Button variant="outline" className="gap-2">
+                <FileSpreadsheet className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+            </a>
+            <Link href="/clients/new">
+              <Button className="bg-orange-500 hover:bg-orange-600">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo cliente
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {expiring.length > 0 && (
