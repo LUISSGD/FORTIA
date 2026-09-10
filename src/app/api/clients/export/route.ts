@@ -27,6 +27,7 @@ function csvCell(value: string | number | null | undefined): string {
 }
 
 export async function GET() {
+  try {
   const clients = await prisma.client.findMany({
     include: {
       membershipPlan: { select: { name: true } },
@@ -87,4 +88,9 @@ export async function GET() {
       "Content-Disposition": `attachment; filename="clientes-fortia-${date}.csv"`,
     },
   })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error("[export] error:", msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
