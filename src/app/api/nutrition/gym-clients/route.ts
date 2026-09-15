@@ -9,11 +9,14 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? ""
   const id = req.nextUrl.searchParams.get("id")?.trim() ?? ""
 
+  const baseWhere = { isActive: true }
+
   const clients = await prisma.client.findMany({
     where: id
-      ? { id }
+      ? { id, ...baseWhere }
       : q
       ? {
+          ...baseWhere,
           OR: [
             { firstName: { contains: q, mode: "insensitive" } },
             { lastName: { contains: q, mode: "insensitive" } },
@@ -21,7 +24,7 @@ export async function GET(req: NextRequest) {
             { phone: { contains: q, mode: "insensitive" } },
           ],
         }
-      : {},
+      : baseWhere,
     select: {
       id: true,
       firstName: true,
@@ -32,7 +35,7 @@ export async function GET(req: NextRequest) {
       birthDate: true,
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    take: 20,
+    take: 30,
   })
 
   return NextResponse.json(clients)

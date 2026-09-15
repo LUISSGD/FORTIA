@@ -93,17 +93,10 @@ function FortiaClientDropdown() {
     return () => document.removeEventListener("mousedown", onClick)
   }, [])
 
-  useEffect(() => {
-    if (!open) return
-    setLoading(true)
-    fetch(`/api/nutrition/gym-clients?q=${encodeURIComponent(q)}`)
-      .then((r) => r.json())
-      .then((d) => { setResults(d); setLoading(false) })
-  }, [open, q])
-
   function handleSearch(val: string) {
     setQ(val)
     if (debounce.current) clearTimeout(debounce.current)
+    if (val.length === 0) { setResults([]); setLoading(false); return }
     setLoading(true)
     debounce.current = setTimeout(() => {
       fetch(`/api/nutrition/gym-clients?q=${encodeURIComponent(val)}`)
