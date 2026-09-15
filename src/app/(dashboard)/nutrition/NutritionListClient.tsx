@@ -1,9 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, User, Calendar, AlertCircle, TrendingDown, TrendingUp, Minus, Dumbbell } from "lucide-react"
+import { Plus, Search, User, Calendar, AlertCircle, TrendingDown, TrendingUp, Minus, Dumbbell, ChevronDown } from "lucide-react"
+
+type GymClient = {
+  id: string
+  firstName: string
+  lastName: string
+  phone: string | null
+  dni: string | null
+}
 
 type Consultation = {
   id: string
@@ -65,6 +74,104 @@ function AppointmentStatus({ nextAppointment }: { nextAppointment: string | null
   if (diffDays <= 7)
     return <span className="text-xs text-orange-400">Esta semana: {formatted}</span>
   return <span className="text-xs text-gray-500">{formatted}</span>
+}
+
+function FortiaClientDropdown() {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState("")
+  const [results, setResults] = useState<GymClient[]>([])
+  const [loading, setLoading] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onClick)
+    return () => document.removeEventListener("mousedown", onClick)
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    setLoading(true)
+    fetch(`/api/nutrition/gym-clients?q=${encodeURIComponent(q)}`)
+      .then((r) => r.json())
+      .then((d) => { setResults(d); setLoading(false) })
+  }, [open, q])
+
+  function handleSearch(val: string) {
+    setQ(val)
+    if (debounce.current) clearTimeout(debounce.current)
+    setLoading(true)
+    debounce.current = setTimeout(() => {
+      fetch(`/api/nutrition/gym-clients?q=${encodeURIComponent(val)}`)
+        .then((r) => r.json())
+        .then((d) => { setResults(d); setLoading(false) })
+    }, 300)
+  }
+
+  function select(c: GymClient) {
+    setOpen(false)
+    router.push(`/nutrition/new?gymId=${c.id}`)
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <Button
+        variant="outline"
+        className="gap-2 border-orange-300 text-orange-700 hover:bg-orange-50"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <Dumbbell className="h-4 w-4" />
+        Alumno Fortia
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </Button>
+
+      {open && (
+        <div className="absolute right-0 z-30 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl">
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <input
+                autoFocus
+                value={q}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Buscar alumno..."
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+              />
+            </div>
+          </div>
+          <div className="max-h-60 overflow-auto">
+            {loading ? (
+              <p className="text-xs text-gray-400 text-center py-4">Buscando...</p>
+            ) : results.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-4">
+                {q.length > 0 ? "Sin resultados" : "Empieza a escribir para buscar"}
+              </p>
+            ) : (
+              results.map((c) => (
+                <button
+                  key={c.id}
+                  className="w-full text-left px-4 py-2.5 hover:bg-orange-50 flex items-center gap-3 border-b last:border-0"
+                  onClick={() => select(c)}
+                >
+                  <div className="h-7 w-7 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                    {c.firstName[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{c.firstName} {c.lastName}</p>
+                    <p className="text-xs text-gray-400">{[c.dni, c.phone].filter(Boolean).join(" · ")}</p>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function NutritionListClient({ clients, stats }: { clients: Client[]; stats: Stats }) {
@@ -139,12 +246,15 @@ export default function NutritionListClient({ clients, stats }: { clients: Clien
         <h2 className="text-xl font-semibold text-gray-800">
           Pacientes ({filtered.length})
         </h2>
-        <Link href="/nutrition/new">
-          <Button className="bg-green-600 hover:bg-green-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo paciente
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <FortiaClientDropdown />
+          <Link href="/nutrition/new">
+            <Button className="bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo paciente
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">

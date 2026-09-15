@@ -7,9 +7,12 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? ""
+  const id = req.nextUrl.searchParams.get("id")?.trim() ?? ""
 
   const clients = await prisma.client.findMany({
-    where: q
+    where: id
+      ? { id }
+      : q
       ? {
           OR: [
             { firstName: { contains: q, mode: "insensitive" } },

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -23,9 +23,22 @@ type GymClient = {
 
 export default function NewNutritionClientPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [linkedClientId, setLinkedClientId] = useState<string | null>(null)
   const [linkedClientName, setLinkedClientName] = useState("")
+
+  // Auto-load gym client from URL param ?gymId=
+  useEffect(() => {
+    const gymId = searchParams.get("gymId")
+    if (!gymId) return
+    fetch(`/api/nutrition/gym-clients?id=${gymId}`)
+      .then((r) => r.json())
+      .then((data: GymClient[]) => {
+        if (data[0]) selectGymClient(data[0])
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Gym client search
   const [gymSearch, setGymSearch] = useState("")
