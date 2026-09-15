@@ -1,0 +1,58 @@
+CREATE TABLE "NutritionClient" (
+  "id"                    TEXT NOT NULL,
+  "firstName"             TEXT NOT NULL,
+  "lastName"              TEXT NOT NULL,
+  "email"                 TEXT,
+  "phone"                 TEXT,
+  "dni"                   TEXT,
+  "birthDate"             TIMESTAMP(3),
+  "gender"                TEXT,
+  "occupation"            TEXT,
+  "physicalActivityLevel" TEXT,
+  "medicalConditions"     TEXT,
+  "allergies"             TEXT,
+  "foodPreferences"       TEXT,
+  "currentGoal"           TEXT,
+  "referredBy"            TEXT,
+  "notes"                 TEXT,
+  "isActive"              BOOLEAN NOT NULL DEFAULT true,
+  "createdAt"             TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt"             TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "NutritionClient_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE "NutritionConsultation" (
+  "id"                 TEXT NOT NULL,
+  "nutritionClientId"  TEXT NOT NULL,
+  "consultationNumber" INTEGER NOT NULL DEFAULT 1,
+  "date"               TIMESTAMP(3) NOT NULL,
+  "weight"             DOUBLE PRECISION,
+  "height"             DOUBLE PRECISION,
+  "bodyFat"            DOUBLE PRECISION,
+  "muscleMass"         DOUBLE PRECISION,
+  "visceralFat"        INTEGER,
+  "waist"              DOUBLE PRECISION,
+  "hips"               DOUBLE PRECISION,
+  "arms"               DOUBLE PRECISION,
+  "goal"               TEXT,
+  "calTarget"          INTEGER,
+  "proteinTarget"      DOUBLE PRECISION,
+  "carbsTarget"        DOUBLE PRECISION,
+  "fatTarget"          DOUBLE PRECISION,
+  "waterTarget"        DOUBLE PRECISION,
+  "dietPlan"           TEXT,
+  "supplements"        TEXT,
+  "recommendations"    TEXT,
+  "observations"       TEXT,
+  "nextAppointment"    TIMESTAMP(3),
+  "isPaid"             BOOLEAN NOT NULL DEFAULT false,
+  "paymentAmount"      DOUBLE PRECISION,
+  "paymentMethod"      TEXT,
+  "createdAt"          TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt"          TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "NutritionConsultation_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "NutritionConsultation_nutritionClientId_fkey"
+    FOREIGN KEY ("nutritionClientId")
+    REFERENCES "NutritionClient"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE
+);

@@ -18,6 +18,7 @@ import {
   Dumbbell,
   UserCog,
   LineChart,
+  Salad,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -34,6 +35,7 @@ const adminNavItems = [
   { href: "/finances/pending-accumulated", label: "Pend. Acumulados", icon: AlertCircle },
   { href: "/finances/proyeccion", label: "Proyección renov.", icon: LineChart },
   { href: "/training-plans", label: "Entrena. Personal", icon: Dumbbell },
+  { href: "/nutrition", label: "Nutrición", icon: Salad },
   { href: "/settings/users", label: "Usuarios", icon: UserCog },
 ]
 

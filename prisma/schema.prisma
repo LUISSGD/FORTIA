@@ -271,3 +271,65 @@ model MonthlyExpense {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
+
+model NutritionClient {
+  id                    String   @id @default(cuid())
+  firstName             String
+  lastName              String
+  email                 String?
+  phone                 String?
+  dni                   String?
+  birthDate             DateTime?
+  gender                String?
+  occupation            String?
+  physicalActivityLevel String?
+  medicalConditions     String?
+  allergies             String?
+  foodPreferences       String?
+  currentGoal           String?
+  referredBy            String?
+  notes                 String?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  consultations NutritionConsultation[]
+}
+
+model NutritionConsultation {
+  id                 String          @id @default(cuid())
+  nutritionClientId  String
+  nutritionClient    NutritionClient @relation(fields: [nutritionClientId], references: [id], onDelete: Cascade)
+  consultationNumber Int             @default(1)
+  date               DateTime
+
+  weight             Float?
+  height             Float?
+  bodyFat            Float?
+  muscleMass         Float?
+  visceralFat        Int?
+  waist              Float?
+  hips               Float?
+  arms               Float?
+
+  goal               String?
+  calTarget          Int?
+  proteinTarget      Float?
+  carbsTarget        Float?
+  fatTarget          Float?
+  waterTarget        Float?
+
+  dietPlan           String?
+  supplements        String?
+  recommendations    String?
+  observations       String?
+
+  nextAppointment    DateTime?
+
+  isPaid             Boolean  @default(false)
+  paymentAmount      Float?
+  paymentMethod      String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}

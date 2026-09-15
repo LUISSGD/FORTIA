@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { LayoutDashboard, Users, Calendar, DollarSign, Dumbbell } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, DollarSign, Dumbbell, Salad } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
@@ -12,6 +12,7 @@ const adminNavItems = [
   { href: "/schedule", label: "Agenda", icon: Calendar },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
   { href: "/training-plans", label: "Entrena.", icon: Dumbbell },
+  { href: "/nutrition", label: "Nutrición", icon: Salad },
 ]
 
 const userNavItems = [
