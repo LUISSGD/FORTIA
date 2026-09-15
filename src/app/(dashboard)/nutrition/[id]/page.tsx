@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import Header from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Plus, Phone, Mail, Calendar, AlertCircle, CheckCircle, Edit } from "lucide-react"
+import { ArrowLeft, Plus, Phone, Mail, Calendar, AlertCircle, CheckCircle, Edit, Dumbbell } from "lucide-react"
 import DeleteButton from "@/components/ui/DeleteButton"
 import NutritionClientDetail from "./NutritionClientDetail"
 
@@ -106,6 +106,12 @@ export default async function NutritionClientPage({ params }: PageProps) {
                     <h2 className="text-xl font-bold text-gray-800">
                       {client.firstName} {client.lastName}
                     </h2>
+                    {client.clientId && (
+                      <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+                        <Dumbbell className="h-3 w-3" />
+                        Alumno Fortia
+                      </span>
+                    )}
                     {!client.isActive && (
                       <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactivo</span>
                     )}

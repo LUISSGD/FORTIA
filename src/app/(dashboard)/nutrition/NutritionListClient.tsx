@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, User, Calendar, AlertCircle, TrendingDown, TrendingUp, Minus } from "lucide-react"
+import { Plus, Search, User, Calendar, AlertCircle, TrendingDown, TrendingUp, Minus, Dumbbell } from "lucide-react"
 
 type Consultation = {
   id: string
@@ -17,6 +17,7 @@ type Consultation = {
 
 type Client = {
   id: string
+  clientId: string | null
   firstName: string
   lastName: string
   email: string | null
@@ -204,6 +205,12 @@ export default function NutritionListClient({ clients, stats }: { clients: Clien
                       {c.phone && <p className="text-xs text-gray-400 mt-0.5">{c.phone}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1">
+                      {c.clientId && (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+                          <Dumbbell className="h-3 w-3" />
+                          Alumno Fortia
+                        </span>
+                      )}
                       {!c.isActive && (
                         <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactivo</span>
                       )}
