@@ -57,6 +57,7 @@ model Client {
   attendances     Attendance[]
   physicalRecords PhysicalRecord[]
   renewalSkips    RenewalProjectionSkip[]
+  nutritionClients NutritionClient[]
 }
 
 model Payment {
@@ -274,6 +275,8 @@ model MonthlyExpense {
 
 model NutritionClient {
   id                    String   @id @default(cuid())
+  clientId              String?
+  client                Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   firstName             String
   lastName              String
   email                 String?

@@ -32,13 +32,14 @@ export async function POST(request: Request) {
 
   const body = await request.json()
   const {
-    firstName, lastName, email, phone, dni, birthDate, gender,
+    clientId, firstName, lastName, email, phone, dni, birthDate, gender,
     occupation, physicalActivityLevel, medicalConditions,
     allergies, foodPreferences, currentGoal, referredBy, notes,
   } = body
 
   const client = await prisma.nutritionClient.create({
     data: {
+      clientId: clientId || null,
       firstName,
       lastName,
       email: email || null,
