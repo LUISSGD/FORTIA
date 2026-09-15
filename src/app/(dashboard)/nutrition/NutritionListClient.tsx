@@ -93,16 +93,22 @@ function FortiaClientDropdown() {
     return () => document.removeEventListener("mousedown", onClick)
   }, [])
 
+  function fetchClients(val: string) {
+    setLoading(true)
+    fetch(`/api/nutrition/gym-clients?q=${encodeURIComponent(val)}`)
+      .then((r) => r.json())
+      .then((d) => { setResults(d); setLoading(false) })
+  }
+
+  useEffect(() => {
+    if (open) fetchClients(q)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
   function handleSearch(val: string) {
     setQ(val)
     if (debounce.current) clearTimeout(debounce.current)
-    if (val.length === 0) { setResults([]); setLoading(false); return }
-    setLoading(true)
-    debounce.current = setTimeout(() => {
-      fetch(`/api/nutrition/gym-clients?q=${encodeURIComponent(val)}`)
-        .then((r) => r.json())
-        .then((d) => { setResults(d); setLoading(false) })
-    }, 300)
+    debounce.current = setTimeout(() => fetchClients(val), 300)
   }
 
   function select(c: GymClient) {
@@ -138,11 +144,9 @@ function FortiaClientDropdown() {
           </div>
           <div className="max-h-60 overflow-auto">
             {loading ? (
-              <p className="text-xs text-gray-400 text-center py-4">Buscando...</p>
+              <p className="text-xs text-gray-400 text-center py-4">Cargando...</p>
             ) : results.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-4">
-                {q.length > 0 ? "Sin resultados" : "Empieza a escribir para buscar"}
-              </p>
+              <p className="text-xs text-gray-400 text-center py-4">Sin resultados</p>
             ) : (
               results.map((c) => (
                 <button
