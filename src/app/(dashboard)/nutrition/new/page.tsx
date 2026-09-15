@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,6 +22,14 @@ type GymClient = {
 }
 
 export default function NewNutritionClientPage() {
+  return (
+    <Suspense>
+      <NewNutritionClientForm />
+    </Suspense>
+  )
+}
+
+function NewNutritionClientForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
