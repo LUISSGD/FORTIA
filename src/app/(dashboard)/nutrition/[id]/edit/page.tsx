@@ -13,6 +13,7 @@ export default async function NutritionEditPage({ params }: PageProps) {
 
   const serialized = {
     ...client,
+    clientId: client.clientId ?? null,
     birthDate: client.birthDate?.toISOString().split("T")[0] ?? "",
     createdAt: client.createdAt.toISOString(),
     updatedAt: client.updatedAt.toISOString(),

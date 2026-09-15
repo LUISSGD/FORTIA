@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Dumbbell } from "lucide-react"
 
 type Client = {
   id: string
+  clientId: string | null
   firstName: string
   lastName: string
   email: string | null
@@ -81,6 +82,12 @@ export default function NutritionEditForm({ client }: { client: Client }) {
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <h1 className="text-xl font-semibold">Editar paciente</h1>
+        {client.clientId && (
+          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+            <Dumbbell className="h-3 w-3" />
+            Alumno Fortia
+          </span>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
