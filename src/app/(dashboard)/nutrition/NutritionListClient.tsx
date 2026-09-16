@@ -97,7 +97,14 @@ function FortiaClientDropdown() {
     setLoading(true)
     fetch(`/api/nutrition/gym-clients?q=${encodeURIComponent(val)}`)
       .then((r) => r.json())
-      .then((d) => { setResults(d); setLoading(false) })
+      .then((d: GymClient[]) => {
+        const clean = Array.isArray(d)
+          ? d.filter((c) => c.lastName && c.lastName.trim() !== "" && c.lastName.trim() !== ".")
+          : []
+        setResults(clean)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }
 
   useEffect(() => {
