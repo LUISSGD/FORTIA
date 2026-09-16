@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
       ? { id }
       : q
       ? {
+          isActive: true,
           OR: [
             { firstName: { contains: q, mode: "insensitive" } },
             { lastName: { contains: q, mode: "insensitive" } },
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
             { phone: { contains: q, mode: "insensitive" } },
           ],
         }
-      : {},
+      : { isActive: true },
     select: {
       id: true,
       firstName: true,
