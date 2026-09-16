@@ -9,19 +9,33 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? ""
   const id = req.nextUrl.searchParams.get("id")?.trim() ?? ""
 
+  const validClient = {
+    NOT: [
+      { lastName: null },
+      { lastName: "" },
+      { lastName: "." },
+      { firstName: "" },
+    ],
+  }
+
   const clients = await prisma.client.findMany({
     where: id
       ? { id }
       : q
       ? {
-          OR: [
-            { firstName: { contains: q, mode: "insensitive" } },
-            { lastName: { contains: q, mode: "insensitive" } },
-            { dni: { contains: q, mode: "insensitive" } },
-            { phone: { contains: q, mode: "insensitive" } },
+          AND: [
+            validClient,
+            {
+              OR: [
+                { firstName: { contains: q, mode: "insensitive" } },
+                { lastName: { contains: q, mode: "insensitive" } },
+                { dni: { contains: q, mode: "insensitive" } },
+                { phone: { contains: q, mode: "insensitive" } },
+              ],
+            },
           ],
         }
-      : {},
+      : validClient,
     select: {
       id: true,
       firstName: true,
