@@ -94,6 +94,7 @@ function FortiaClientDropdown() {
   }, [])
 
   function fetchClients(val: string) {
+    if (!val.trim()) { setResults([]); setLoading(false); return }
     setLoading(true)
     fetch(`/api/nutrition/gym-clients?q=${encodeURIComponent(val)}`)
       .then((r) => r.json())
@@ -101,8 +102,7 @@ function FortiaClientDropdown() {
   }
 
   useEffect(() => {
-    if (open) fetchClients(q)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!open) { setQ(""); setResults([]) }
   }, [open])
 
   function handleSearch(val: string) {
@@ -145,6 +145,8 @@ function FortiaClientDropdown() {
           <div className="max-h-60 overflow-auto">
             {loading ? (
               <p className="text-xs text-gray-400 text-center py-4">Cargando...</p>
+            ) : !q.trim() ? (
+              <p className="text-xs text-gray-400 text-center py-4">Escribe para buscar un alumno</p>
             ) : results.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-4">Sin resultados</p>
             ) : (
