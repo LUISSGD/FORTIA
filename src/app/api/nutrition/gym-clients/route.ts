@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       birthDate: true,
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    take: 30,
+    take: 100,
   })
 
   return NextResponse.json(clients)
