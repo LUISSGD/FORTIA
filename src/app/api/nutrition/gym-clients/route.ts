@@ -9,12 +9,11 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? ""
   const id = req.nextUrl.searchParams.get("id")?.trim() ?? ""
 
-  const validClient = {
-    NOT: [
-      { lastName: null },
-      { lastName: "" },
-      { lastName: "." },
-      { firstName: "" },
+  const validFilter = {
+    AND: [
+      { lastName: { not: null } },
+      { lastName: { not: "" } },
+      { lastName: { not: "." } },
     ],
   }
 
@@ -24,7 +23,7 @@ export async function GET(req: NextRequest) {
       : q
       ? {
           AND: [
-            validClient,
+            validFilter,
             {
               OR: [
                 { firstName: { contains: q, mode: "insensitive" } },
@@ -35,7 +34,7 @@ export async function GET(req: NextRequest) {
             },
           ],
         }
-      : validClient,
+      : validFilter,
     select: {
       id: true,
       firstName: true,
