@@ -6,7 +6,10 @@ import { getClientSession } from "@/lib/coaching/auth"
 import { LEVELS } from "@/lib/coaching/constants"
 import { formatYmd, periodLabel, toYmd, todayYmd } from "@/lib/coaching/dates"
 import { Card, SectionTitle } from "@/components/coaching/app/ui"
+import { Suspense } from "react"
 import ProfileActions from "@/components/coaching/app/ProfileActions"
+import { PayOnlineButton, PaymentReturn } from "@/components/coaching/app/PayOnline"
+import { mpEnabled } from "@/lib/coaching/mercadopago"
 
 export default async function ProfilePage() {
   const ctx = await getClientSession()
@@ -22,6 +25,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-4">
+      <Suspense><PaymentReturn /></Suspense>
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 rounded-full bg-orange-500 flex items-center justify-center text-xl font-black">{client.firstName[0]}{client.lastName[0]}</div>
         <div>
@@ -55,6 +59,7 @@ export default async function ProfilePage() {
           ) : payments.length ? <span className="text-emerald-400 font-bold text-sm">🟢 PAGADO</span> : <span className="text-zinc-500 text-sm">—</span>}
         </div>
         {pending && <p className="text-xs text-zinc-400 mt-2">Próximo pago: {formatYmd(toYmd(pending.dueDate), true)} · {pending.currency === "USD" ? "$" : "S/"}{pending.amount}</p>}
+        {pending && mpEnabled() && <PayOnlineButton paymentId={pending.id} label={`Pagar ${pending.currency === "USD" ? "$" : "S/"}${pending.amount} con Mercado Pago`} />}
         {payments.length > 0 && (
           <table className="w-full text-sm mt-3">
             <tbody className="divide-y divide-zinc-800">

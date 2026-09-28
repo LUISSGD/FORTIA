@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireCoach, jsonError, num, str } from "@/lib/coaching/auth"
-import { notifyClient } from "@/lib/coaching/notify"
-import { periodLabel } from "@/lib/coaching/dates"
+import { markPaymentPaid } from "@/lib/coaching/payments"
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -16,29 +15,18 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!payment) return jsonError("No encontrado", 404)
 
   if (body.status === "PAID" && payment.status !== "PAID") {
-    const paidAt = body.paidAt ? new Date(`${body.paidAt}T12:00:00Z`) : new Date()
-    const amount = num(body.amount) ?? payment.amount
-    const updated = await prisma.$transaction(async (tx) => {
-      const income = await tx.income.create({
-        data: {
-          amount,
-          currency: payment.currency,
-          category: "COACHING",
-          description: `Coaching ${periodLabel(payment.period)} — ${payment.client.firstName} ${payment.client.lastName}`,
-          clientId: payment.clientId,
-          date: paidAt,
-        },
-      })
-      return tx.coachingPayment.update({ where: { id }, data: { status: "PAID", paidAt, amount, method: str(body.method) ?? "TRANSFER", incomeId: income.id } })
+    const updated = await markPaymentPaid(id, {
+      amount: num(body.amount) ?? payment.amount,
+      paidAt: body.paidAt ? new Date(`${body.paidAt}T12:00:00Z`) : new Date(),
+      method: str(body.method) ?? "TRANSFER",
     })
-    await notifyClient(payment.clientId, { type: "PAYMENT", title: "Pago registrado ✅", body: `Mensualidad de ${periodLabel(payment.period)}. ¡Gracias!`, link: "/app/profile" })
-    return NextResponse.json(updated)
+    return NextResponse.json(updated ?? payment)
   }
 
   if (body.status === "PENDING" && payment.status === "PAID") {
     const updated = await prisma.$transaction(async (tx) => {
       if (payment.incomeId) await tx.income.deleteMany({ where: { id: payment.incomeId } })
-      return tx.coachingPayment.update({ where: { id }, data: { status: "PENDING", paidAt: null, method: null, incomeId: null } })
+      return tx.coachingPayment.update({ where: { id }, data: { status: "PENDING", paidAt: null, method: null, incomeId: null, mpPaymentId: null } })
     })
     return NextResponse.json(updated)
   }

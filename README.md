@@ -13,7 +13,7 @@ Sistema de gestión del gimnasio FORTIA (Next.js 16 + Prisma/PostgreSQL + Supaba
 | 🎥 Ejercicios | Biblioteca base de 77 ejercicios (músculos, equipamiento, instrucciones, errores comunes) + ejercicios propios con video (YouTube/Vimeo). |
 | 🥗 Nutrición | Planes con **opciones A/B/C por comida**, cálculo automático de kcal/macros, biblioteca de 225 alimentos habituales (por 100 g, con porciones). |
 | 📅 Agenda | Horarios disponibles (recurrentes, cupos, presencial/online), reservas, lista de espera automática, asistencia. |
-| 💳 Pagos | Mensualidades por cliente; al marcar pagado se registra el ingreso “Coaching online” en Finanzas. |
+| 💳 Pagos | Mensualidades por cliente; al marcar pagado se registra el ingreso “Coaching online” en Finanzas. **Pagos online con Mercado Pago**: el cliente paga desde su app (o le envías el link de pago 🔗) y la mensualidad se marca como pagada automáticamente. |
 | 💬 Mensajes | Chat por cliente (texto, fotos, videos, audios, PDFs) y mensajes masivos con `{nombre}`. |
 | 📄 Documentos | PDFs, videos, enlaces para todos o para un cliente. |
 | 🏆 Comunidad | Retos mensuales con progreso y ranking opcional. |
@@ -25,6 +25,7 @@ Menú inferior: 🏠 Inicio · 🏋️ Entreno · 🥗 Nutrición · 📈 Progre
 - **Nutrición**: elige opción A/B/C, marca comidas, extras fuera del plan, macros vs objetivo, agua, lista de compras semanal.
 - **Progreso**: peso/medidas con gráficos, fotos frente/perfil/espalda y comparación entre fechas, objetivos y logros.
 - **Notificaciones push** en el celular (entrenamiento del día, recordatorios, mensajes y respuestas del coach, reservas, pagos). El cliente las activa desde Inicio o Perfil; en iPhone primero debe “Agregar a inicio” (iOS 16.4+). El entrenador las activa con “Activar push” en el dashboard y recibe los avisos de entrenos, check-ins, reservas y mensajes.
+- **Pago de la mensualidad con Mercado Pago** (tarjeta, Yape y demás medios habilitados en tu cuenta) desde Perfil.
 - **Check-in semanal**, reservas, documentos, retos, notificaciones y cambio de contraseña.
 
 ### Puesta en marcha
@@ -34,6 +35,9 @@ Menú inferior: 🏠 Inicio · 🏋️ Entreno · 🥗 Nutrición · 📈 Progre
 3. Variables de entorno adicionales:
    - `CRON_SECRET`: protege el cron diario de automatizaciones (`vercel.json`, 8:00 hora de Lima).
    - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` (ej. `mailto:tu@correo.com`): notificaciones push al celular. Genera las claves una sola vez con `npx web-push generate-vapid-keys` y no las cambies después (invalidaría las suscripciones). Sin ellas la app funciona igual, solo sin push.
+   - `MP_ACCESS_TOKEN`: Access Token de producción de tu aplicación de Mercado Pago (Tus integraciones → Credenciales). Sin él, los pagos online quedan ocultos.
+   - `MP_WEBHOOK_SECRET`: clave secreta de Webhooks (Tus integraciones → Webhooks). Configura ahí la URL `https://TU-DOMINIO/api/mercadopago/webhook` con el evento **Pagos**.
+   - `APP_URL` (opcional): URL pública de la app, p. ej. `https://fortia.vercel.app`. Si no se define se usa el dominio de la petición.
    - `SUPABASE_COACHING_BUCKET` (opcional, por defecto `coaching`): bucket público para fotos, adjuntos y documentos. Se crea automáticamente si no existe.
 4. Crear el acceso de cada cliente en *Coaching → Clientes → (cliente) → Ajustes → Acceso a la app*. El cliente entra por `/login` y va directo a su app; puede “Añadir a pantalla de inicio” en el celular.
 

@@ -37,6 +37,8 @@ export const authConfig: NextAuthConfig = {
       if (isApiAuth) return true
       // Cron de automatizaciones: se autentica con CRON_SECRET dentro del handler
       if (nextUrl.pathname === "/api/coaching/automations/run" && request.method === "GET") return true
+      // Webhook de Mercado Pago: valida la firma dentro del handler
+      if (nextUrl.pathname === "/api/mercadopago/webhook") return true
       // Manifest e íconos de la PWA deben ser públicos para poder instalar la app
       if (PUBLIC_FILES.includes(nextUrl.pathname)) return true
       if (!isLoggedIn && !isLoginPage) return false

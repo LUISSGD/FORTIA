@@ -76,6 +76,7 @@ export const PAYMENT_METHODS: Record<string, string> = {
   TRANSFER: "Transferencia",
   YAPE: "Yape",
   PLIN: "Plin",
+  MERCADOPAGO: "Mercado Pago",
   OTHER: "Otro",
   EXTENSION: "Extensión de plan",
 }

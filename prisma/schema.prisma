@@ -712,6 +712,9 @@ model CoachingPayment {
   method    String?
   notes     String?
   incomeId  String?   @unique
+  // Mercado Pago
+  mpPreferenceId String?
+  mpPaymentId    String?  @unique
   createdAt DateTime  @default(now())
 
   @@unique([clientId, period])

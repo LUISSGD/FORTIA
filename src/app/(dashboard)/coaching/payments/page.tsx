@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { currentPeriod, periodLabel, toYmd, todayYmd } from "@/lib/coaching/dates"
 import { Panel, Stat } from "@/components/coaching/kit"
 import PaymentsTable from "@/components/coaching/PaymentsTable"
+import { mpEnabled } from "@/lib/coaching/mercadopago"
 import GenerateMonth from "./GenerateMonth"
 
 export const dynamic = "force-dynamic"
@@ -48,11 +49,11 @@ export default async function CoachingPaymentsPage({ searchParams }: PageProps<"
         <Stat label="Ingreso esperado" value={`S/${expected.toLocaleString("es-PE")}`} hint={`${profiles.length} clientes activos`} />
       </div>
       <Panel title="Mensualidades del mes">
-        <PaymentsTable payments={payments.map(toRow)} showClient />
+        <PaymentsTable mpEnabled={mpEnabled()} payments={payments.map(toRow)} showClient />
       </Panel>
       {overdue.length > 0 && (
         <Panel title={`⚠️ Deudas de meses anteriores (${overdue.length})`}>
-          <PaymentsTable payments={overdue.map(toRow)} showClient />
+          <PaymentsTable mpEnabled={mpEnabled()} payments={overdue.map(toRow)} showClient />
         </Panel>
       )}
       <p className="text-xs text-gray-400">Al marcar un pago como pagado se registra automáticamente como ingreso “Coaching online” en Finanzas.</p>

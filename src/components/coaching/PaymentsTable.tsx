@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Trash2, Undo2 } from "lucide-react"
+import { Link2, Trash2, Undo2 } from "lucide-react"
 import { PAYMENT_METHODS } from "@/lib/utils"
 import { Btn, Field, Input, Modal, Select, api } from "./kit"
 
@@ -16,7 +16,7 @@ const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" 
 const money = (n: number, c: string) => `${c === "USD" ? "$" : "S/"}${n.toLocaleString("es-PE")}`
 const fmt = (d: string) => d.split("-").reverse().join("/")
 
-export default function PaymentsTable({ payments, clientId, defaultAmount, showClient = false }: { payments: PaymentRow[]; clientId?: string; defaultAmount?: number; showClient?: boolean }) {
+export default function PaymentsTable({ payments, clientId, defaultAmount, showClient = false, mpEnabled = false }: { payments: PaymentRow[]; clientId?: string; defaultAmount?: number; showClient?: boolean; mpEnabled?: boolean }) {
   const router = useRouter()
   const [paying, setPaying] = useState<PaymentRow | null>(null)
   const [payForm, setPayForm] = useState({ method: "TRANSFER", paidAt: today(), amount: "" })
@@ -30,6 +30,20 @@ export default function PaymentsTable({ payments, clientId, defaultAmount, showC
       toast.success("Pago registrado y sumado a Finanzas")
       setPaying(null)
       router.refresh()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  async function payLink(p: PaymentRow) {
+    try {
+      const { url } = await api<{ url: string }>(`/api/coaching/payments/${p.id}/checkout`, "POST")
+      try {
+        await navigator.clipboard.writeText(url)
+        toast.success("Link de Mercado Pago copiado. Envíaselo a tu cliente.")
+      } catch {
+        window.prompt("Link de pago de Mercado Pago:", url)
+      }
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -86,6 +100,11 @@ export default function PaymentsTable({ payments, clientId, defaultAmount, showC
                       )}
                     </td>
                     <td className="py-2 pl-2 text-right whitespace-nowrap">
+                      {p.status === "PENDING" && mpEnabled && (
+                        <button className="p-1.5 text-sky-600 hover:text-sky-800" title="Copiar link de pago de Mercado Pago" onClick={() => payLink(p)}>
+                          <Link2 className="h-4 w-4" />
+                        </button>
+                      )}
                       {p.status === "PENDING" ? (
                         <Btn size="sm" onClick={() => { setPaying(p); setPayForm({ method: "TRANSFER", paidAt: today(), amount: String(p.amount) }) }}>Marcar pagado</Btn>
                       ) : (

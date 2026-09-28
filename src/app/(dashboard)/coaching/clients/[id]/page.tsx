@@ -19,6 +19,7 @@ import ExerciseProgression from "./ExerciseProgression"
 import CheckInReview from "./CheckInReview"
 import PhotoCompare from "@/components/coaching/PhotoCompare"
 import PaymentsTable from "@/components/coaching/PaymentsTable"
+import { mpEnabled } from "@/lib/coaching/mercadopago"
 import DocumentsManager from "@/components/coaching/DocumentsManager"
 
 export const dynamic = "force-dynamic"
@@ -512,6 +513,7 @@ async function PaymentsTab({ clientId, profile }: { clientId: string; profile: P
       </div>
       <Panel title="Historial de mensualidades">
         <PaymentsTable
+          mpEnabled={mpEnabled()}
           clientId={clientId}
           defaultAmount={profile.price ?? 0}
           payments={payments.map((p) => ({ id: p.id, clientId: p.clientId, clientName: `${p.client.firstName} ${p.client.lastName}`, period: p.period, periodLabel: periodLabel(p.period), amount: p.amount, currency: p.currency, status: p.status, dueDate: toYmd(p.dueDate), paidAt: p.paidAt ? toYmd(p.paidAt) : null, method: p.method }))}
