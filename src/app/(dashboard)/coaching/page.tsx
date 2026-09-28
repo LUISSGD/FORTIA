@@ -5,10 +5,11 @@ import { dateTimeLima, todayYmd, weekStartYmd } from "@/lib/coaching/dates"
 import { Panel, Stat } from "@/components/coaching/kit"
 import DashboardActions from "./DashboardActions"
 import AttentionList from "./AttentionList"
+import { withCoachErrors } from "@/components/coaching/withCoachErrors"
 
 export const dynamic = "force-dynamic"
 
-export default async function CoachingDashboard() {
+async function CoachingDashboard() {
   const weekStart = weekStartYmd()
   const [overview, libraryCount, notifications, pendingCheckIns, upcoming] = await Promise.all([
     getClientsOverview(),
@@ -157,3 +158,5 @@ export default async function CoachingDashboard() {
     </>
   )
 }
+
+export default withCoachErrors("Dashboard de coaching", CoachingDashboard)
