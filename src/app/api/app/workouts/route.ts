@@ -39,38 +39,57 @@ export async function POST(request: Request) {
   const validIds = new Set((await prisma.exercise.findMany({ where: { id: { in: [...new Set(sets.map((s) => s.exerciseId))] } }, select: { id: true } })).map((e) => e.id))
   const cleanSets = sets.filter((s) => validIds.has(s.exerciseId))
 
-  const startedAt = body.startedAt ? new Date(body.startedAt) : new Date()
+  const parsedStart = body.startedAt ? new Date(body.startedAt) : null
+  const startedAt = parsedStart && !isNaN(parsedStart.getTime()) ? parsedStart : new Date()
+
+  // Reintento del mismo entrenamiento (p. ej. se cortó la conexión tras guardar): no duplicar
+  if (parsedStart) {
+    const already = await prisma.workoutLog.findFirst({ where: { clientId, startedAt, programDayId: programDayId ?? undefined } })
+    if (already) return NextResponse.json(already, { status: 200 })
+  }
+
   const completedAt = new Date()
   const durationMin = Math.max(1, Math.min(600, Math.round((completedAt.getTime() - startedAt.getTime()) / 60_000)))
   const rating = num(body.rating)
 
-  const workout = await prisma.workoutLog.create({
-    data: {
-      clientId,
-      programDayId,
-      dayName,
-      date: todayYmd(),
-      startedAt,
-      completedAt,
-      durationMin,
-      volumeKg: Math.round(setsVolume(cleanSets)),
-      rating: rating === null ? null : Math.min(5, Math.max(1, Math.round(rating))),
-      notes: str(body.notes),
-      exerciseNotes: body.exerciseNotes && typeof body.exerciseNotes === "object" ? body.exerciseNotes : undefined,
-      sets: { create: cleanSets },
-    },
-  })
+  let workout
+  try {
+    workout = await prisma.workoutLog.create({
+      data: {
+        clientId,
+        programDayId,
+        dayName,
+        date: todayYmd(),
+        startedAt,
+        completedAt,
+        durationMin,
+        volumeKg: Math.round(setsVolume(cleanSets)),
+        rating: rating === null ? null : Math.min(5, Math.max(1, Math.round(rating))),
+        notes: str(body.notes),
+        exerciseNotes: body.exerciseNotes && typeof body.exerciseNotes === "object" ? body.exerciseNotes : undefined,
+        sets: { create: cleanSets },
+      },
+    })
+  } catch (e) {
+    console.error("Guardar entrenamiento:", e)
+    return jsonError("No se pudo guardar el entrenamiento. Intenta de nuevo.", 500)
+  }
 
-  const client = await prisma.client.findUnique({ where: { id: clientId }, select: { firstName: true, lastName: true } })
-  const hasFeedback = workout.notes || (body.exerciseNotes && Object.values(body.exerciseNotes).some(Boolean))
-  await notifyCoach({
-    clientId,
-    type: "WORKOUT",
-    title: `${client?.firstName} completó ${dayName}`,
-    body: `${workout.durationMin} min · ${workout.volumeKg.toLocaleString("es-PE")} kg${hasFeedback ? " · dejó comentarios" : ""}`,
-    link: `/coaching/clients/${clientId}?tab=training`,
-  })
-  await checkWeekCompleted(clientId)
+  // Avisos al coach y automatizaciones: si fallan, el entrenamiento ya quedó guardado
+  try {
+    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { firstName: true, lastName: true } })
+    const hasFeedback = workout.notes || (body.exerciseNotes && Object.values(body.exerciseNotes).some(Boolean))
+    await notifyCoach({
+      clientId,
+      type: "WORKOUT",
+      title: `${client?.firstName} completó ${dayName}`,
+      body: `${workout.durationMin} min · ${workout.volumeKg.toLocaleString("es-PE")} kg${hasFeedback ? " · dejó comentarios" : ""}`,
+      link: `/coaching/clients/${clientId}?tab=training`,
+    })
+    await checkWeekCompleted(clientId)
+  } catch (e) {
+    console.error("Avisos tras entrenamiento:", e)
+  }
 
   return NextResponse.json(workout, { status: 201 })
 }

@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Check, ChevronDown, Play, Plus, Timer, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { estimate1RM, fmtKg } from "@/lib/coaching/workout"
+import { request } from "./request"
 
 type Prev = { weight: number | null; reps: number | null }
 type Ex = {
@@ -131,10 +132,15 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
       exerciseNotes: state.notes,
       sets: exercises.flatMap((e) => state.sets[e.id].map((s, i) => ({ exerciseId: e.exerciseId, setNumber: i + 1, weight: s.weight, reps: s.reps, completed: s.done })).filter((s) => s.completed)),
     }
-    const res = await fetch("/api/app/workouts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
-    const data = await res.json()
-    setSaving(false)
-    if (!res.ok) return toast.error(data.error ?? "No se pudo guardar")
+    let data: { durationMin: number; volumeKg: number }
+    try {
+      data = await request("/api/app/workouts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, 30_000)
+    } catch (e) {
+      toast.error(`${(e as Error).message} Tu entrenamiento sigue guardado en este celular.`, { duration: 8000 })
+      return
+    } finally {
+      setSaving(false)
+    }
     const prs = exercises
       .filter((e) => {
         const top = Math.max(0, ...state.sets[e.id].filter((s) => s.done).map((s) => estimate1RM(Number(s.weight) || 0, Number(s.reps) || 0)))

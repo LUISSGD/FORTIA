@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Minus, Plus } from "lucide-react"
 import { toast } from "sonner"
+import { request } from "./request"
 
 export default function WaterWidget({ initialMl, targetMl }: { initialMl: number; targetMl: number }) {
   const [ml, setMl] = useState(initialMl)
@@ -15,13 +16,15 @@ export default function WaterWidget({ initialMl, targetMl }: { initialMl: number
     setBusy(true)
     const prev = ml
     if (method === "POST") setMl((m) => m + amount)
-    const res = await fetch("/api/app/water", { method, headers: { "Content-Type": "application/json" }, body: method === "POST" ? JSON.stringify({ ml: amount }) : undefined })
-    setBusy(false)
-    if (!res.ok) {
+    let data: { total: number }
+    try {
+      data = await request("/api/app/water", { method, headers: { "Content-Type": "application/json" }, body: method === "POST" ? JSON.stringify({ ml: amount }) : undefined }, 15_000)
+    } catch (e) {
       setMl(prev)
-      return toast.error("No se pudo registrar")
+      return toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
     }
-    const data = await res.json()
     setMl(data.total)
     if (method === "POST" && prev < targetMl && data.total >= targetMl) toast.success("💧 ¡Meta de agua cumplida!")
   }

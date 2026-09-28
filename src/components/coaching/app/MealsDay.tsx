@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Plus, Search, Trash2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { darkInput } from "./ui"
+import { request } from "./request"
 
 type Macros = { kcal: number; protein: number; carbs: number; fat: number }
 type Option = { id: string; label: string; notes: string | null; macros: Macros; items: { name: string; qty: string }[] }
@@ -26,15 +27,16 @@ export default function MealsDay({ date, meals, logs }: { date: string; meals: M
 
   async function call(key: string, method: string, url: string, body?: unknown) {
     setBusy(key)
-    const res = await fetch(url, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined })
-    setBusy(null)
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? "No se pudo guardar")
+    try {
+      await request(url, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined })
+      router.refresh()
+      return true
+    } catch (e) {
+      toast.error((e as Error).message)
       return false
+    } finally {
+      setBusy(null)
     }
-    router.refresh()
-    return true
   }
 
   const extras = logs.filter((l) => !l.mealId)
