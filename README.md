@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FORTIA
 
-## Getting Started
+Sistema de gestión del gimnasio FORTIA (Next.js 16 + Prisma/PostgreSQL + Supabase Storage) con el módulo **FORTIA Coaching**: una app de coaching personalizada (panel del entrenador + app móvil del cliente) pensada para ~40 clientes.
 
-First, run the development server:
+## FORTIA Coaching
 
+### Panel del entrenador (`/coaching`, rol ADMIN)
+| Sección | Qué hace |
+|---|---|
+| 📊 Dashboard | KPIs (activos, entrenos de la semana, cumplimiento, check-ins, pagos, mensajes), semáforo 🟢🟡🔴 y lista de **clientes que requieren atención** (días sin entrenar, cumplimiento nutricional, check-in pendiente, peso estancado, pago vencido), check-ins por revisar, próximas sesiones y actividad reciente. |
+| 👥 Clientes | Alta desde un cliente del gimnasio o nuevo, acceso a la app (email + contraseña). Perfil individual con pestañas: resumen, entrenamiento (programa, historial, **progresión por ejercicio** con 1RM estimado), nutrición (registro de 14 días), progreso (medidas, gráficos, fotos comparativas), check-ins (con respuesta del coach), pagos, chat, documentos y ajustes (objetivos de macros con sugerencia Mifflin-St Jeor). |
+| 🏋️ Rutinas | Creador de rutinas: días, ejercicios, series, reps, descanso, RIR, tempo, carga y notas. Plantillas asignables a varios clientes (cada uno recibe su copia editable). |
+| 🎥 Ejercicios | Biblioteca base de 77 ejercicios (músculos, equipamiento, instrucciones, errores comunes) + ejercicios propios con video (YouTube/Vimeo). |
+| 🥗 Nutrición | Planes con **opciones A/B/C por comida**, cálculo automático de kcal/macros, biblioteca de 225 alimentos habituales (por 100 g, con porciones). |
+| 📅 Agenda | Horarios disponibles (recurrentes, cupos, presencial/online), reservas, lista de espera automática, asistencia. |
+| 💳 Pagos | Mensualidades por cliente; al marcar pagado se registra el ingreso “Coaching online” en Finanzas. |
+| 💬 Mensajes | Chat por cliente (texto, fotos, videos, audios, PDFs) y mensajes masivos con `{nombre}`. |
+| 📄 Documentos | PDFs, videos, enlaces para todos o para un cliente. |
+| 🏆 Comunidad | Retos mensuales con progreso y ranking opcional. |
+| ⚙️ Automatizaciones | Inactividad, semana completada, cumpleaños, entrenamiento del día, recordatorio de nutrición, check-in de los domingos, recordatorio de sesión y de pago. Sin envíos duplicados. |
+
+### App del cliente (`/app`, rol CLIENT, instalable como PWA)
+Menú inferior: 🏠 Inicio · 🏋️ Entreno · 🥗 Nutrición · 📈 Progreso · 👤 Perfil, y chat flotante.
+- **Entrenamiento de hoy** con registro de series (peso anterior precargado), video, temporizador de descanso, feedback por ejercicio y resumen final (duración, volumen, récords personales). El progreso se guarda localmente si se cierra la app.
+- **Nutrición**: elige opción A/B/C, marca comidas, extras fuera del plan, macros vs objetivo, agua, lista de compras semanal.
+- **Progreso**: peso/medidas con gráficos, fotos frente/perfil/espalda y comparación entre fechas, objetivos y logros.
+- **Check-in semanal**, reservas, documentos, retos, notificaciones y cambio de contraseña.
+
+### Puesta en marcha
+1. Aplicar la migración: `npx prisma migrate deploy` (crea las tablas de coaching; no modifica datos existentes).
+2. Cargar la biblioteca base: botón **“Cargar biblioteca base”** en `/coaching`, o `npm run db:seed-coaching`.
+   - Datos de ejemplo para probar: `npx tsx prisma/seed-coaching.ts --demo` (cliente demo `carlos@demo.fortia.pe` / `fortia123`). No usar en producción.
+3. Variables de entorno adicionales:
+   - `CRON_SECRET`: protege el cron diario de automatizaciones (`vercel.json`, 8:00 hora de Lima).
+   - `SUPABASE_COACHING_BUCKET` (opcional, por defecto `coaching`): bucket público para fotos, adjuntos y documentos. Se crea automáticamente si no existe.
+4. Crear el acceso de cada cliente en *Coaching → Clientes → (cliente) → Ajustes → Acceso a la app*. El cliente entra por `/login` y va directo a su app; puede “Añadir a pantalla de inicio” en el celular.
+
+### Desarrollo
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

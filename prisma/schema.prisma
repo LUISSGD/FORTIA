@@ -13,6 +13,9 @@ model User {
   password  String
   name      String
   role      String   @default("ADMIN")
+  // Solo para role = "CLIENT": vincula el login con la ficha del cliente
+  clientId  String?  @unique
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
 
@@ -58,6 +61,24 @@ model Client {
   physicalRecords PhysicalRecord[]
   renewalSkips    RenewalProjectionSkip[]
   nutritionClients NutritionClient[]
+
+  // Coaching
+  user              User?
+  coachingProfile   CoachingProfile?
+  programs          Program[]
+  workoutLogs       WorkoutLog[]
+  mealPlans         MealPlan[]
+  mealLogs          MealLog[]
+  waterLogs         WaterLog[]
+  progressPhotos    ProgressPhoto[]
+  checkIns          CheckIn[]
+  coachMessages     CoachMessage[]
+  notifications     Notification[]
+  coachingBookings  CoachingBooking[]
+  coachingPayments  CoachingPayment[]
+  coachDocuments    CoachDocument[]
+  coachingGoals     CoachingGoal[]
+  automationLogs    AutomationLog[]
 }
 
 model Payment {
@@ -335,4 +356,422 @@ model NutritionConsultation {
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+// ════════════════════════════════════════════════════════════════════
+// FORTIA COACHING
+// ════════════════════════════════════════════════════════════════════
+
+model CoachingProfile {
+  id                  String    @id @default(cuid())
+  clientId            String    @unique
+  client              Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  status              String    @default("ACTIVE") // ACTIVE | PAUSED | ENDED
+  goal                String?
+  level               String?   // PRINCIPIANTE | INTERMEDIO | AVANZADO
+  sex                 String?   // M | F
+  heightCm            Float?
+  startWeight         Float?
+  targetWeight        Float?
+  trainingDays        Int       @default(4)
+  startDate           DateTime  @default(now())
+  calTarget           Int?
+  proteinTarget       Int?
+  carbsTarget         Int?
+  fatTarget           Int?
+  waterTargetMl       Int       @default(2500)
+  planName            String?   @default("Coaching Premium")
+  price               Float?
+  currency            String    @default("PEN")
+  billingDay          Int       @default(1)
+  coachNotes          String?
+  injuries            String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Exercise {
+  id               String    @id @default(cuid())
+  name             String    @unique
+  muscleGroup      String    // PECHO | ESPALDA | PIERNAS | HOMBROS | BRAZOS | CORE | GLUTEOS | CARDIO | FULLBODY
+  primaryMuscle    String?
+  secondaryMuscles String?
+  equipment        String?
+  videoUrl         String?
+  imageUrl         String?
+  instructions     String?
+  commonMistakes   String?
+  isCustom         Boolean   @default(false)
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  programExercises ProgramExercise[]
+  setLogs          SetLog[]
+}
+
+model Program {
+  id          String    @id @default(cuid())
+  name        String
+  goal        String?
+  level       String?
+  description String?
+  weeks       Int       @default(4)
+  isTemplate  Boolean   @default(false)
+  clientId    String?
+  client      Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  isActive    Boolean   @default(true)
+  startDate   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  days ProgramDay[]
+
+  @@index([clientId])
+}
+
+model ProgramDay {
+  id        String   @id @default(cuid())
+  programId String
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  order     Int      @default(0)
+  name      String
+  dayOfWeek Int?     // 0 = lunes … 6 = domingo (opcional)
+  notes     String?
+
+  exercises   ProgramExercise[]
+  workoutLogs WorkoutLog[]
+}
+
+model ProgramExercise {
+  id         String     @id @default(cuid())
+  dayId      String
+  day        ProgramDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id])
+  order      Int        @default(0)
+  sets       Int        @default(3)
+  reps       String     @default("8-10")
+  restSec    Int        @default(90)
+  rir        String?
+  tempo      String?
+  load       String?
+  notes      String?
+}
+
+model WorkoutLog {
+  id            String      @id @default(cuid())
+  clientId      String
+  client        Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  programDayId  String?
+  programDay    ProgramDay? @relation(fields: [programDayId], references: [id], onDelete: SetNull)
+  dayName       String
+  date          String      // YYYY-MM-DD (hora de Lima)
+  startedAt     DateTime    @default(now())
+  completedAt   DateTime?
+  durationMin   Int?
+  volumeKg      Float       @default(0)
+  rating        Int?        // 1-5 sensación general
+  notes         String?
+  exerciseNotes Json?       // { [exerciseId]: "comentario" }
+
+  sets SetLog[]
+
+  @@index([clientId, date])
+}
+
+model SetLog {
+  id           String     @id @default(cuid())
+  workoutLogId String
+  workoutLog   WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  exerciseId   String
+  exercise     Exercise   @relation(fields: [exerciseId], references: [id])
+  setNumber    Int
+  weight       Float?
+  reps         Int?
+  rir          Int?
+  completed    Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+
+  @@index([exerciseId])
+}
+
+model Food {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String   // PROTEINAS | CARBOHIDRATOS | FRUTAS | VERDURAS | LACTEOS | GRASAS | BEBIDAS | SNACKS | OTROS
+  kcal      Float    // por 100 g / 100 ml
+  protein   Float
+  carbs     Float
+  fat       Float
+  unitName  String?  // "unidad", "rebanada", "taza"
+  unitGrams Float?   // gramos que pesa 1 unidad
+  isCustom  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  items MealOptionItem[]
+}
+
+model MealPlan {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  isTemplate    Boolean  @default(false)
+  clientId      String?
+  client        Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  isActive      Boolean  @default(true)
+  calTarget     Int?
+  proteinTarget Int?
+  carbsTarget   Int?
+  fatTarget     Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  meals Meal[]
+
+  @@index([clientId])
+}
+
+model Meal {
+  id      String   @id @default(cuid())
+  planId  String
+  plan    MealPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  name    String
+  time    String?
+  order   Int      @default(0)
+
+  options MealOption[]
+  logs    MealLog[]
+}
+
+model MealOption {
+  id     String  @id @default(cuid())
+  mealId String
+  meal   Meal    @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  label  String  @default("Opción A")
+  notes  String?
+  order  Int     @default(0)
+
+  items MealOptionItem[]
+  logs  MealLog[]
+}
+
+model MealOptionItem {
+  id         String     @id @default(cuid())
+  optionId   String
+  option     MealOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  foodId     String?
+  food       Food?      @relation(fields: [foodId], references: [id], onDelete: SetNull)
+  customName String?
+  grams      Float      @default(100)
+  // macros para items libres (sin alimento de biblioteca)
+  kcal       Float?
+  protein    Float?
+  carbs      Float?
+  fat        Float?
+  order      Int        @default(0)
+}
+
+model MealLog {
+  id       String      @id @default(cuid())
+  clientId String
+  client   Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date     String      // YYYY-MM-DD
+  mealId   String?
+  meal     Meal?       @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  optionId String?
+  option   MealOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  name     String
+  status   String      @default("DONE") // DONE | SKIPPED
+  kcal     Float       @default(0)
+  protein  Float       @default(0)
+  carbs    Float       @default(0)
+  fat      Float       @default(0)
+  note     String?
+  photoUrl String?
+  createdAt DateTime   @default(now())
+
+  @@index([clientId, date])
+}
+
+model WaterLog {
+  id       String   @id @default(cuid())
+  clientId String
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date     String   // YYYY-MM-DD
+  ml       Int
+  createdAt DateTime @default(now())
+
+  @@index([clientId, date])
+}
+
+model ProgressPhoto {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date      String   // YYYY-MM-DD
+  pose      String   // FRENTE | PERFIL | ESPALDA
+  url       String
+  checkInId String?
+  checkIn   CheckIn? @relation(fields: [checkInId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([clientId, date])
+}
+
+model CheckIn {
+  id                 String    @id @default(cuid())
+  clientId           String
+  client             Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  weekStart          String    // YYYY-MM-DD (lunes de la semana)
+  energy             Int       // 1-5
+  nutritionAdherence String    // <50 | 50-70 | 70-90 | >90
+  sleep              String    // <5 | 5-6 | 6-7 | 7-8 | >8
+  stress             Int?      // 1-5
+  weight             Float?
+  discomfort         String?
+  feelings           String?
+  coachReply         String?
+  reviewedAt         DateTime?
+  createdAt          DateTime  @default(now())
+
+  photos ProgressPhoto[]
+
+  @@unique([clientId, weekStart])
+}
+
+model CoachMessage {
+  id             String    @id @default(cuid())
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sender         String    // COACH | CLIENT | SYSTEM
+  body           String
+  attachmentUrl  String?
+  attachmentType String?   // IMAGE | VIDEO | AUDIO | FILE
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([clientId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  clientId  String?   // null = notificación para el entrenador
+  client    Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  audience  String    @default("CLIENT") // CLIENT | COACH
+  type      String    // WORKOUT | NUTRITION | CHECKIN | BOOKING | MESSAGE | PAYMENT | ACHIEVEMENT | SYSTEM
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([audience, clientId, readAt])
+}
+
+model CoachingSlot {
+  id        String   @id @default(cuid())
+  startsAt  DateTime
+  endsAt    DateTime
+  title     String   @default("Sesión de entrenamiento")
+  mode      String   @default("PRESENCIAL") // PRESENCIAL | ONLINE
+  capacity  Int      @default(1)
+  location  String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  bookings CoachingBooking[]
+
+  @@index([startsAt])
+}
+
+model CoachingBooking {
+  id        String       @id @default(cuid())
+  slotId    String
+  slot      CoachingSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  status    String       @default("BOOKED") // BOOKED | WAITLIST | CANCELLED | ATTENDED | NO_SHOW
+  createdAt DateTime     @default(now())
+
+  @@unique([slotId, clientId])
+}
+
+model CoachingPayment {
+  id        String    @id @default(cuid())
+  clientId  String
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  period    String    // YYYY-MM
+  amount    Float
+  currency  String    @default("PEN")
+  status    String    @default("PENDING") // PENDING | PAID
+  dueDate   DateTime
+  paidAt    DateTime?
+  method    String?
+  notes     String?
+  incomeId  String?   @unique
+  createdAt DateTime  @default(now())
+
+  @@unique([clientId, period])
+}
+
+model CoachDocument {
+  id          String   @id @default(cuid())
+  clientId    String?  // null = visible para todos los clientes
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  category    String   @default("GENERAL")
+  type        String   @default("PDF") // PDF | VIDEO | LINK | IMAGE
+  url         String
+  createdAt   DateTime @default(now())
+}
+
+model CoachingGoal {
+  id          String    @id @default(cuid())
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title       String
+  metric      String?   // WEIGHT | WAIST | CUSTOM
+  startValue  Float?
+  targetValue Float?
+  unit        String?
+  dueDate     DateTime?
+  achievedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  metric      String   @default("WORKOUTS") // WORKOUTS | ACTIVE_DAYS | WATER_DAYS | MEALS
+  target      Int      @default(20)
+  startDate   String   // YYYY-MM-DD
+  endDate     String   // YYYY-MM-DD
+  showRanking Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model AutomationRule {
+  id        String   @id @default(cuid())
+  type      String   @unique // INACTIVITY | WEEK_COMPLETED | BIRTHDAY | CHECKIN_REMINDER | PAYMENT_REMINDER | BOOKING_REMINDER | MEAL_REMINDER
+  enabled   Boolean  @default(true)
+  days      Int?
+  channel   String   @default("CHAT") // CHAT | NOTIFICATION
+  message   String
+  updatedAt DateTime @updatedAt
+
+  logs AutomationLog[]
+}
+
+model AutomationLog {
+  id        String         @id @default(cuid())
+  ruleId    String
+  rule      AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  key       String         @unique // tipo:cliente:periodo — evita envíos duplicados
+  createdAt DateTime       @default(now())
 }

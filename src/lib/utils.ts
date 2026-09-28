@@ -53,6 +53,7 @@ export const INCOME_CATEGORIES: Record<string, string> = {
   PRODUCT_SALE: "Venta de producto",
   DAY_PASS: "Pase diario",
   PERSONAL_TRAINING: "Entrenamiento personal",
+  COACHING: "Coaching online",
   OTHER: "Otro",
 }
 
