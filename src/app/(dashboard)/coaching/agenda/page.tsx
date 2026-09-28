@@ -1,0 +1,34 @@
+import { prisma } from "@/lib/prisma"
+import { addDaysYmd, limaDateTime, todayYmd, weekStartYmd } from "@/lib/coaching/dates"
+import AgendaClient from "./AgendaClient"
+
+export const dynamic = "force-dynamic"
+
+export default async function AgendaPage({ searchParams }: PageProps<"/coaching/agenda">) {
+  const sp = await searchParams
+  const week = typeof sp.week === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.week) ? weekStartYmd(sp.week) : weekStartYmd(todayYmd())
+  const [slots, clients] = await Promise.all([
+    prisma.coachingSlot.findMany({
+      where: { startsAt: { gte: limaDateTime(week, "00:00"), lt: limaDateTime(addDaysYmd(week, 7), "00:00") } },
+      include: { bookings: { orderBy: { createdAt: "asc" }, include: { client: { select: { id: true, firstName: true, lastName: true } } } } },
+      orderBy: { startsAt: "asc" },
+    }),
+    prisma.coachingProfile.findMany({ where: { status: "ACTIVE" }, select: { client: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { client: { firstName: "asc" } } }),
+  ])
+  return (
+    <AgendaClient
+      week={week}
+      slots={slots.map((s) => ({
+        id: s.id,
+        startsAt: s.startsAt.toISOString(),
+        endsAt: s.endsAt.toISOString(),
+        title: s.title,
+        mode: s.mode,
+        capacity: s.capacity,
+        location: s.location,
+        bookings: s.bookings.map((b) => ({ id: b.id, status: b.status, clientId: b.client.id, name: `${b.client.firstName} ${b.client.lastName}` })),
+      }))}
+      clients={clients.map((c) => ({ id: c.client.id, name: `${c.client.firstName} ${c.client.lastName}` }))}
+    />
+  )
+}

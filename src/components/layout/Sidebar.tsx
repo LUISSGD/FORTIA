@@ -19,12 +19,14 @@ import {
   UserCog,
   LineChart,
   Salad,
+  HeartPulse,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/coaching", label: "Coaching", icon: HeartPulse },
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/schedule", label: "Calendario", icon: Calendar },
   { href: "/classes", label: "Clases", icon: BookOpen },

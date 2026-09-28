@@ -15,7 +15,10 @@ async function getExpiringCount() {
 
 export default async function Header({ title }: { title?: string }) {
   const session = await auth()
-  const expiringCount = await getExpiringCount()
+  const expiringCount = await getExpiringCount().catch((e) => {
+    console.error("Header: no se pudo contar vencimientos", e)
+    return 0
+  })
   const initials = session?.user?.name
     ?.split(" ")
     .map((n) => n[0])

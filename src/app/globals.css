@@ -128,3 +128,6 @@
     @apply font-sans;
   }
 }
+/* Scroll horizontal sin barra (menús de pestañas) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
