@@ -24,6 +24,7 @@ Menú inferior: 🏠 Inicio · 🏋️ Entreno · 🥗 Nutrición · 📈 Progre
 - **Entrenamiento de hoy** con registro de series (peso anterior precargado), video, temporizador de descanso, feedback por ejercicio y resumen final (duración, volumen, récords personales). El progreso se guarda localmente si se cierra la app.
 - **Nutrición**: elige opción A/B/C, marca comidas, extras fuera del plan, macros vs objetivo, agua, lista de compras semanal.
 - **Progreso**: peso/medidas con gráficos, fotos frente/perfil/espalda y comparación entre fechas, objetivos y logros.
+- **Notificaciones push** en el celular (entrenamiento del día, recordatorios, mensajes y respuestas del coach, reservas, pagos). El cliente las activa desde Inicio o Perfil; en iPhone primero debe “Agregar a inicio” (iOS 16.4+). El entrenador las activa con “Activar push” en el dashboard y recibe los avisos de entrenos, check-ins, reservas y mensajes.
 - **Check-in semanal**, reservas, documentos, retos, notificaciones y cambio de contraseña.
 
 ### Puesta en marcha
@@ -32,6 +33,7 @@ Menú inferior: 🏠 Inicio · 🏋️ Entreno · 🥗 Nutrición · 📈 Progre
    - Datos de ejemplo para probar: `npx tsx prisma/seed-coaching.ts --demo` (cliente demo `carlos@demo.fortia.pe` / `fortia123`). No usar en producción.
 3. Variables de entorno adicionales:
    - `CRON_SECRET`: protege el cron diario de automatizaciones (`vercel.json`, 8:00 hora de Lima).
+   - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` (ej. `mailto:tu@correo.com`): notificaciones push al celular. Genera las claves una sola vez con `npx web-push generate-vapid-keys` y no las cambies después (invalidaría las suscripciones). Sin ellas la app funciona igual, solo sin push.
    - `SUPABASE_COACHING_BUCKET` (opcional, por defecto `coaching`): bucket público para fotos, adjuntos y documentos. Se crea automáticamente si no existe.
 4. Crear el acceso de cada cliente en *Coaching → Clientes → (cliente) → Ajustes → Acceso a la app*. El cliente entra por `/login` y va directo a su app; puede “Añadir a pantalla de inicio” en el celular.
 

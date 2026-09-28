@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { BookOpen, Zap, CheckCheck } from "lucide-react"
 import { Btn, api } from "@/components/coaching/kit"
+import PushToggle from "@/components/coaching/PushToggle"
 
 export default function DashboardActions({ libraryEmpty }: { libraryEmpty: boolean }) {
   const router = useRouter()
@@ -23,7 +24,8 @@ export default function DashboardActions({ libraryEmpty }: { libraryEmpty: boole
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <PushToggle variant="button" />
       {libraryEmpty && (
         <Btn
           disabled={!!busy}

@@ -8,6 +8,7 @@ import { dateTimeLima, todayYmd, weekdayYmd, weekStartYmd } from "@/lib/coaching
 import { fmtKg } from "@/lib/coaching/workout"
 import { Bar, CTA, Card, SectionTitle } from "@/components/coaching/app/ui"
 import WaterWidget from "@/components/coaching/app/WaterWidget"
+import PushToggle from "@/components/coaching/PushToggle"
 
 export default async function ClientHome() {
   const ctx = await getClientSession()
@@ -48,6 +49,8 @@ export default async function ClientHome() {
           {streak > 0 && <p className="text-xs text-orange-300 mt-2">⚡ Racha activa: {streak} día{streak === 1 ? "" : "s"}</p>}
         </Card>
       )}
+
+      <PushToggle dark variant="banner" />
 
       {showCheckIn && (
         <Card href="/app/checkin" className="border-amber-500/40 bg-amber-500/10">

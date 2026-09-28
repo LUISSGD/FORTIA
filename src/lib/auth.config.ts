@@ -13,10 +13,10 @@ const USER_BLOCKED_PREFIXES = [
   "/coaching",
 ]
 
-const PUBLIC_FILES = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/apple-icon.png", "/logo.png"]
+const PUBLIC_FILES = ["/sw.js", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/apple-icon.png", "/logo.png"]
 
 // El rol CLIENT (clientes de coaching) solo accede a su app móvil
-const CLIENT_ALLOWED_PREFIXES = ["/app", "/api/app", "/api/auth", "/login", "/manifest.webmanifest", "/logo.png", "/icon-192.png", "/icon-512.png", "/apple-icon.png"]
+const CLIENT_ALLOWED_PREFIXES = ["/app", "/api/app", "/api/push", "/api/auth", "/login", "/manifest.webmanifest", "/logo.png", "/icon-192.png", "/icon-512.png", "/apple-icon.png"]
 
 // Rutas exactas bloqueadas para USER (la lista completa, no el formulario de creación)
 const USER_BLOCKED_EXACT = [

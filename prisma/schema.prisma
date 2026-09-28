@@ -17,6 +17,8 @@ model User {
   clientId  String?  @unique
   client    Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  pushSubscriptions PushSubscription[]
 }
 
 model MembershipPlan {
@@ -774,4 +776,17 @@ model AutomationLog {
   client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   key       String         @unique // tipo:cliente:periodo — evita envíos duplicados
   createdAt DateTime       @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

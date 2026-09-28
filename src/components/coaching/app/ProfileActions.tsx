@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react"
 import { toast } from "sonner"
 import { LogOut, KeyRound } from "lucide-react"
 import { Card, darkInput } from "./ui"
+import PushToggle from "@/components/coaching/PushToggle"
 
 export default function ProfileActions() {
   const [open, setOpen] = useState(false)
@@ -19,6 +20,9 @@ export default function ProfileActions() {
   }
   return (
     <div className="space-y-3">
+      <Card className="p-0">
+        <PushToggle dark />
+      </Card>
       <Card className="p-0">
         <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm"><KeyRound className="h-4 w-4 text-zinc-400" /> Cambiar contraseña</button>
         {open && (
