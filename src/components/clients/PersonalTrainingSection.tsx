@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { toast } from "sonner"
 import {
   Dumbbell, PauseCircle, PlayCircle, ChevronRight, CalendarDays,
-  Plus, Trash2, Pencil, CheckCircle2, XCircle
+  Plus, Trash2, Pencil, CheckCircle2, XCircle, RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -416,6 +416,101 @@ function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) 
   )
 }
 
+/* ── Renew Plan Dialog ─────────────────────────────────────────── */
+interface RenewPlanDialogProps {
+  plan: Plan
+  clientId: string
+  onRenewed: (newPlan: Plan, oldPlanId: string) => void
+}
+
+function RenewPlanDialog({ plan, clientId, onRenewed }: RenewPlanDialogProps) {
+  const [open, setOpen] = useState(false)
+  const [startDate, setStartDate] = useState("")
+  const [pricePaid, setPricePaid] = useState(String(plan.pricePaid))
+  const [saving, setSaving] = useState(false)
+
+  function handleOpen() {
+    setStartDate("")
+    setPricePaid(String(plan.pricePaid))
+    setOpen(true)
+  }
+
+  async function handleRenew() {
+    if (!startDate) { toast.error("Selecciona la fecha de inicio"); return }
+    setSaving(true)
+    const res = await fetch(`/api/clients/${clientId}/training-plans/${plan.id}/renew`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startDate, pricePaid: Number(pricePaid) }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      const newPlan = await res.json()
+      onRenewed(newPlan, plan.id)
+      toast.success("Renovación registrada")
+      setOpen(false)
+    } else {
+      toast.error("Error al renovar")
+    }
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleOpen}>
+        <RefreshCw className="h-3 w-3" />
+        Renovar
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <RefreshCw className="h-4 w-4 text-orange-500" />
+              Renovar plan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500">
+              Se creará un nuevo plan con el mismo horario y configuración.
+              El plan actual quedará como completado.
+            </p>
+            <div>
+              <Label className="text-sm">Fecha de inicio del nuevo plan *</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Precio (S/)</Label>
+              <Input
+                type="number"
+                value={pricePaid}
+                onChange={e => setPricePaid(e.target.value)}
+                min="0"
+                step="0.01"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 bg-orange-500 hover:bg-orange-600"
+                onClick={handleRenew}
+                disabled={saving}
+              >
+                {saving ? "Renovando..." : "Confirmar renovación"}
+              </Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 /* ── Session Row ───────────────────────────────────────────────── */
 interface SessionRowProps {
   session: TrainingSession
@@ -583,6 +678,13 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
     setPlans(prev => prev.filter(p => p.id !== planId))
   }
 
+  function handlePlanRenewed(newPlan: Plan, oldPlanId: string) {
+    setPlans(prev => [
+      newPlan,
+      ...prev.map(p => p.id === oldPlanId ? { ...p, status: "COMPLETED" } : p),
+    ])
+  }
+
   const activePlans = plans.filter(p => p.status === "ACTIVE" || p.status === "PAUSED")
   const pastPlans = plans.filter(p => p.status === "COMPLETED" || p.status === "CANCELLED")
 
@@ -733,17 +835,24 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
               {/* Plan actions */}
               <div className="flex gap-2 flex-wrap">
                 {(plan.status === "ACTIVE" || plan.status === "PAUSED") && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    onClick={() => toggleStatus(plan)}
-                  >
-                    {plan.status === "ACTIVE"
-                      ? <><PauseCircle className="h-3 w-3 mr-1" />Pausar</>
-                      : <><PlayCircle className="h-3 w-3 mr-1" />Reactivar</>
-                    }
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => toggleStatus(plan)}
+                    >
+                      {plan.status === "ACTIVE"
+                        ? <><PauseCircle className="h-3 w-3 mr-1" />Pausar</>
+                        : <><PlayCircle className="h-3 w-3 mr-1" />Reactivar</>
+                      }
+                    </Button>
+                    <RenewPlanDialog
+                      plan={plan}
+                      clientId={clientId}
+                      onRenewed={handlePlanRenewed}
+                    />
+                  </>
                 )}
               </div>
 
