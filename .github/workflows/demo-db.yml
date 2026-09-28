@@ -31,6 +31,9 @@ jobs:
       - name: Instalar dependencias
         if: steps.check.outputs.skip != 'true'
         run: npm ci
+      - name: Generar cliente de Prisma
+        if: steps.check.outputs.skip != 'true'
+        run: npx prisma generate
       - name: Crear tablas (migraciones)
         if: steps.check.outputs.skip != 'true'
         run: npx prisma migrate deploy
