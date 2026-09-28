@@ -25,6 +25,11 @@ async function library() {
 }
 
 async function demo() {
+  // Base demo: si no hay ningún administrador, crea uno para poder entrar al panel
+  if (!(await prisma.user.findFirst({ where: { role: "ADMIN" } }))) {
+    await prisma.user.create({ data: { email: "admin@fortia.pe", password: await bcrypt.hash("fortia2025", 10), name: "Coach FORTIA", role: "ADMIN" } })
+    console.log("Demo: administrador admin@fortia.pe / fortia2025 (cámbialo después)")
+  }
   const exId = async (name: string) => (await prisma.exercise.findUniqueOrThrow({ where: { name } })).id
   const foodId = async (name: string) => (await prisma.food.findUniqueOrThrow({ where: { name } })).id
 

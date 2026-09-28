@@ -1,0 +1,42 @@
+# Prepara la base de datos DEMO (separada de producción): crea las tablas y carga datos de prueba.
+# Requiere el secreto DEMO_DATABASE_URL (Supabase → Connect → Session pooler, puerto 5432).
+name: Base de datos demo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/lucid-lovelace-re4873]
+    paths: [".github/workflows/demo-db.yml"]
+
+jobs:
+  seed-demo:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+    steps:
+      - name: Verificar secreto
+        id: check
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Falta el secreto DEMO_DATABASE_URL; no se hace nada."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.skip != 'true'
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          node-version: 20
+          cache: npm
+      - name: Instalar dependencias
+        if: steps.check.outputs.skip != 'true'
+        run: npm ci
+      - name: Crear tablas (migraciones)
+        if: steps.check.outputs.skip != 'true'
+        run: npx prisma migrate deploy
+      - name: Sincronizar columnas que no están en migraciones
+        if: steps.check.outputs.skip != 'true'
+        run: npx prisma db push
+      - name: Cargar biblioteca y datos de prueba
+        if: steps.check.outputs.skip != 'true'
+        run: npx tsx prisma/seed-coaching.ts --demo
