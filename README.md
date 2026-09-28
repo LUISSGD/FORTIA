@@ -17,6 +17,7 @@ Sistema de gestión del gimnasio FORTIA (Next.js 16 + Prisma/PostgreSQL + Supaba
 | 💬 Mensajes | Chat por cliente (texto, fotos, videos, audios, PDFs) y mensajes masivos con `{nombre}`. |
 | 📄 Documentos | PDFs, videos, enlaces para todos o para un cliente. |
 | 🏆 Comunidad | Retos mensuales con progreso y ranking opcional. |
+| 📥 Importar | Importa **clientes, medidas y rutinas** desde Excel/CSV (exportaciones de Harbiz u otra plataforma). Reconoce columnas en español e inglés, muestra una vista previa antes de guardar y ofrece plantillas descargables. |
 | ⚙️ Automatizaciones | Inactividad, semana completada, cumpleaños, entrenamiento del día, recordatorio de nutrición, check-in de los domingos, recordatorio de sesión y de pago. Sin envíos duplicados. |
 
 ### App del cliente (`/app`, rol CLIENT, instalable como PWA)

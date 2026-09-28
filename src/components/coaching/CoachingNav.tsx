@@ -16,6 +16,7 @@ const ITEMS = [
   { href: "/coaching/documents", label: "📄 Documentos" },
   { href: "/coaching/community", label: "🏆 Comunidad" },
   { href: "/coaching/automations", label: "⚙️ Automatizaciones" },
+  { href: "/coaching/import", label: "📥 Importar" },
 ]
 
 export default function CoachingNav() {
