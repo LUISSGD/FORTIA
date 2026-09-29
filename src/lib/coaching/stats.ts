@@ -26,6 +26,8 @@ export type ClientOverview = {
   unreadMessages: number
   pendingPayment: { period: string; amount: number; overdueDays: number } | null
   membership: MembershipInfo
+  /** Estado de pago combinando cobros de coaching y membresía del gimnasio. */
+  payState: "ok" | "soon" | "pending" | "overdue" | "none"
   ptSessionsLast7: number
   alerts: ClientAlert[]
   level: AlertLevel
@@ -117,11 +119,12 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       }
     }
     const membership = membershipInfo(p.client)
-    if (p.status !== "ENDED" && membership.daysLeft !== null) {
+    const tracked = p.status === "ACTIVE" || p.status === "PAUSED"
+    if (tracked && membership.daysLeft !== null) {
       if (membership.daysLeft < 0) alerts.push({ level: "red", text: `Membresía vencida hace ${-membership.daysLeft} día${membership.daysLeft === -1 ? "" : "s"}` })
       else if (membership.daysLeft <= 5) alerts.push({ level: "yellow", text: membership.daysLeft === 0 ? "Membresía vence hoy" : `Membresía vence en ${membership.daysLeft} día${membership.daysLeft === 1 ? "" : "s"}` })
     }
-    if (pendingPayment && overdueDays > 0) {
+    if (tracked && pendingPayment && overdueDays > 0) {
       alerts.push({ level: overdueDays > 5 ? "red" : "yellow", text: `Pago vencido hace ${overdueDays} día${overdueDays === 1 ? "" : "s"}` })
     }
 
@@ -140,6 +143,11 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       workoutsLast7,
       workoutsThisWeek,
       membership,
+      payState: pendingPayment
+        ? overdueDays > 0 ? "overdue" : "pending"
+        : membership.state === "expired" ? "overdue"
+        : membership.state === "urgent" ? "soon"
+        : membership.state === "none" ? "none" : "ok",
       ptSessionsLast7,
       trainingDays: p.trainingDays,
       trainingAdherence,
