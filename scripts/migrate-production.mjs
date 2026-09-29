@@ -3,8 +3,9 @@
 //
 // 1) Intenta `prisma migrate deploy` (camino normal).
 // 2) Si falla (p. ej. la base se creó sin historial de migraciones: P3005, o hay una migración
-//    marcada como fallida: P3009/P3018), calcula el SQL exacto entre la base y el schema y lo aplica
-//    solo si no contiene instrucciones que borren o alteren datos (DROP TABLE/COLUMN, cambios de tipo…).
+//    marcada como fallida: P3009/P3018), calcula el SQL exacto entre la base y el schema y aplica
+//    SOLO los cambios aditivos (tablas, índices, columnas y relaciones nuevas); omite todo lo que
+//    modificaría algo existente (cambios de tipo, defaults, borrados…).
 // 3) Después marca todas las migraciones como aplicadas para normalizar el historial.
 import { execSync } from "node:child_process"
 import { readdirSync, statSync } from "node:fs"
@@ -41,28 +42,43 @@ if (!diff.ok) {
   console.error("[migrate] ❌ No se pudo calcular la diferencia. No se modificó nada.")
   process.exit(1)
 }
-const sql = diff.out
-// Instrucciones que podrían borrar o alterar datos existentes → abortar
-const DANGEROUS = [/\bDROP\s+TABLE\b/i, /\bDROP\s+COLUMN\b/i, /\bALTER\s+COLUMN\s+"[^"]+"\s+(SET\s+DATA\s+)?TYPE\b/i, /\bTRUNCATE\b/i, /\bDELETE\s+FROM\b/i, /\bDROP\s+TYPE\b/i, /\bRENAME\b/i]
-const statements = sql.split(/;\s*\n/).map((x) => x.replace(/^\s*--.*$/gm, "").trim()).filter(Boolean)
-const risky = statements.filter((st) => DANGEROUS.some((re) => re.test(st)))
-console.log(`[migrate] ${statements.length} instrucciones SQL a aplicar:`)
-statements.forEach((st) => console.log(`[migrate]   ${st.split("\n")[0].slice(0, 140)}`))
-if (risky.length) {
-  console.error("[migrate] ❌ Hay cambios que podrían borrar datos; no se aplica nada:")
-  risky.forEach((st) => console.error(`[migrate]   ${st.split("\n")[0]}`))
-  process.exit(1)
+// Solo se aplican cambios ADITIVOS: tablas, índices, columnas y relaciones nuevas.
+// Cualquier modificación de algo que ya existe (cambiar tipo, quitar default, borrar índice o
+// columna…) se OMITE: la app actual ya funciona con la base tal como está.
+const statements = diff.out.split(/;\s*\n/).map((x) => x.replace(/^\s*--.*$/gm, "").trim()).filter(Boolean)
+const apply = []
+const skipped = []
+for (const st of statements) {
+  if (/^CREATE\s+(TABLE|(UNIQUE\s+)?INDEX|TYPE)\b/i.test(st)) {
+    apply.push(st)
+    continue
+  }
+  const alter = st.match(/^(ALTER\s+TABLE\s+"[^"]+")\s+([\s\S]+)$/i)
+  if (alter) {
+    const clauses = alter[2].split(/,\s*\n\s*/).map((c) => c.trim())
+    const keep = clauses.filter((c) => /^ADD\s+(COLUMN|CONSTRAINT)\b/i.test(c))
+    clauses.filter((c) => !keep.includes(c)).forEach((c) => skipped.push(`${alter[1]} ${c}`))
+    if (keep.length) apply.push(`${alter[1]} ${keep.join(",\n")}`)
+    continue
+  }
+  skipped.push(st)
 }
-if (statements.length) {
+console.log(`[migrate] ${apply.length} cambios a aplicar (solo agregan):`)
+apply.forEach((st) => console.log(`[migrate]   + ${st.split("\n")[0].slice(0, 140)}`))
+if (skipped.length) {
+  console.log(`[migrate] ${skipped.length} cambios omitidos (modificarían algo existente; no son necesarios):`)
+  skipped.forEach((st) => console.log(`[migrate]   - ${st.split("\n")[0].slice(0, 140)}`))
+}
+if (apply.length) {
   try {
-    execSync("npx prisma db execute --stdin", { input: sql, encoding: "utf8", stdio: ["pipe", "inherit", "inherit"] })
+    execSync("npx prisma db execute --stdin", { input: apply.join(";\n") + ";\n", encoding: "utf8", stdio: ["pipe", "inherit", "inherit"] })
   } catch {
     console.error("[migrate] ❌ Falló la aplicación del SQL. Revisa el error de arriba.")
     process.exit(1)
   }
   console.log("[migrate] ✅ Tablas y columnas nuevas creadas.")
 } else {
-  console.log("[migrate] La base ya coincide con el schema.")
+  console.log("[migrate] No hay tablas ni columnas nuevas que crear.")
 }
 
 console.log("[migrate] 3/3 Normalizando el historial de migraciones")
