@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { addDaysYmd, diffDaysYmd, todayYmd, toYmd, weekStartYmd } from "./dates"
+import { attendedPtDates, membershipInfo, type MembershipInfo } from "./personal-training"
 
 export type AlertLevel = "red" | "yellow" | "green"
 export type ClientAlert = { level: "red" | "yellow"; text: string }
@@ -24,6 +25,8 @@ export type ClientOverview = {
   lastWeight: number | null
   unreadMessages: number
   pendingPayment: { period: string; amount: number; overdueDays: number } | null
+  membership: MembershipInfo
+  ptSessionsLast7: number
   alerts: ClientAlert[]
   level: AlertLevel
 }
@@ -39,13 +42,13 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
 
   const profiles = await prisma.coachingProfile.findMany({
     where: { status: { not: "ENDED" } },
-    include: { client: { select: { id: true, firstName: true, lastName: true, phone: true } } },
+    include: { client: { select: { id: true, firstName: true, lastName: true, phone: true, membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } } } } },
     orderBy: { client: { firstName: "asc" } },
   })
   const ids = profiles.map((p) => p.clientId)
   if (!ids.length) return []
 
-  const [lastWorkouts, workouts30, activePlans, mealLogs7, checkIns, weights, pendingPayments, unread] = await Promise.all([
+  const [lastWorkouts, workouts30, activePlans, mealLogs7, checkIns, weights, pendingPayments, unread, ptDates] = await Promise.all([
     prisma.workoutLog.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, completedAt: { not: null } }, _max: { date: true } }),
     prisma.workoutLog.findMany({ where: { clientId: { in: ids }, completedAt: { not: null }, date: { gte: since30 } }, select: { clientId: true, date: true } }),
     prisma.mealPlan.findMany({ where: { clientId: { in: ids }, isActive: true }, select: { clientId: true, _count: { select: { meals: true } } } }),
@@ -54,14 +57,20 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
     prisma.physicalRecord.findMany({ where: { clientId: { in: ids }, weight: { not: null } }, select: { clientId: true, date: true, weight: true }, orderBy: { date: "desc" } }),
     prisma.coachingPayment.findMany({ where: { clientId: { in: ids }, status: "PENDING" }, orderBy: { dueDate: "asc" } }),
     prisma.coachMessage.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, sender: "CLIENT", readAt: null }, _count: { _all: true } }),
+    attendedPtDates(ids, since30),
   ])
 
   return profiles.map((p) => {
     const cid = p.clientId
     const startDate = toYmd(p.startDate)
     const daysActive = Math.max(0, diffDaysYmd(today, startDate))
-    const lastWorkout = lastWorkouts.find((w) => w.clientId === cid)?._max.date ?? null
-    const myWorkouts = workouts30.filter((w) => w.clientId === cid)
+    // Las clases personalizadas asistidas cuentan como sesiones de entrenamiento.
+    const appWorkouts = workouts30.filter((w) => w.clientId === cid)
+    const appDates = new Set(appWorkouts.map((w) => w.date))
+    const myPt = (ptDates.get(cid) ?? []).filter((d) => !appDates.has(d))
+    const myWorkouts = [...appWorkouts, ...myPt.map((date) => ({ clientId: cid, date }))]
+    const lastWorkout = [lastWorkouts.find((w) => w.clientId === cid)?._max.date ?? null, ...myPt].reduce<string | null>((a, b) => (b && (!a || b > a) ? b : a), null)
+    const ptSessionsLast7 = (ptDates.get(cid) ?? []).filter((d) => d > since7).length
     const workoutsLast7 = myWorkouts.filter((w) => w.date > since7).length
     const workoutsThisWeek = myWorkouts.filter((w) => w.date >= weekStart).length
     const daysSinceWorkout = lastWorkout ? diffDaysYmd(today, lastWorkout) : daysActive
@@ -107,6 +116,11 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
         if (wantsChange && Math.max(...ws) - Math.min(...ws) < 0.5) alerts.push({ level: "yellow", text: "Peso estancado 3 semanas" })
       }
     }
+    const membership = membershipInfo(p.client)
+    if (p.status !== "ENDED" && membership.daysLeft !== null) {
+      if (membership.daysLeft < 0) alerts.push({ level: "red", text: `Membresía vencida hace ${-membership.daysLeft} día${membership.daysLeft === -1 ? "" : "s"}` })
+      else if (membership.daysLeft <= 5) alerts.push({ level: "yellow", text: membership.daysLeft === 0 ? "Membresía vence hoy" : `Membresía vence en ${membership.daysLeft} día${membership.daysLeft === 1 ? "" : "s"}` })
+    }
     if (pendingPayment && overdueDays > 0) {
       alerts.push({ level: overdueDays > 5 ? "red" : "yellow", text: `Pago vencido hace ${overdueDays} día${overdueDays === 1 ? "" : "s"}` })
     }
@@ -125,6 +139,8 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       daysSinceWorkout: lastWorkout ? daysSinceWorkout : null,
       workoutsLast7,
       workoutsThisWeek,
+      membership,
+      ptSessionsLast7,
       trainingDays: p.trainingDays,
       trainingAdherence,
       nutritionCompliance,

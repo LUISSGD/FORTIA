@@ -21,11 +21,15 @@ import PhotoCompare from "@/components/coaching/PhotoCompare"
 import PaymentsTable from "@/components/coaching/PaymentsTable"
 import { mpEnabled } from "@/lib/coaching/mercadopago"
 import DocumentsManager from "@/components/coaching/DocumentsManager"
+import RenewalBadge from "@/components/clients/RenewalBadge"
+import MembershipTab from "./MembershipTab"
+import { getMembership, getPersonalTraining } from "@/lib/coaching/personal-training"
 
 export const dynamic = "force-dynamic"
 
 const TABS = [
   ["summary", "Resumen"],
+  ["membership", "Plan y membresía"],
   ["training", "Entrenamiento"],
   ["nutrition", "Nutrición"],
   ["progress", "Progreso"],
@@ -65,6 +69,7 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
             <h1 className="text-xl font-bold flex items-center gap-2">
               {client.firstName} {client.lastName}
               {overview && <StatusDot level={profile.status === "PAUSED" ? "gray" : overview.level} />}
+              <RenewalBadge membershipEnd={client.membershipEnd} />
             </h1>
             <p className="text-sm text-gray-500">
               {profile.goal ?? "Sin objetivo"} · {LEVELS[profile.level ?? ""] ?? "—"} · {PROFILE_STATUS[profile.status]}
@@ -95,6 +100,7 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
       </div>
 
       {tab === "summary" && <SummaryTab clientId={id} profile={profile} age={age} overview={overview} birthDate={client.birthDate} phone={client.phone} />}
+      {tab === "membership" && <MembershipTab clientId={id} />}
       {tab === "training" && <TrainingTab clientId={id} />}
       {tab === "nutrition" && <NutritionTab clientId={id} profile={profile} />}
       {tab === "progress" && <ProgressTab clientId={id} />}
@@ -126,12 +132,14 @@ type Profile = NonNullable<Awaited<ReturnType<typeof prisma.coachingProfile.find
 type Overview = Awaited<ReturnType<typeof getClientsOverview>>[number] | undefined
 
 async function SummaryTab({ clientId, profile, age, overview, birthDate, phone }: { clientId: string; profile: Profile; age: number | null; overview: Overview; birthDate: Date | null; phone: string | null }) {
-  const [program, plan, goals, weights, { achievements, streak, totalWorkouts }] = await Promise.all([
+  const [program, plan, goals, weights, { achievements, streak, totalWorkouts }, membership, pt] = await Promise.all([
     prisma.program.findFirst({ where: { clientId, isActive: true }, include: { _count: { select: { days: true } } } }),
     prisma.mealPlan.findFirst({ where: { clientId, isActive: true } }),
     prisma.coachingGoal.findMany({ where: { clientId }, orderBy: { createdAt: "desc" } }),
     prisma.physicalRecord.findMany({ where: { clientId, weight: { not: null } }, orderBy: { date: "asc" }, select: { date: true, weight: true } }),
     clientAchievements(clientId),
+    getMembership(clientId),
+    getPersonalTraining(clientId),
   ])
   const first = weights[0]?.weight ?? profile.startWeight
   const last = weights.at(-1)?.weight ?? null
@@ -181,6 +189,33 @@ async function SummaryTab({ clientId, profile, age, overview, birthDate, phone }
             <p className="text-xs text-gray-500 mt-1">
               {profile.calTarget ?? plan?.calTarget ?? "—"} kcal · P {profile.proteinTarget ?? plan?.proteinTarget ?? "—"} g · C {profile.carbsTarget ?? plan?.carbsTarget ?? "—"} g · G {profile.fatTarget ?? plan?.fatTarget ?? "—"} g
             </p>
+          </Panel>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <Panel title="🎟️ Membresía" action={<Link href={`?tab=membership`} className="text-xs text-orange-600">Ver →</Link>}>
+            {!membership || membership.state === "none" ? (
+              <p className="text-sm text-amber-600">Sin membresía registrada</p>
+            ) : (
+              <>
+                <p className="text-sm font-medium">{membership.planName ?? "Membresía"}</p>
+                <p className={cn("text-xs mt-1", membership.state === "expired" || membership.state === "urgent" ? "text-red-600" : membership.state === "warning" ? "text-amber-600" : "text-gray-500")}>
+                  {membership.state === "expired" ? `Venció el ${formatYmd(membership.end!, true)}` : `Vence el ${formatYmd(membership.end!, true)} · ${membership.daysLeft} días`}
+                </p>
+              </>
+            )}
+          </Panel>
+          <Panel title="🏋️ Entrenamiento personal" action={<Link href={`?tab=membership`} className="text-xs text-orange-600">Ver →</Link>}>
+            {pt ? (
+              <>
+                <p className="text-sm font-medium">{pt.used}/{pt.total} clases usadas · quedan {pt.remaining}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {pt.attended[0] ? `Última: ${formatYmd(pt.attended[0].date, true)}${pt.attended[0].byClient ? " 📱" : ""}` : "Sin clases registradas"}
+                  {pt.status === "PAUSED" && " · En pausa"}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-500">Sin paquete activo</p>
+            )}
           </Panel>
         </div>
         <Panel title="🏅 Logros">

@@ -75,7 +75,8 @@ export default function EditClientPage() {
     setLoading(false)
     if (res.ok) {
       toast.success("Cliente actualizado")
-      router.push(`/clients/${params.id}`)
+      const fromCoaching = new URLSearchParams(window.location.search).get("from") === "coaching"
+      router.push(fromCoaching ? `/coaching/clients/${params.id}?tab=membership` : `/clients/${params.id}`)
     } else {
       const err = await res.json().catch(() => ({}))
       toast.error(err.error ?? "Error al actualizar")

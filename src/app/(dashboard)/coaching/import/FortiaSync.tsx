@@ -7,17 +7,21 @@ import { Loader2, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Btn, Input, Panel, api } from "@/components/coaching/kit"
 
-type Candidate = { id: string; name: string; phone: string | null; inCoaching: boolean; measurements: number; personalTraining: boolean; consultations: number }
+type Candidate = { id: string; name: string; phone: string | null; inCoaching: boolean; measurements: number; personalTraining: boolean; consultations: number; membershipEnd: string | null; membershipActive: boolean }
 type Report = { clients: number; created: number; updated: number; measurements: number; errors: string[] }
 
 const FILTERS = [
   ["suggested", "Sugeridos"],
+  ["membership", "Membresía vigente"],
   ["nutrition", "Con nutrición"],
   ["pt", "Con entrenamiento personal"],
   ["measures", "Con medidas"],
   ["coaching", "Ya en coaching"],
   ["all", "Todos"],
 ] as const
+
+// Sugeridos: los que aún no están en coaching y tienen membresía vigente, entrenamiento personal o nutrición.
+const isSuggested = (c: Candidate) => !c.inCoaching && (c.membershipActive || c.consultations > 0 || c.personalTraining)
 
 export default function FortiaSync() {
   const router = useRouter()
@@ -32,7 +36,7 @@ export default function FortiaSync() {
     api<Candidate[]>("/api/coaching/sync-fortia")
       .then((c) => {
         setList(c)
-        setSelected(new Set(c.filter((x) => !x.inCoaching && (x.consultations > 0 || x.personalTraining)).map((x) => x.id)))
+        setSelected(new Set(c.filter(isSuggested).map((x) => x.id)))
       })
       .catch((e) => toast.error((e as Error).message))
   }, [])
@@ -41,7 +45,8 @@ export default function FortiaSync() {
     if (!list) return []
     return list.filter((c) => {
       if (q && !`${c.name} ${c.phone ?? ""}`.toLowerCase().includes(q.toLowerCase())) return false
-      if (filter === "suggested") return !c.inCoaching && (c.consultations > 0 || c.personalTraining)
+      if (filter === "suggested") return isSuggested(c)
+      if (filter === "membership") return c.membershipActive
       if (filter === "nutrition") return c.consultations > 0
       if (filter === "pt") return c.personalTraining
       if (filter === "measures") return c.measurements > 0
@@ -78,7 +83,7 @@ export default function FortiaSync() {
   return (
     <Panel title={<span><span className="text-orange-500 mr-1">Paso 0.</span> 🏋️ Traer datos que ya tienes en FORTIA</span>}>
       <p className="text-xs text-gray-500 mb-3">
-        Pasa al coaching a tus clientes del gimnasio con lo que ya registraste: contacto, seguimiento físico y consultas de nutrición (objetivo, kcal y macros, agua, peso y medidas, alergias y condiciones médicas).
+        Pasa al coaching a tus clientes del gimnasio con lo que ya registraste: contacto, membresía y pagos, entrenamiento personal, seguimiento físico y consultas de nutrición (objetivo, kcal y macros, agua, peso y medidas, alergias y condiciones médicas).
         No se borra ni se sobrescribe nada; puedes repetirlo cuando quieras.
       </p>
       {!list ? (
@@ -108,6 +113,11 @@ export default function FortiaSync() {
                 <span className="flex flex-wrap gap-1 justify-end">
                   {c.inCoaching && <span className="text-[10px] bg-emerald-50 text-emerald-700 rounded px-1.5">En coaching</span>}
                   {c.consultations > 0 && <span className="text-[10px] bg-orange-50 text-orange-700 rounded px-1.5">🥗 {c.consultations} consultas</span>}
+                  {c.membershipEnd && (
+                    <span className={cn("text-[10px] rounded px-1.5", c.membershipActive ? "bg-violet-50 text-violet-700" : "bg-gray-100 text-gray-400")}>
+                      🎟️ {c.membershipActive ? "vence" : "venció"} {c.membershipEnd.split("-").reverse().slice(0, 2).join("/")}
+                    </span>
+                  )}
                   {c.personalTraining && <span className="text-[10px] bg-sky-50 text-sky-700 rounded px-1.5">🏋️ Personal</span>}
                   {c.measurements > 0 && <span className="text-[10px] bg-gray-100 text-gray-600 rounded px-1.5">📏 {c.measurements}</span>}
                 </span>

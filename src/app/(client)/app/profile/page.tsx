@@ -76,6 +76,7 @@ export default async function ProfilePage() {
 
       <div className="grid grid-cols-2 gap-3">
         {[
+          ["/app/personal", "🎟️", "Mi plan y clases"],
           ["/app/checkin", "📝", "Check-in"],
           ["/app/bookings", "📅", "Reservas"],
           ["/app/documents", "📄", "Documentos"],
