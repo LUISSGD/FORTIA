@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { GOALS } from "./constants"
+import { todayYmd, toYmd } from "./dates"
 
 // Trae al módulo de coaching los datos que ya existen en FORTIA:
 // clientes del gimnasio, seguimiento físico y consultas de nutrición.
@@ -24,7 +25,7 @@ export async function syncCandidates() {
     prisma.client.findMany({
       where: { isActive: true },
       select: {
-        id: true, firstName: true, lastName: true, dni: true, phone: true,
+        id: true, firstName: true, lastName: true, dni: true, phone: true, membershipEnd: true,
         coachingProfile: { select: { status: true } },
         _count: { select: { physicalRecords: true } },
         trainingPlans: { where: { status: "ACTIVE" }, select: { id: true }, take: 1 },
@@ -33,6 +34,7 @@ export async function syncCandidates() {
     }),
     prisma.nutritionClient.findMany({ select: { id: true, clientId: true, firstName: true, lastName: true, dni: true, _count: { select: { consultations: true } } } }),
   ])
+  const today = todayYmd()
   return clients.map((c) => {
     const nut = findNutrition(c, nutrition)
     return {
@@ -43,6 +45,8 @@ export async function syncCandidates() {
       measurements: c._count.physicalRecords,
       personalTraining: c.trainingPlans.length > 0,
       consultations: nut?._count.consultations ?? 0,
+      membershipEnd: c.membershipEnd ? toYmd(c.membershipEnd) : null,
+      membershipActive: !!c.membershipEnd && toYmd(c.membershipEnd) >= today,
     }
   })
 }

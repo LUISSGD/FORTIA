@@ -48,13 +48,14 @@ export default async function CoachingClientsPage() {
                 <th className="px-3 py-2.5 font-medium">Nutrición 7d</th>
                 <th className="px-3 py-2.5 font-medium">Check-in</th>
                 <th className="px-3 py-2.5 font-medium">Peso</th>
+                <th className="px-3 py-2.5 font-medium">Membresía</th>
                 <th className="px-3 py-2.5 font-medium">Pago</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {overview.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center text-gray-500 py-10">Aún no tienes clientes de coaching. Usa “Agregar cliente”.</td>
+                  <td colSpan={10} className="text-center text-gray-500 py-10">Aún no tienes clientes de coaching. Usa “Agregar cliente”.</td>
                 </tr>
               )}
               {overview.map((c) => (
@@ -77,6 +78,15 @@ export default async function CoachingClientsPage() {
                   <td className={`px-3 py-2.5 font-medium ${pctTone(c.nutritionCompliance)}`}>{c.nutritionCompliance === null ? "—" : `${c.nutritionCompliance}%`}</td>
                   <td className="px-3 py-2.5">{c.checkInThisWeek ? "✅" : c.lastCheckIn ? formatYmd(c.lastCheckIn) : "—"}</td>
                   <td className="px-3 py-2.5">{c.lastWeight ? `${c.lastWeight} kg` : "—"}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">
+                    {c.membership.state === "none" ? (
+                      <span className="text-gray-400">—</span>
+                    ) : (
+                      <span className={c.membership.state === "expired" || c.membership.state === "urgent" ? "text-red-600 font-medium" : c.membership.state === "warning" ? "text-amber-600" : "text-gray-600"} title={c.membership.planName ?? ""}>
+                        {c.membership.state === "expired" ? "Vencida " : "Vence "}{formatYmd(c.membership.end!)}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2.5">
                     {c.pendingPayment ? (
                       <span className={c.pendingPayment.overdueDays > 0 ? "text-red-600 font-medium" : "text-amber-600"}>

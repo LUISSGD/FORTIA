@@ -9,6 +9,9 @@ import { fmtKg } from "@/lib/coaching/workout"
 import { Bar, CTA, Card, SectionTitle } from "@/components/coaching/app/ui"
 import WaterWidget from "@/components/coaching/app/WaterWidget"
 import PushToggle from "@/components/coaching/PushToggle"
+import PtCheckIn from "@/components/coaching/app/PtCheckIn"
+import MembershipCard from "@/components/coaching/app/MembershipCard"
+import { getMembership, getPersonalTraining } from "@/lib/coaching/personal-training"
 
 export default async function ClientHome() {
   const ctx = await getClientSession()
@@ -16,7 +19,7 @@ export default async function ClientHome() {
   const { clientId } = ctx
   const today = todayYmd()
 
-  const [client, training, nutrition, weight, checkIn, nextBooking, challenge, { streak }] = await Promise.all([
+  const [client, training, nutrition, weight, checkIn, nextBooking, challenge, { streak }, membership, pt] = await Promise.all([
     prisma.client.findUnique({ where: { id: clientId }, select: { firstName: true, coachingProfile: true } }),
     getTrainingState(clientId),
     getNutritionDay(clientId),
@@ -25,6 +28,8 @@ export default async function ClientHome() {
     prisma.coachingBooking.findFirst({ where: { clientId, status: "BOOKED", slot: { startsAt: { gte: new Date() } } }, include: { slot: true }, orderBy: { slot: { startsAt: "asc" } } }),
     prisma.challenge.findFirst({ where: { isActive: true, startDate: { lte: today }, endDate: { gte: today } }, orderBy: { startDate: "desc" } }),
     clientAchievements(clientId),
+    getMembership(clientId),
+    getPersonalTraining(clientId),
   ])
   const profile = client?.coachingProfile
   const challengeValue = challenge ? (await challengeProgress(challenge, [clientId])).get(clientId) ?? 0 : 0
@@ -58,6 +63,15 @@ export default async function ClientHome() {
           <p className="text-xs text-zinc-400">2 minutos para contarle a tu coach cómo te fue esta semana →</p>
         </Card>
       )}
+
+      {pt && (
+        <Card>
+          <SectionTitle emoji="🏋️" action={<span className="text-[11px] text-zinc-500">Personalizado</span>}>Mis clases</SectionTitle>
+          <PtCheckIn initial={pt} compact />
+        </Card>
+      )}
+
+      {membership && membership.state !== "none" && <MembershipCard m={membership} href="/app/personal" />}
 
       <Card>
         <SectionTitle emoji="🔥" action={<span className="text-[11px] text-zinc-500">{weekWorkouts}/{profile?.trainingDays ?? 4} esta semana</span>}>Entrenamiento de hoy</SectionTitle>

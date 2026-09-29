@@ -593,6 +593,8 @@ function SessionRow({ session, label, planId, clientId, onUpdated }: SessionRowP
         )}
       </div>
 
+      {session.notes?.startsWith("📱") && <span className="text-[11px] shrink-0" title={session.notes}>📱</span>}
+
       {/* Attendance buttons */}
       <div className="flex items-center gap-1 shrink-0">
         {effectiveAttended === true ? (
