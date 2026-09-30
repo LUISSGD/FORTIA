@@ -110,8 +110,6 @@ export default function AddCoachingClient({ gymClients }: { gymClients: GymClien
             <Field label="Peso inicial (kg)"><Input type="number" step="0.1" value={form.startWeight} onChange={(e) => set("startWeight", e.target.value)} /></Field>
             <Field label="Peso objetivo (kg)"><Input type="number" step="0.1" value={form.targetWeight} onChange={(e) => set("targetWeight", e.target.value)} /></Field>
             <Field label="Días de entreno/sem"><Input type="number" min={1} max={7} value={form.trainingDays} onChange={(e) => set("trainingDays", e.target.value)} /></Field>
-            <Field label="Precio mensual (S/)"><Input type="number" value={form.price} onChange={(e) => set("price", e.target.value)} /></Field>
-            <Field label="Día de cobro"><Input type="number" min={1} max={28} value={form.billingDay} onChange={(e) => set("billingDay", e.target.value)} /></Field>
           </div>
 
           <div className="rounded-lg bg-gray-50 p-3 space-y-2">

@@ -125,11 +125,6 @@ export default function ProfileSettings({ clientId, profile, accessEmail, defaul
         </div>
 
         <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Field label="Precio mensual"><Input type="number" value={f.price} onChange={(e) => set("price", e.target.value)} /></Field>
-          <Field label="Moneda">
-            <Select value={f.currency} onChange={(e) => set("currency", e.target.value)}><option value="PEN">PEN (S/)</option><option value="USD">USD ($)</option></Select>
-          </Field>
-          <Field label="Día de cobro"><Input type="number" min={1} max={28} value={f.billingDay} onChange={(e) => set("billingDay", e.target.value)} /></Field>
         </div>
 
         <div className="mt-4 grid md:grid-cols-2 gap-3">
