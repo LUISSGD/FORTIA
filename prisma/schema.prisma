@@ -96,6 +96,12 @@ model Payment {
   createdAt   DateTime @default(now())
   receiptUrl  String?
 
+  // Membresía que tenía el cliente antes de este pago: al borrar el pago se restaura.
+  prevMembershipPlanId String?
+  prevMembershipStart  DateTime?
+  prevMembershipEnd    DateTime?
+  membershipApplied    Boolean   @default(false)
+
   income   Income? @relation(fields: [incomeId], references: [id])
   incomeId String? @unique
 }

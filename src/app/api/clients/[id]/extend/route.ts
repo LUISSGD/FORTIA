@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { addDays, format } from "date-fns"
+import { addDays } from "date-fns"
+import { membershipSnapshot } from "@/lib/finance-sync"
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -21,20 +22,19 @@ export async function POST(request: Request, { params }: Ctx) {
   const concept = `Extensión +${days} días — ${reason}`
 
   // Record in payment history (amount 0, so it's visible but doesn't affect finances)
-  await prisma.payment.create({
-    data: {
-      clientId: id,
-      amount: 0,
-      method: "EXTENSION",
-      concept,
-      periodStart: oldEnd,
-      periodEnd: newEnd,
-    },
-  })
-
-  const updated = await prisma.client.update({
-    where: { id },
-    data: { membershipEnd: newEnd },
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.payment.create({
+      data: {
+        clientId: id,
+        amount: 0,
+        method: "EXTENSION",
+        concept,
+        periodStart: oldEnd,
+        periodEnd: newEnd,
+        ...(await membershipSnapshot(tx, id)),
+      },
+    })
+    return tx.client.update({ where: { id }, data: { membershipEnd: newEnd } })
   })
 
   return NextResponse.json({ membershipEnd: updated.membershipEnd })

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { addDays } from "date-fns"
+import { membershipSnapshot } from "@/lib/finance-sync"
 import { getTrainingPrice, ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS, type Entrenador, type Modalidad, type Tarifa, type NumPacks, type ClasesPerPack } from "@/lib/training-pricing"
 
 export async function POST(request: Request) {
@@ -15,6 +16,14 @@ export async function POST(request: Request) {
   if (!client) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 })
 
   const now = new Date()
+
+  // Evita registrar dos veces el mismo pago (doble clic o reintento).
+  const duplicate = await prisma.payment.findFirst({
+    where: { clientId, amount: Number(amount), createdAt: { gte: new Date(now.getTime() - 2 * 60_000) }, method: { not: "EXTENSION" } },
+  })
+  if (duplicate) {
+    return NextResponse.json({ error: "Este pago ya se registró hace un momento. Revisa el historial de pagos." }, { status: 409 })
+  }
 
   // ── Entrenamiento Personal ──────────────────────────────────────────────
   if (paymentType === "training") {
@@ -65,31 +74,36 @@ export async function POST(request: Request) {
   const periodStart = startDate ? new Date(startDate + "T00:00:00") : now
   const periodEnd = addDays(periodStart, plan.durationDays)
 
-  const income = await prisma.income.create({
-    data: {
-      amount: Number(amount),
-      currency,
-      category: "MEMBERSHIP",
-      description: concept ?? `Renovación ${plan.name} - ${client.firstName} ${client.lastName}`,
-      clientId,
-      date: periodStart,
-    },
-  })
-  const payment = await prisma.payment.create({
-    data: {
-      clientId,
-      amount: Number(amount),
-      method: method ?? "CASH",
-      concept: concept ?? `Renovación ${plan.name}`,
-      periodStart,
-      periodEnd,
-      incomeId: income.id,
-      receiptUrl: receiptUrl ?? null,
-    },
-  })
-  await prisma.client.update({
-    where: { id: clientId },
-    data: { membershipPlanId: plan.id, membershipStart: periodStart, membershipEnd: periodEnd },
+  const { payment, income } = await prisma.$transaction(async (tx) => {
+    const snapshot = await membershipSnapshot(tx, clientId)
+    const income = await tx.income.create({
+      data: {
+        amount: Number(amount),
+        currency,
+        category: "MEMBERSHIP",
+        description: concept ?? `Renovación ${plan.name} - ${client.firstName} ${client.lastName}`,
+        clientId,
+        date: periodStart,
+      },
+    })
+    const payment = await tx.payment.create({
+      data: {
+        clientId,
+        amount: Number(amount),
+        method: method ?? "CASH",
+        concept: concept ?? `Renovación ${plan.name}`,
+        periodStart,
+        periodEnd,
+        incomeId: income.id,
+        receiptUrl: receiptUrl ?? null,
+        ...snapshot,
+      },
+    })
+    await tx.client.update({
+      where: { id: clientId },
+      data: { membershipPlanId: plan.id, membershipStart: periodStart, membershipEnd: periodEnd },
+    })
+    return { payment, income }
   })
 
   return NextResponse.json({ payment, income }, { status: 201 })

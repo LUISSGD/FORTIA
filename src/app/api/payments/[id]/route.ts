@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { deletePayment } from "@/lib/finance-sync"
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -39,14 +40,8 @@ export async function DELETE(_req: Request, { params }: Ctx) {
 
   const { id } = await params
 
-  const payment = await prisma.payment.findUnique({ where: { id } })
-  if (!payment) return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 })
-
-  // Delete payment first (FK constraint), then income
-  await prisma.payment.delete({ where: { id } })
-  if (payment.incomeId) {
-    await prisma.income.delete({ where: { id: payment.incomeId } })
-  }
-
-  return NextResponse.json({ ok: true })
+  // Borra el pago, su ingreso en Finanzas y devuelve la membresía a como estaba.
+  const r = await deletePayment(id)
+  if (!r.deleted) return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 })
+  return NextResponse.json({ ok: true, membershipReverted: r.membershipReverted })
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -26,6 +26,8 @@ interface Payment {
 export default function PaymentHistory({ payments: initial }: { payments: Payment[] }) {
   const router = useRouter()
   const [payments, setPayments] = useState(initial)
+  // Al registrar un pago nuevo la página se refresca: mostrar siempre la lista actual.
+  useEffect(() => setPayments(initial), [initial])
   const [editing, setEditing] = useState<Payment | null>(null)
   const [editAmount, setEditAmount] = useState("")
   const [editMethod, setEditMethod] = useState("")
@@ -60,11 +62,12 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este pago? También se eliminará el ingreso asociado.")) return
+    if (!confirm("¿Eliminar este pago? También se eliminará el ingreso en Finanzas y, si renovó la membresía, volverá a su fecha anterior.")) return
     const res = await fetch(`/api/payments/${id}`, { method: "DELETE" })
     if (res.ok) {
+      const r = await res.json().catch(() => ({}))
       setPayments(prev => prev.filter(p => p.id !== id))
-      toast.success("Pago eliminado")
+      toast.success(r.membershipReverted ? "Pago eliminado · membresía restaurada" : "Pago eliminado")
       router.refresh()
     } else {
       toast.error("Error al eliminar el pago")
