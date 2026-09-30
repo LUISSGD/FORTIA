@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
-import Header from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Plus, Phone, Mail, Calendar, AlertCircle, CheckCircle, Edit, Dumbbell } from "lucide-react"
@@ -64,7 +63,6 @@ export default async function NutritionClientPage({ params }: PageProps) {
 
   return (
     <>
-      <Header title={`${client.firstName} ${client.lastName}`} />
       <main className="flex-1 p-3 md:p-6 space-y-5">
         {/* Top bar */}
         <div className="flex items-center justify-between">

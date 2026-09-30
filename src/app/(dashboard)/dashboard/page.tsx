@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma"
 import { formatDate, daysUntilExpiry, whatsappRenewalUrl } from "@/lib/utils"
-import Header from "@/components/layout/Header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -38,7 +37,6 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <Header title="Dashboard" />
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Bienvenido a FORTIA</h2>

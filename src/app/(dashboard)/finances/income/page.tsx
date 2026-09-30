@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma"
 import { formatDate, INCOME_CATEGORIES } from "@/lib/utils"
-import Header from "@/components/layout/Header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -28,7 +27,7 @@ export default async function IncomePage() {
 
   return (
     <>
-      <Header title="Ingresos" />
+
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <div>

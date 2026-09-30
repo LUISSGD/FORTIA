@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma"
 import { formatCurrency } from "@/lib/utils"
-import Header from "@/components/layout/Header"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +15,6 @@ export default async function MembershipsPage() {
 
   return (
     <>
-      <Header title="Membresías" />
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Planes disponibles</h2>

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma"
 import { formatDate, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/utils"
-import Header from "@/components/layout/Header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -48,7 +47,6 @@ export default async function FinancesPage() {
 
   return (
     <>
-      <Header title="Finanzas" />
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Resumen del mes</h2>

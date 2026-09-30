@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma"
 import { formatDate } from "@/lib/utils"
-import Header from "@/components/layout/Header"
 import RenewalBadge from "@/components/clients/RenewalBadge"
 import WhatsAppButton from "@/components/clients/WhatsAppButton"
 import Link from "next/link"
@@ -130,7 +129,6 @@ export default async function ClientsPage({
 
   return (
     <>
-      <Header title="Clientes" />
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">

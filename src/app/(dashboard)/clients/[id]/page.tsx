@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { formatDate } from "@/lib/utils"
-import Header from "@/components/layout/Header"
 import RenewalBadge from "@/components/clients/RenewalBadge"
 import WhatsAppButton from "@/components/clients/WhatsAppButton"
 import AddPaymentDialog from "@/components/clients/AddPaymentDialog"
@@ -82,7 +81,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
 
   return (
     <>
-      <Header title="Detalle de cliente" />
+
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/clients">

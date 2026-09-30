@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic"
 
 import { prisma } from "@/lib/prisma"
-import Header from "@/components/layout/Header"
 import Link from "next/link"
 import { ENTRENADOR_LABELS, MODALIDAD_LABELS } from "@/lib/training-pricing"
 import type { Entrenador, Modalidad } from "@/lib/training-pricing"
@@ -27,7 +26,6 @@ export default async function TrainingPlansPage() {
 
   return (
     <>
-      <Header title="Entrenamiento Personalizado" />
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-gray-500">{plans.length} planes activos</p>

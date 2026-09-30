@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma"
-import Header from "@/components/layout/Header"
 import WeeklyGrid from "@/components/schedule/WeeklyGrid"
 import type { Slot } from "@/components/schedule/WeeklyGrid"
 import CreateSlotDialog from "@/components/schedule/CreateSlotDialog"
@@ -64,7 +63,6 @@ export default async function SchedulePage() {
 
   return (
     <>
-      <Header title="Calendario de clases" />
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Programación semanal</h2>

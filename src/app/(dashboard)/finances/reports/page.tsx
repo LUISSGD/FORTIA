@@ -1,11 +1,9 @@
-import Header from "@/components/layout/Header"
 import ReportChartWrapper from "./ReportChartWrapper"
 import ExcelReportDownloader from "./ExcelReportDownloader"
 
 export default function ReportsPage() {
   return (
     <>
-      <Header title="Reportes financieros" />
       <main className="flex-1 p-6 space-y-6">
         <ExcelReportDownloader />
         <div>

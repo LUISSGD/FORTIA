@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma"
-import Header from "@/components/layout/Header"
 import ClassesClient from "./ClassesClient"
 
 export default async function ClassesPage() {
@@ -11,7 +10,6 @@ export default async function ClassesPage() {
 
   return (
     <>
-      <Header title="Clases" />
       <ClassesClient initialClasses={classes} />
     </>
   )

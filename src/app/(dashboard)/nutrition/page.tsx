@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma"
-import Header from "@/components/layout/Header"
 import NutritionListClient from "./NutritionListClient"
 
 export const dynamic = "force-dynamic"
@@ -60,7 +59,6 @@ export default async function NutritionPage() {
 
   return (
     <>
-      <Header title="Nutrición" />
       <NutritionListClient
         clients={serialized}
         stats={{ totalActive, consultationsThisMonth, upcomingAppointments, pendingPayments }}

@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma"
-import Header from "@/components/layout/Header"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,7 +29,6 @@ export default async function DebtsPage() {
 
   return (
     <>
-      <Header title="Deudas y Préstamos" />
       <main className="flex-1 p-3 md:p-6">
         {/* Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

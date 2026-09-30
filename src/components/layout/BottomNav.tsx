@@ -3,17 +3,15 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { LayoutDashboard, Users, Calendar, DollarSign, Dumbbell, Salad, HeartPulse } from "lucide-react"
+import { HeartPulse, Dumbbell, Calendar, DollarSign, LayoutDashboard, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
-  { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
-  { href: "/coaching", label: "Coaching", icon: HeartPulse },
-  { href: "/clients", label: "Clientes", icon: Users },
-  { href: "/schedule", label: "Agenda", icon: Calendar },
+  { href: "/coaching/clients", label: "Clientes", icon: HeartPulse },
+  { href: "/coaching/programs", label: "Librería", icon: Dumbbell },
+  { href: "/coaching/agenda", label: "Agenda", icon: Calendar },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
-  { href: "/training-plans", label: "Entrena.", icon: Dumbbell },
-  { href: "/nutrition", label: "Nutrición", icon: Salad },
+  { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
 ]
 
 const userNavItems = [
@@ -30,20 +28,25 @@ export default function BottomNav() {
   const navItems = role === "USER" ? userNavItems : adminNavItems
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200">
       <div className="flex">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+          const isActive =
+            item.href === "/finances" || item.href === "/dashboard"
+              ? pathname === item.href
+              : pathname.startsWith(item.href)
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
-                isActive ? "text-orange-400" : "text-gray-500"
+                "flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors",
+                isActive ? "text-gray-900" : "text-gray-400"
               )}
             >
-              <item.icon className={cn("h-5 w-5", isActive ? "text-orange-400" : "text-gray-500")} />
+              <item.icon
+                className={cn("h-5 w-5", isActive ? "text-gray-900" : "text-gray-400")}
+              />
               {item.label}
             </Link>
           )
