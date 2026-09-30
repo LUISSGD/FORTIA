@@ -95,6 +95,8 @@ export function deleteIncome(incomeId: string) {
       data: { status: "PENDING", paidAt: null, method: null, incomeId: null, mpPaymentId: null },
     })
     await tx.clientTrainingPlan.updateMany({ where: { incomeId }, data: { incomeId: null } })
+    // Consulta de nutrición cobrada: vuelve a quedar como pago pendiente.
+    await tx.nutritionConsultation.updateMany({ where: { incomeId }, data: { incomeId: null, isPaid: false } })
     const r = await tx.income.deleteMany({ where: { id: incomeId } })
     return { deleted: r.count > 0, membershipReverted: false }
   })
@@ -132,4 +134,40 @@ export function deleteTrainingPlan(planId: string) {
     await tx.clientTrainingPlan.delete({ where: { id: planId } })
     return { deleted: true, paymentDeleted }
   })
+}
+
+/**
+ * Consulta de nutrición pagada → ingreso "Nutrición" en Finanzas (se crea, actualiza o borra
+ * según el estado de pago y el monto de la consulta). Nunca lanza error.
+ */
+export async function syncConsultationIncome(consultationId: string) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      const c = await tx.nutritionConsultation.findUnique({ where: { id: consultationId }, include: { nutritionClient: true } })
+      if (!c) return
+      const amount = c.paymentAmount ?? 0
+      if (c.isPaid && amount > 0) {
+        const n = c.nutritionClient
+        const data = {
+          amount,
+          currency: "PEN",
+          category: "NUTRITION",
+          description: `Consulta de nutrición #${c.consultationNumber} — ${n.firstName} ${n.lastName}`,
+          clientId: n.clientId,
+          date: c.date,
+        }
+        const existing = c.incomeId ? await tx.income.findUnique({ where: { id: c.incomeId } }) : null
+        if (existing) await tx.income.update({ where: { id: existing.id }, data })
+        else {
+          const income = await tx.income.create({ data })
+          await tx.nutritionConsultation.update({ where: { id: c.id }, data: { incomeId: income.id } })
+        }
+      } else if (c.incomeId) {
+        await tx.nutritionConsultation.update({ where: { id: c.id }, data: { incomeId: null } })
+        await tx.income.deleteMany({ where: { id: c.incomeId } })
+      }
+    })
+  } catch (e) {
+    console.error("[nutrición → finanzas]", e)
+  }
 }

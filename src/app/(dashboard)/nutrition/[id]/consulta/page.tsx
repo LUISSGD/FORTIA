@@ -235,7 +235,7 @@ export default function NewConsultationPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
+              <div className="flex flex-col justify-end">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -245,6 +245,7 @@ export default function NewConsultationPage() {
                   />
                   <span className="text-sm text-gray-700">Pago recibido</span>
                 </label>
+                {form.isPaid && <p className="text-xs text-green-700 mt-1">Con el monto indicado se registra solo en Finanzas; no lo agregues a mano.</p>}
               </div>
             </div>
           </CardContent>

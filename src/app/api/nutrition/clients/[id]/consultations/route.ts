@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { applyConsultationToCoaching } from "@/lib/coaching/sync-fortia"
+import { syncConsultationIncome } from "@/lib/finance-sync"
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -56,5 +57,6 @@ export async function POST(request: Request, { params }: Params) {
     },
   })
   await applyConsultationToCoaching(consultation.id)
+  await syncConsultationIncome(consultation.id)
   return NextResponse.json(consultation, { status: 201 })
 }

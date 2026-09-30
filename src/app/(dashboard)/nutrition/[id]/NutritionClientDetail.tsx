@@ -61,15 +61,23 @@ function ConsultationCard({
   const bmi = c.weight && c.height ? (c.weight / Math.pow(c.height / 100, 2)).toFixed(1) : null
 
   async function markPaid() {
+    // El pago se registra solo en Finanzas: hace falta el monto.
+    let amount = c.paymentAmount ?? null
+    if (!amount) {
+      const input = window.prompt("¿Cuánto pagó por esta consulta? (S/)", "")
+      if (input === null) return
+      amount = Number(input.replace(",", "."))
+      if (!amount || amount <= 0) { toast.error("Monto inválido"); return }
+    }
     setMarkingPaid(true)
     const res = await fetch(`/api/nutrition/clients/${clientId}/consultations/${c.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isPaid: true }),
+      body: JSON.stringify({ isPaid: true, paymentAmount: amount }),
     })
     setMarkingPaid(false)
     if (res.ok) {
-      toast.success("Marcado como pagado")
+      toast.success("Marcado como pagado · registrado en Finanzas")
       window.location.reload()
     } else {
       toast.error("Error al actualizar")
