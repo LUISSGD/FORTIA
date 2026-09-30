@@ -166,7 +166,8 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
               </button>
 
               {isOpen && (
-                <div className="absolute top-full left-0 mt-1 rounded-xl shadow-lg bg-white border border-gray-100 min-w-52 py-1 z-50">
+                <div className="absolute top-full left-0 pt-1 z-50 min-w-52">
+                <div className="rounded-xl shadow-lg bg-white border border-gray-100 py-1">
                   {group.items.map((item) => {
                     const itemActive = isItemActive(item, pathname)
                     return (
@@ -186,6 +187,7 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
                       </Link>
                     )
                   })}
+                </div>
                 </div>
               )}
             </div>
@@ -230,7 +232,8 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
           </button>
 
           {openMenu === "user" && (
-            <div className="absolute top-full right-0 mt-1 rounded-xl shadow-lg bg-white border border-gray-100 min-w-48 py-1 z-50">
+            <div className="absolute top-full right-0 pt-1 z-50 min-w-48">
+            <div className="rounded-xl shadow-lg bg-white border border-gray-100 py-1">
               {USER_MENU.map((item) => (
                 <Link
                   key={item.href}
@@ -254,6 +257,7 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
                   Cerrar sesión
                 </button>
               </div>
+            </div>
             </div>
           )}
         </div>
