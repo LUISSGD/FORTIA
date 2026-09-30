@@ -48,7 +48,6 @@ export default async function ProfilePage() {
 
       <Card>
         <SectionTitle emoji="💳">Tu plan</SectionTitle>
-        <p className="font-bold">{p?.planName ?? "Coaching"}</p>
         {p?.price ? <p className="text-sm text-gray-400">{p.currency === "USD" ? "$" : "S/"}{p.price} / mes</p> : null}
         <div className="mt-3 flex items-center justify-between rounded-xl bg-gray-50 p-3">
           <span className="text-sm">Estado</span>
