@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { addDays } from "date-fns"
+import { ensureCoachingProfile } from "@/lib/coaching/lifecycle"
 
 export async function GET(request: Request) {
   const session = await auth()
@@ -62,5 +63,7 @@ export async function POST(request: Request) {
     },
     include: { membershipPlan: true },
   })
+  // Todo cliente nuevo aparece también en Coaching.
+  await ensureCoachingProfile(client.id).catch((e) => console.error("[clients] perfil de coaching", e))
   return NextResponse.json(client, { status: 201 })
 }

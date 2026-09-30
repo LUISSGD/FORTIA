@@ -19,6 +19,7 @@ export default async function CoachingClientsPage() {
     prisma.user.findMany({ where: { role: "CLIENT" }, select: { clientId: true } }),
   ])
   const withAccess = new Set(users.map((u) => u.clientId))
+  const missing = gymClients.length - ended.filter((p) => gymClients.some((g) => g.id === p.clientId)).length
 
   return (
     <>
@@ -31,6 +32,12 @@ export default async function CoachingClientsPage() {
         </div>
         <AddCoachingClient gymClients={gymClients} />
       </div>
+
+      {missing > 0 && (
+        <Link href="/coaching/import" className="block rounded-xl bg-sky-50 border border-sky-200 text-sky-800 px-4 py-3 text-sm hover:bg-sky-100">
+          ℹ️ {missing} cliente(s) activos de FORTIA aún no están en Coaching. <span className="font-semibold underline">Revisarlos y traerlos →</span>
+        </Link>
+      )}
 
       <ClientsTable rows={overview.map((c) => ({ ...c, hasApp: withAccess.has(c.id) }))} />
 

@@ -23,6 +23,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
       where: { id },
       include: {
         membershipPlan: true,
+        coachingProfile: { select: { status: true } },
         payments: { orderBy: { paidAt: "desc" }, include: { income: { select: { currency: true } } } },
         enrollments: {
           include: {
@@ -89,6 +90,11 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
           </Link>
           <h1 className="text-xl font-semibold">{fullName}</h1>
           <RenewalBadge membershipEnd={client.membershipEnd} />
+          {client.coachingProfile && (
+            <Link href={`/coaching/clients/${client.id}?tab=membership`} className="ml-auto">
+              <Button variant="outline" size="sm">Abrir en Coaching →</Button>
+            </Link>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">

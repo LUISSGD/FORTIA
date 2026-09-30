@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { addDaysYmd, diffDaysYmd, todayYmd, toYmd, weekStartYmd } from "./dates"
-import { attendedPtDates, membershipInfo, type MembershipInfo } from "./personal-training"
+import { attendedClassDates, attendedPtDates, membershipInfo, type MembershipInfo } from "./personal-training"
 
 export type AlertLevel = "red" | "yellow" | "green"
 export type ClientAlert = { level: "red" | "yellow"; text: string }
@@ -50,7 +50,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
   const ids = profiles.map((p) => p.clientId)
   if (!ids.length) return []
 
-  const [lastWorkouts, workouts30, activePlans, mealLogs7, checkIns, weights, pendingPayments, unread, ptDates] = await Promise.all([
+  const [lastWorkouts, workouts30, activePlans, mealLogs7, checkIns, weights, pendingPayments, unread, ptDates, classDates] = await Promise.all([
     prisma.workoutLog.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, completedAt: { not: null } }, _max: { date: true } }),
     prisma.workoutLog.findMany({ where: { clientId: { in: ids }, completedAt: { not: null }, date: { gte: since30 } }, select: { clientId: true, date: true } }),
     prisma.mealPlan.findMany({ where: { clientId: { in: ids }, isActive: true }, select: { clientId: true, _count: { select: { meals: true } } } }),
@@ -60,16 +60,17 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
     prisma.coachingPayment.findMany({ where: { clientId: { in: ids }, status: "PENDING" }, orderBy: { dueDate: "asc" } }),
     prisma.coachMessage.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, sender: "CLIENT", readAt: null }, _count: { _all: true } }),
     attendedPtDates(ids, since30),
+    attendedClassDates(ids, since30),
   ])
 
   return profiles.map((p) => {
     const cid = p.clientId
     const startDate = toYmd(p.startDate)
     const daysActive = Math.max(0, diffDaysYmd(today, startDate))
-    // Las clases personalizadas asistidas cuentan como sesiones de entrenamiento.
+    // Las clases personalizadas y grupales asistidas cuentan como sesiones de entrenamiento (una por día).
     const appWorkouts = workouts30.filter((w) => w.clientId === cid)
     const appDates = new Set(appWorkouts.map((w) => w.date))
-    const myPt = (ptDates.get(cid) ?? []).filter((d) => !appDates.has(d))
+    const myPt = [...new Set([...(ptDates.get(cid) ?? []), ...(classDates.get(cid) ?? [])])].filter((d) => !appDates.has(d))
     const myWorkouts = [...appWorkouts, ...myPt.map((date) => ({ clientId: cid, date }))]
     const lastWorkout = [lastWorkouts.find((w) => w.clientId === cid)?._max.date ?? null, ...myPt].reduce<string | null>((a, b) => (b && (!a || b > a) ? b : a), null)
     const ptSessionsLast7 = (ptDates.get(cid) ?? []).filter((d) => d > since7).length

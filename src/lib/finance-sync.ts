@@ -25,7 +25,20 @@ async function deletePaymentTx(tx: Tx, paymentId: string) {
   if (!payment) return { deleted: false, membershipReverted: false }
 
   await tx.payment.delete({ where: { id: paymentId } })
-  if (payment.incomeId) await tx.income.deleteMany({ where: { id: payment.incomeId } })
+  if (payment.incomeId) {
+    // Paquete de entrenamiento personal creado con este pago: si aún no tiene clases asistidas
+    // se borra (fue un error); si ya se usó, solo se desvincula.
+    const plan = await tx.clientTrainingPlan.findUnique({ where: { incomeId: payment.incomeId }, include: { sessions: { select: { attended: true, completedAt: true } } } })
+    if (plan) {
+      const used = plan.sessionsCompleted > 0 || plan.sessions.some((x) => x.attended === true || x.completedAt)
+      if (used) await tx.clientTrainingPlan.update({ where: { id: plan.id }, data: { incomeId: null } })
+      else {
+        await tx.trainingSession.deleteMany({ where: { planId: plan.id } })
+        await tx.clientTrainingPlan.delete({ where: { id: plan.id } })
+      }
+    }
+    await tx.income.deleteMany({ where: { id: payment.incomeId } })
+  }
 
   // ¿Este pago movió la membresía? (pagos de membresía y extensiones; no los de entrenamiento personal)
   const touchesMembership = payment.membershipApplied || payment.method === "EXTENSION" || payment.income?.category === "MEMBERSHIP"
@@ -84,5 +97,39 @@ export function deleteIncome(incomeId: string) {
     await tx.clientTrainingPlan.updateMany({ where: { incomeId }, data: { incomeId: null } })
     const r = await tx.income.deleteMany({ where: { id: incomeId } })
     return { deleted: r.count > 0, membershipReverted: false }
+  })
+}
+
+/** Registra en Finanzas (ingreso + pago en la ficha) el cobro de un paquete de entrenamiento personal y lo vincula al paquete. */
+export async function recordTrainingPayment(
+  tx: Tx,
+  p: { clientId: string; planId: string; amount: number; method?: string | null; date?: Date; description: string; currency?: string; receiptUrl?: string | null },
+) {
+  const date = p.date ?? new Date()
+  const income = await tx.income.create({
+    data: { amount: p.amount, currency: p.currency ?? "PEN", category: "PERSONAL_TRAINING", description: p.description, clientId: p.clientId, date },
+  })
+  const payment = await tx.payment.create({
+    data: { clientId: p.clientId, amount: p.amount, method: p.method ?? "CASH", concept: p.description, periodStart: date, periodEnd: date, incomeId: income.id, receiptUrl: p.receiptUrl ?? null },
+  })
+  await tx.clientTrainingPlan.update({ where: { id: p.planId }, data: { incomeId: income.id } })
+  return { income, payment }
+}
+
+/** Borra un paquete de entrenamiento personal y, si tenía pago vinculado, también el pago y su ingreso. */
+export function deleteTrainingPlan(planId: string) {
+  return prisma.$transaction(async (tx) => {
+    const plan = await tx.clientTrainingPlan.findUnique({ where: { id: planId } })
+    if (!plan) return { deleted: false, paymentDeleted: false }
+    let paymentDeleted = false
+    if (plan.incomeId) {
+      await tx.clientTrainingPlan.update({ where: { id: planId }, data: { incomeId: null } })
+      await tx.payment.deleteMany({ where: { incomeId: plan.incomeId } })
+      await tx.income.deleteMany({ where: { id: plan.incomeId } })
+      paymentDeleted = true
+    }
+    await tx.trainingSession.deleteMany({ where: { planId } })
+    await tx.clientTrainingPlan.delete({ where: { id: planId } })
+    return { deleted: true, paymentDeleted }
   })
 }

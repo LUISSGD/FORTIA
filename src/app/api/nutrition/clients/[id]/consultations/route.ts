@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { applyConsultationToCoaching } from "@/lib/coaching/sync-fortia"
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -54,5 +55,6 @@ export async function POST(request: Request, { params }: Params) {
       paymentMethod: body.paymentMethod || null,
     },
   })
+  await applyConsultationToCoaching(consultation.id)
   return NextResponse.json(consultation, { status: 201 })
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { getTrainingPrice } from "@/lib/training-pricing"
+import { getTrainingPrice, trainingDescription } from "@/lib/training-pricing"
+import { recordTrainingPayment } from "@/lib/finance-sync"
 import type { Entrenador, Modalidad, Tarifa, NumPacks, ClasesPerPack } from "@/lib/training-pricing"
 import { addDays } from "date-fns"
 
@@ -92,7 +93,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
   const { id } = await params
   const body = await req.json()
-  const { tipoEntrenador, modalidad, tarifa, numPacks, clasesPerPack, startDate, notes, scheduleDays } = body
+  const { tipoEntrenador, modalidad, tarifa, numPacks, clasesPerPack, startDate, notes, scheduleDays, registerPayment, paymentMethod } = body
 
   const price = getTrainingPrice(
     tipoEntrenador as Entrenador,
@@ -154,6 +155,17 @@ export async function POST(req: Request, { params }: Ctx) {
         endTime: d.endTime,
       })),
     })
+  }
+
+  // Cobro del paquete → ingreso en Finanzas + pago en la ficha, vinculados al paquete.
+  if (registerPayment) {
+    const client = await prisma.client.findUnique({ where: { id }, select: { firstName: true, lastName: true } })
+    await prisma.$transaction((tx) =>
+      recordTrainingPayment(tx, {
+        clientId: id, planId: plan.id, amount: price, method: paymentMethod, date: planStart,
+        description: trainingDescription(plan, `${client?.firstName ?? ""} ${client?.lastName ?? ""}`.trim()),
+      }),
+    )
   }
 
   const finalPlan = await prisma.clientTrainingPlan.findUnique({

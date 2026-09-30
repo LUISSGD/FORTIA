@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { addDays } from "date-fns"
+import { recordTrainingPayment } from "@/lib/finance-sync"
+import { trainingDescription } from "@/lib/training-pricing"
 
 type Ctx = { params: Promise<{ id: string; planId: string }> }
 
@@ -34,7 +36,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
   const { id: clientId, planId } = await params
   const body = await req.json()
-  const { startDate, pricePaid } = body
+  const { startDate, pricePaid, registerPayment, paymentMethod } = body
 
   if (!startDate) {
     return NextResponse.json({ error: "startDate es requerido" }, { status: 400 })
@@ -89,6 +91,17 @@ export async function POST(req: Request, { params }: Ctx) {
     completedAt: null as Date | null,
   }))
   await prisma.trainingSession.createMany({ data: sessionData })
+
+  // Cobro de la renovación → ingreso en Finanzas + pago en la ficha, vinculados al nuevo paquete.
+  if (registerPayment && Number(newPlan.pricePaid) > 0) {
+    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { firstName: true, lastName: true } })
+    await prisma.$transaction((tx) =>
+      recordTrainingPayment(tx, {
+        clientId, planId: newPlan.id, amount: Number(newPlan.pricePaid), method: paymentMethod, date: planStart,
+        description: `Renovación ${trainingDescription(newPlan, `${client?.firstName ?? ""} ${client?.lastName ?? ""}`.trim())}`,
+      }),
+    )
+  }
 
   // Mark original as COMPLETED
   await prisma.clientTrainingPlan.update({

@@ -38,7 +38,24 @@ async function CoachingDashboard() {
   const adherenceValues = active.map((c) => c.trainingAdherence).filter((v): v is number => v !== null)
   const avgAdherence = adherenceValues.length ? Math.round(adherenceValues.reduce((a, b) => a + b, 0) / adherenceValues.length) : null
   const checkInsWeek = active.filter((c) => c.lastCheckIn === weekStart).length
-  const pendingPayments = overview.filter((c) => c.pendingPayment && c.pendingPayment.overdueDays >= 0).length
+  // Por cobrar: mensualidades de coaching pendientes + membresías vencidas o por vencer.
+  const pendingPayments = overview.filter((c) => ["overdue", "pending", "soon"].includes(c.payState)).length
+  const renewals = overview
+    .filter((c) => c.membership.daysLeft !== null && c.membership.daysLeft <= 7 && c.membership.daysLeft >= -30)
+    .sort((a, b) => a.membership.daysLeft! - b.membership.daysLeft!)
+  // Último paquete de entrenamiento personal de cada cliente: le queda 1 clase o lo terminó hace poco (sin renovar).
+  const ptPlans = await prisma.clientTrainingPlan.findMany({
+    where: { status: { in: ["ACTIVE", "COMPLETED"] }, clientId: { in: overview.filter((c) => c.status !== "PAUSED").map((c) => c.id) } },
+    select: { clientId: true, status: true, updatedAt: true, numPacks: true, clasesPerPack: true, sessionsCompleted: true, client: { select: { firstName: true, lastName: true } } },
+    orderBy: { createdAt: "desc" },
+  })
+  const latestByClient = new Map<string, (typeof ptPlans)[number]>()
+  for (const p of ptPlans) if (!latestByClient.has(p.clientId)) latestByClient.set(p.clientId, p)
+  const ptEnding = [...latestByClient.values()].filter((p) =>
+    p.status === "ACTIVE"
+      ? p.numPacks * p.clasesPerPack - p.sessionsCompleted <= 1
+      : p.sessionsCompleted >= p.numPacks * p.clasesPerPack && Date.now() - p.updatedAt.getTime() < 30 * 86_400_000,
+  )
   const unread = overview.reduce((a, c) => a + c.unreadMessages, 0)
   const attention = overview.filter((c) => c.level !== "green").sort((a, b) => (a.level === b.level ? b.alerts.length - a.alerts.length : a.level === "red" ? -1 : 1))
 
@@ -74,7 +91,7 @@ async function CoachingDashboard() {
             <Stat label="Entrenamientos esta semana" value={workoutsWeek} tone="orange" />
             <Stat label="Cumplimiento promedio" value={avgAdherence === null ? "—" : `${avgAdherence}%`} hint="entreno últimos 7 días" tone={avgAdherence !== null && avgAdherence >= 75 ? "green" : "yellow"} />
             <Stat label="Check-ins completados" value={`${checkInsWeek}/${active.length}`} hint="esta semana" />
-            <Stat label="Pagos pendientes" value={pendingPayments} tone={pendingPayments ? "red" : "green"} />
+            <Stat label="Pagos por cobrar" value={pendingPayments} hint="membresías y mensualidades" tone={pendingPayments ? "red" : "green"} />
             <Stat label="Mensajes sin leer" value={unread} tone={unread ? "orange" : "default"} />
           </div>
 
@@ -99,6 +116,36 @@ async function CoachingDashboard() {
             </Panel>
 
             <div className="space-y-4">
+              <Panel title="🎟️ Renovaciones" action={<Link href="/coaching/clients" className="text-xs text-orange-600">Clientes →</Link>}>
+                {renewals.length === 0 && ptEnding.length === 0 ? (
+                  <p className="text-sm text-gray-500">Nada por renovar esta semana ✅</p>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {renewals.map((c) => (
+                      <li key={c.id}>
+                        <Link href={`/coaching/clients/${c.id}?tab=membership`} className="flex items-center justify-between py-2 hover:bg-gray-50 -mx-2 px-2 rounded">
+                          <span className="text-sm font-medium">{c.name}</span>
+                          <span className={`text-xs ${c.membership.daysLeft! < 0 ? "text-red-600 font-medium" : "text-amber-600"}`}>
+                            {c.membership.daysLeft! < 0 ? `Vencida hace ${-c.membership.daysLeft!} d` : c.membership.daysLeft === 0 ? "Vence hoy" : `Vence en ${c.membership.daysLeft} d`}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                    {ptEnding.map((p) => {
+                      const left = p.numPacks * p.clasesPerPack - p.sessionsCompleted
+                      return (
+                        <li key={`pt-${p.clientId}`}>
+                          <Link href={`/coaching/clients/${p.clientId}?tab=membership`} className="flex items-center justify-between py-2 hover:bg-gray-50 -mx-2 px-2 rounded">
+                            <span className="text-sm font-medium">{p.client.firstName} {p.client.lastName}</span>
+                            <span className="text-xs text-sky-700">🏋️ {left <= 0 ? "Paquete terminado" : "Le queda 1 clase"}</span>
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </Panel>
+
               <Panel title="📝 Check-ins por revisar">
                 {pendingCheckIns.length === 0 ? (
                   <p className="text-sm text-gray-500">Todo revisado ✅</p>

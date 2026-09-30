@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
+import { requireCoach } from "@/lib/coaching/auth"
 
 export async function POST(request: Request) {
+  // Solo el administrador gestiona usuarios del staff.
+  const guard = await requireCoach()
+  if ("error" in guard) return guard.error
   try {
     const { name, email, password } = await request.json()
 

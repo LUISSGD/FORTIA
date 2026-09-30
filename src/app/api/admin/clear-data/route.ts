@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { requireCoach } from "@/lib/coaching/auth"
 
 export async function DELETE() {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  // Acción destructiva: solo el administrador.
+  const guard = await requireCoach()
+  if ("error" in guard) return guard.error
 
   await prisma.enrollment.deleteMany()
   await prisma.payment.deleteMany()

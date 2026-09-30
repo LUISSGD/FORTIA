@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { deleteTrainingPlan } from "@/lib/finance-sync"
 
 type Ctx = { params: Promise<{ id: string; planId: string }> }
 
@@ -33,12 +34,8 @@ export async function DELETE(_req: Request, { params }: Ctx) {
 
   const { planId } = await params
 
-  const plan = await prisma.clientTrainingPlan.findUnique({ where: { id: planId } })
-  if (!plan) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 })
-
-  // Delete sessions first (no CASCADE defined on TrainingSession)
-  await prisma.trainingSession.deleteMany({ where: { planId } })
-  await prisma.clientTrainingPlan.delete({ where: { id: planId } })
-
-  return NextResponse.json({ ok: true })
+  // Borra el paquete y, si se cobró desde aquí, también su pago e ingreso en Finanzas.
+  const r = await deleteTrainingPlan(planId)
+  if (!r.deleted) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 })
+  return NextResponse.json({ ok: true, paymentDeleted: r.paymentDeleted })
 }

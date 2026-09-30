@@ -24,10 +24,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if ("waterTargetMl" in data && data.waterTargetMl === null) delete data.waterTargetMl
   if ("billingDay" in data && data.billingDay === null) delete data.billingDay
   if (data.status === null) delete data.status
+  if (data.status !== undefined && !["ACTIVE", "PAUSED", "STANDBY"].includes(data.status as string)) delete data.status
   if (data.currency === null) delete data.currency
   if (body.startDate) data.startDate = new Date(`${body.startDate}T12:00:00Z`)
 
   const clientData: Record<string, unknown> = {}
+  // Stand-by (ex cliente) = inactivo en FORTIA; activo o pausado = activo.
+  if (typeof data.status === "string") clientData.isActive = data.status !== "STANDBY"
   if ("phone" in body) clientData.phone = str(body.phone)
   if ("email" in body) clientData.email = str(body.email)
   if ("birthDate" in body) clientData.birthDate = body.birthDate ? new Date(`${body.birthDate}T12:00:00Z`) : null

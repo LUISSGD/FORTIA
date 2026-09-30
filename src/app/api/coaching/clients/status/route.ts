@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { setCoachingStatus } from "@/lib/coaching/lifecycle"
 import { requireCoach, jsonError } from "@/lib/coaching/auth"
 
 const ALLOWED = ["ACTIVE", "PAUSED", "STANDBY"]
@@ -12,6 +12,7 @@ export async function POST(request: Request) {
   const ids = Array.isArray(body.clientIds) ? body.clientIds.filter((x: unknown): x is string => typeof x === "string") : []
   if (!ids.length) return jsonError("Selecciona al menos un cliente")
   if (!ALLOWED.includes(body.status)) return jsonError("Estado no válido")
-  const r = await prisma.coachingProfile.updateMany({ where: { clientId: { in: ids }, status: { not: "ENDED" } }, data: { status: body.status } })
-  return NextResponse.json({ updated: r.count })
+  // Stand-by también marca al cliente como inactivo en FORTIA (y reactivar lo vuelve a activar).
+  const updated = await setCoachingStatus(ids, body.status)
+  return NextResponse.json({ updated })
 }

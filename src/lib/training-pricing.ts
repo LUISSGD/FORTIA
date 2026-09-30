@@ -88,3 +88,15 @@ export const TARIFA_LABELS: Record<Tarifa, string> = {
   OPENING: "Opening",
   REGULAR: "Regular",
 }
+
+/** Descripción del cobro de un paquete (misma que usa "Registrar pago → Entrenamiento Personal"). */
+export function trainingDescription(p: { tipoEntrenador: string; modalidad: string; tarifa: string; numPacks: number; clasesPerPack: number }, clientName: string) {
+  return [
+    ENTRENADOR_LABELS[p.tipoEntrenador as Entrenador] ?? p.tipoEntrenador,
+    MODALIDAD_LABELS[p.modalidad as Modalidad] ?? p.modalidad,
+    TARIFA_LABELS[p.tarifa as Tarifa] ?? p.tarifa,
+    `${p.numPacks} pack${p.numPacks > 1 ? "s" : ""}`,
+    `${p.clasesPerPack} clases`,
+    `— ${clientName}`,
+  ].join(" · ")
+}

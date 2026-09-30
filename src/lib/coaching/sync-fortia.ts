@@ -161,3 +161,82 @@ export async function syncFromFortia(clientIds: string[]): Promise<SyncReport> {
   }
   return report
 }
+
+/**
+ * Una consulta de nutrición nueva o editada en FORTIA se refleja en el coaching del cliente:
+ * sus medidas pasan al seguimiento físico y sus metas (kcal, macros, agua, objetivo)
+ * pasan a ser las metas del perfil de coaching. Nunca lanza error (no bloquea la consulta).
+ */
+export async function applyConsultationToCoaching(consultationId: string) {
+  try {
+    const c = await prisma.nutritionConsultation.findUnique({
+      where: { id: consultationId },
+      include: { nutritionClient: true },
+    })
+    if (!c) return
+    let clientId = c.nutritionClient.clientId
+    if (!clientId && c.nutritionClient.dni) {
+      // Paciente de nutrición sin vincular: se busca al cliente del gimnasio por DNI.
+      const match = await prisma.client.findFirst({ where: { dni: c.nutritionClient.dni }, select: { id: true } })
+      if (match) {
+        clientId = match.id
+        await prisma.nutritionClient.update({ where: { id: c.nutritionClientId }, data: { clientId } })
+      }
+    }
+    if (!clientId) return
+
+    // Medidas → seguimiento físico (un registro por día)
+    const day = c.date.toISOString().slice(0, 10)
+    const measures = { weight: c.weight, height: c.height, bodyFat: c.bodyFat, waist: c.waist, hips: c.hips, arms: c.arms }
+    if (Object.values(measures).some((v) => v !== null)) {
+      const date = new Date(`${day}T12:00:00Z`)
+      const sameDay = await prisma.physicalRecord.findFirst({
+        where: { clientId, date: { gte: new Date(`${day}T00:00:00Z`), lt: new Date(`${day}T23:59:59Z`) } },
+      })
+      const note = `Consulta de nutrición #${c.consultationNumber}`
+      if (!sameDay) {
+        await prisma.physicalRecord.create({ data: { clientId, date, ...measures, notes: note } })
+      } else if (sameDay.notes === note) {
+        await prisma.physicalRecord.update({ where: { id: sameDay.id }, data: measures })
+      } else {
+        // Ya había un registro ese día: solo se completan los campos vacíos.
+        const fill = Object.fromEntries(Object.entries(measures).filter(([k, v]) => v !== null && (sameDay as Record<string, unknown>)[k] === null))
+        if (Object.keys(fill).length) await prisma.physicalRecord.update({ where: { id: sameDay.id }, data: fill })
+      }
+    }
+
+    // Metas de la última consulta → perfil de coaching
+    const latest = await prisma.nutritionConsultation.findFirst({ where: { nutritionClientId: c.nutritionClientId }, orderBy: { date: "desc" } })
+    if (latest?.id !== c.id) return
+    const profile = await prisma.coachingProfile.findUnique({ where: { clientId } })
+    if (!profile) return
+    const water = c.waterTarget
+    const targets = {
+      goal: c.goal ? mapGoal(c.goal) : null,
+      calTarget: c.calTarget !== null ? Math.round(c.calTarget) : null,
+      proteinTarget: c.proteinTarget !== null ? Math.round(c.proteinTarget) : null,
+      carbsTarget: c.carbsTarget !== null ? Math.round(c.carbsTarget) : null,
+      fatTarget: c.fatTarget !== null ? Math.round(c.fatTarget) : null,
+      waterTargetMl: water ? Math.round(water < 20 ? water * 1000 : water) : null,
+      heightCm: c.height,
+    }
+    const data = Object.fromEntries(Object.entries(targets).filter(([, v]) => v !== null && v !== undefined))
+    if (Object.keys(data).length) await prisma.coachingProfile.update({ where: { clientId }, data })
+  } catch (e) {
+    console.error("[nutrición → coaching]", e)
+  }
+}
+
+/** Al borrar una consulta se quita el registro físico que se creó desde ella. */
+export async function removeConsultationFromCoaching(c: { nutritionClientId: string; consultationNumber: number; date: Date }) {
+  try {
+    const nut = await prisma.nutritionClient.findUnique({ where: { id: c.nutritionClientId }, select: { clientId: true } })
+    if (!nut?.clientId) return
+    const day = c.date.toISOString().slice(0, 10)
+    await prisma.physicalRecord.deleteMany({
+      where: { clientId: nut.clientId, notes: `Consulta de nutrición #${c.consultationNumber}`, date: { gte: new Date(`${day}T00:00:00Z`), lt: new Date(`${day}T23:59:59Z`) } },
+    })
+  } catch (e) {
+    console.error("[nutrición → coaching] borrar", e)
+  }
+}
