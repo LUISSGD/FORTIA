@@ -361,6 +361,8 @@ model NutritionConsultation {
   isPaid             Boolean  @default(false)
   paymentAmount      Float?
   paymentMethod      String?
+  // Ingreso en Finanzas creado automáticamente al marcar la consulta como pagada
+  incomeId           String?  @unique
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
