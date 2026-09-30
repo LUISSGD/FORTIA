@@ -30,9 +30,9 @@ export default async function ExerciseDetail({ params }: PageProps<"/app/trainin
       {embed ? (
         <iframe src={embed} className="w-full aspect-video rounded-2xl" allowFullScreen title={exercise.name} />
       ) : exercise.videoUrl ? (
-        <a href={exercise.videoUrl} target="_blank" rel="noreferrer" className="block rounded-2xl bg-zinc-900 border border-zinc-800 p-4 text-center font-semibold text-orange-400">🎥 Ver video</a>
+        <a href={exercise.videoUrl} target="_blank" rel="noreferrer" className="block rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center font-semibold text-orange-500">🎥 Ver video</a>
       ) : (
-        <a href={techniqueSearchUrl(exercise.name)} target="_blank" rel="noreferrer" className="block rounded-2xl bg-zinc-900 border border-zinc-800 p-4 text-center text-sm text-zinc-400">🎥 Ver ejemplos de técnica</a>
+        <a href={techniqueSearchUrl(exercise.name)} target="_blank" rel="noreferrer" className="block rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center text-sm text-gray-400">🎥 Ver ejemplos de técnica</a>
       )}
       {exercise.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -40,27 +40,27 @@ export default async function ExerciseDetail({ params }: PageProps<"/app/trainin
       )}
       <Card>
         <SectionTitle emoji="💪">Músculos</SectionTitle>
-        <p className="text-sm"><b>{exercise.primaryMuscle}</b>{exercise.secondaryMuscles ? <span className="text-zinc-400"> · {exercise.secondaryMuscles}</span> : null}</p>
+        <p className="text-sm"><b>{exercise.primaryMuscle}</b>{exercise.secondaryMuscles ? <span className="text-gray-400"> · {exercise.secondaryMuscles}</span> : null}</p>
       </Card>
       {exercise.instructions && (
         <Card>
           <SectionTitle emoji="✅">Cómo hacerlo</SectionTitle>
-          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{exercise.instructions}</p>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">{exercise.instructions}</p>
         </Card>
       )}
       {exercise.commonMistakes && (
         <Card className="border-red-500/30">
           <SectionTitle emoji="⚠️">Errores comunes</SectionTitle>
-          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{exercise.commonMistakes}</p>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">{exercise.commonMistakes}</p>
         </Card>
       )}
       <Card>
-        <SectionTitle emoji="📈" action={best ? <span className="text-xs text-orange-400">Mejor 1RM est.: {fmtKg(best)} kg</span> : null}>Tu rendimiento</SectionTitle>
-        <LineChartCard data={points} unit="kg" dark height={180} />
+        <SectionTitle emoji="📈" action={best ? <span className="text-xs text-orange-500">Mejor 1RM est.: {fmtKg(best)} kg</span> : null}>Tu rendimiento</SectionTitle>
+        <LineChartCard data={points} unit="kg" height={180} />
         <ul className="mt-3 space-y-2">
           {[...logs].reverse().slice(0, 8).map((l) => (
             <li key={l.id} className="text-sm">
-              <p className="text-xs text-zinc-500">{formatYmd(l.date, true)}</p>
+              <p className="text-xs text-gray-400">{formatYmd(l.date, true)}</p>
               <p>{l.sets.map(formatSet).join(" · ")}</p>
             </li>
           ))}

@@ -64,7 +64,7 @@ export default function ProgressActions({ photos }: { photos: Photo[] }) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="w-full h-12 rounded-xl bg-orange-500 font-bold flex items-center justify-center gap-2 active:scale-[0.98]">
+      <button onClick={() => setOpen(true)} className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold flex items-center justify-center gap-2 active:scale-[0.98]">
         <Plus className="h-4 w-4" /> Registrar peso y medidas
       </button>
 
@@ -74,33 +74,33 @@ export default function ProgressActions({ photos }: { photos: Photo[] }) {
           {[["FRENTE", "Frente"], ["PERFIL", "Perfil"], ["ESPALDA", "Espalda"]].map(([k, label]) => (
             <div key={k}>
               <input ref={(el) => { inputs.current[k] = el }} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) upload(k, file); e.target.value = "" }} />
-              <button onClick={() => inputs.current[k]?.click()} disabled={!!uploading} className="w-full aspect-square rounded-xl border-2 border-dashed border-zinc-700 flex flex-col items-center justify-center gap-1 text-zinc-400 active:bg-zinc-800">
+              <button onClick={() => inputs.current[k]?.click()} disabled={!!uploading} className="w-full aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 active:bg-gray-50">
                 {uploading === k ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
                 <span className="text-xs">{label}</span>
               </button>
             </div>
           ))}
         </div>
-        <PhotoCompare photos={photos} dark onDelete={removePhoto} />
-        <p className="text-[11px] text-zinc-500 mt-3">Consejo: misma luz, misma hora (en ayunas) y misma distancia cada vez. Solo tú y tu coach ven tus fotos.</p>
+        <PhotoCompare photos={photos} onDelete={removePhoto} />
+        <p className="text-[11px] text-gray-400 mt-3">Consejo: misma luz, misma hora (en ayunas) y misma distancia cada vez. Solo tú y tu coach ven tus fotos.</p>
       </Card>
 
       {open && (
-        <div className="fixed inset-0 z-[60] bg-black/80 flex items-end sm:items-center justify-center" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-md bg-zinc-900 rounded-t-3xl sm:rounded-3xl p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setOpen(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center">
-              <p className="font-black text-lg">Nuevo registro</p>
-              <button onClick={() => setOpen(false)}><X className="h-5 w-5" /></button>
+              <p className="font-black text-lg text-gray-900">Nuevo registro</p>
+              <button onClick={() => setOpen(false)}><X className="h-5 w-5 text-gray-400" /></button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {([["weight", "Peso (kg)"], ["waist", "Cintura (cm)"], ["chest", "Pecho (cm)"], ["arms", "Brazo (cm)"], ["hips", "Cadera (cm)"], ["legs", "Pierna (cm)"], ["bodyFat", "% grasa"]] as const).map(([k, label]) => (
                 <label key={k} className={cn("space-y-1", k === "weight" && "col-span-2")}>
-                  <span className="text-xs text-zinc-400">{label}</span>
+                  <span className="text-xs text-gray-500">{label}</span>
                   <input inputMode="decimal" className={darkInput} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value.replace(",", ".") })} />
                 </label>
               ))}
             </div>
-            <button onClick={saveMeasure} className="w-full h-12 rounded-xl bg-orange-500 font-bold">Guardar</button>
+            <button onClick={saveMeasure} className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold">Guardar</button>
           </div>
         </div>
       )}

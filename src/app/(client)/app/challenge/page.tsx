@@ -19,7 +19,7 @@ export default async function ChallengePage() {
   return (
     <div className="space-y-4">
       <PageTitle title="Retos" subtitle="Compite contigo mismo… y con la comunidad FORTIA" />
-      {data.length === 0 && <Card><p className="text-sm text-zinc-400">No hay retos activos ahora. ¡Atento al próximo!</p></Card>}
+      {data.length === 0 && <Card><p className="text-sm text-gray-400">No hay retos activos ahora. ¡Atento al próximo!</p></Card>}
       {data.map(({ c, map }) => {
         const mine = map.get(ctx.clientId) ?? 0
         const pct = Math.min(100, Math.round((mine / c.target) * 100))
@@ -28,25 +28,25 @@ export default async function ChallengePage() {
         const started = today >= c.startDate
         return (
           <div key={c.id} className="space-y-3">
-            <Card className="bg-gradient-to-br from-orange-500/25 to-zinc-900 border-orange-500/30">
-              <p className="text-[11px] uppercase tracking-widest text-orange-400 font-bold">🏆 {started ? "Reto en curso" : `Empieza el ${formatYmd(c.startDate)}`}</p>
+            <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-200">
+              <p className="text-[11px] uppercase tracking-widest text-orange-600 font-bold">🏆 {started ? "Reto en curso" : `Empieza el ${formatYmd(c.startDate)}`}</p>
               <p className="text-2xl font-black">{c.title}</p>
-              {c.description && <p className="text-sm text-zinc-300 mt-1">{c.description}</p>}
-              <p className="text-xs text-zinc-400 mt-3">{CHALLENGE_METRICS[c.metric]}</p>
+              {c.description && <p className="text-sm text-gray-700 mt-1">{c.description}</p>}
+              <p className="text-xs text-gray-400 mt-3">{CHALLENGE_METRICS[c.metric]}</p>
               <Bar value={mine} max={c.target} className="h-3 mt-1" />
               <div className="flex justify-between text-sm mt-1.5">
                 <span className="font-bold">{mine} / {c.target}</span>
-                <span className="text-zinc-400">{pct}% · {Math.max(0, diffDaysYmd(c.endDate, today))} días restantes</span>
+                <span className="text-gray-400">{pct}% · {Math.max(0, diffDaysYmd(c.endDate, today))} días restantes</span>
               </div>
-              {mine >= c.target && <p className="mt-2 text-emerald-400 font-bold">🎉 ¡Reto completado!</p>}
+              {mine >= c.target && <p className="mt-2 text-emerald-600 font-bold">🎉 ¡Reto completado!</p>}
             </Card>
             {c.showRanking && (
               <Card>
-                <p className="text-xs font-bold tracking-widest uppercase text-zinc-400 mb-2">Ranking {position > 0 && <span className="text-orange-400">· vas #{position}</span>}</p>
+                <p className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-2">Ranking {position > 0 && <span className="text-orange-500">· vas #{position}</span>}</p>
                 <ol className="space-y-1">
                   {ranking.slice(0, 10).map((r, i) => (
                     <li key={r.id} className={cn("flex items-center justify-between rounded-lg px-2 py-1.5 text-sm", r.id === ctx.clientId && "bg-orange-500/15")}>
-                      <span>{i < 3 && r.value > 0 ? ["🥇", "🥈", "🥉"][i] : <span className="text-zinc-500 w-5 inline-block">{i + 1}</span>} {r.id === ctx.clientId ? "Tú" : r.name}</span>
+                      <span>{i < 3 && r.value > 0 ? ["🥇", "🥈", "🥉"][i] : <span className="text-gray-400 w-5 inline-block">{i + 1}</span>} {r.id === ctx.clientId ? "Tú" : r.name}</span>
                       <span className="font-bold">{r.value}</span>
                     </li>
                   ))}

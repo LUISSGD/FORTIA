@@ -9,7 +9,6 @@ import type { PersonalTraining } from "@/lib/coaching/personal-training"
 import { request } from "./request"
 import { Bar } from "./ui"
 
-/** Contador del paquete de clases + botón para registrar la clase de hoy. */
 export default function PtCheckIn({ initial, compact = false }: { initial: PersonalTraining; compact?: boolean }) {
   const router = useRouter()
   const [pt, setPt] = useState(initial)
@@ -36,26 +35,26 @@ export default function PtCheckIn({ initial, compact = false }: { initial: Perso
   return (
     <div className="space-y-3">
       <div className="flex items-end justify-between">
-        <p className="text-3xl font-black">
-          {pt.remaining} <span className="text-base font-medium text-zinc-500">clase{pt.remaining === 1 ? "" : "s"} disponible{pt.remaining === 1 ? "" : "s"}</span>
+        <p className="text-3xl font-black text-gray-900">
+          {pt.remaining} <span className="text-base font-medium text-gray-400">clase{pt.remaining === 1 ? "" : "s"} disponible{pt.remaining === 1 ? "" : "s"}</span>
         </p>
-        <p className="text-xs text-zinc-400 pb-1">{pt.used}/{pt.total} usadas</p>
+        <p className="text-xs text-gray-400 pb-1">{pt.used}/{pt.total} usadas</p>
       </div>
       <Bar value={pt.used} max={pt.total} />
 
       {pt.todaySession ? (
-        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 flex items-center justify-between gap-2">
-          <p className="font-bold text-emerald-400 text-sm">✅ Clase de hoy registrada</p>
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-center justify-between gap-2">
+          <p className="font-bold text-emerald-600 text-sm">✅ Clase de hoy registrada</p>
           {pt.canUndoToday && (
-            <button onClick={() => send("DELETE")} disabled={busy} className="text-[11px] text-zinc-400 underline">
+            <button onClick={() => send("DELETE")} disabled={busy} className="text-[11px] text-gray-400 underline">
               Deshacer
             </button>
           )}
         </div>
       ) : paused ? (
-        <p className="text-sm text-amber-400">Tu paquete está en pausa. Habla con tu coach para reactivarlo.</p>
+        <p className="text-sm text-amber-600">Tu paquete está en pausa. Habla con tu coach para reactivarlo.</p>
       ) : pt.remaining === 0 ? (
-        <p className="text-sm text-amber-400">Ya usaste todas tus clases. Habla con tu coach para renovar tu paquete.</p>
+        <p className="text-sm text-amber-600">Ya usaste todas tus clases. Habla con tu coach para renovar tu paquete.</p>
       ) : (
         <button
           onClick={() => send("POST")}
@@ -67,7 +66,7 @@ export default function PtCheckIn({ initial, compact = false }: { initial: Perso
       )}
 
       {compact && (
-        <Link href="/app/personal" className="block text-center text-xs text-zinc-500">Ver historial y horario →</Link>
+        <Link href="/app/personal" className="block text-center text-xs text-gray-400">Ver historial y horario →</Link>
       )}
     </div>
   )

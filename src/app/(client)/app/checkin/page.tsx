@@ -25,13 +25,13 @@ export default async function CheckInPage() {
           <div className="space-y-3">
             {checkIns.map((c) => (
               <Card key={c.id}>
-                <p className="text-xs text-zinc-500 mb-1">Semana del {formatYmd(c.weekStart, true)}</p>
+                <p className="text-xs text-gray-400 mb-1">Semana del {formatYmd(c.weekStart, true)}</p>
                 <p className="text-sm">
                   {ENERGY_OPTIONS.find((o) => o.value === c.energy)?.emoji} Energía {ENERGY_OPTIONS.find((o) => o.value === c.energy)?.label.toLowerCase()} · 🍽️ {ADHERENCE_OPTIONS.find((o) => o.value === c.nutritionAdherence)?.label} · 😴 {SLEEP_OPTIONS.find((o) => o.value === c.sleep)?.label}
                 </p>
                 {c.coachReply && (
-                  <div className="mt-2 rounded-xl bg-orange-500/10 border border-orange-500/30 p-3">
-                    <p className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">Tu coach</p>
+                  <div className="mt-2 rounded-xl bg-orange-50 border border-orange-200 p-3">
+                    <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wider">Tu coach</p>
                     <p className="text-sm whitespace-pre-wrap">{c.coachReply}</p>
                   </div>
                 )}

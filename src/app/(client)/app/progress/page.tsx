@@ -35,16 +35,16 @@ export default async function ProgressPage() {
       <Card>
         <SectionTitle emoji="⚖️">Peso</SectionTitle>
         {weight.length ? (
-          <p className="text-2xl font-black mb-2">
+          <p className="text-2xl font-black mb-2 text-gray-900">
             {fmtKg(weight[0].value!)} → {fmtKg(currentWeight!)} kg
             {weight.length > 1 && (
-              <span className={cn("text-sm ml-2", currentWeight! - weight[0].value! <= 0 ? "text-emerald-400" : "text-orange-400")}>
+              <span className={cn("text-sm ml-2", currentWeight! - weight[0].value! <= 0 ? "text-emerald-600" : "text-orange-500")}>
                 {currentWeight! - weight[0].value! > 0 ? "+" : ""}{fmtKg(currentWeight! - weight[0].value!)}
               </span>
             )}
           </p>
         ) : null}
-        <LineChartCard data={weight} unit="kg" dark height={180} />
+        <LineChartCard data={weight} unit="kg" height={180} />
       </Card>
 
       <ProgressActions photos={photos.map((p) => ({ id: p.id, date: p.date, pose: p.pose, url: p.url }))} />
@@ -57,15 +57,15 @@ export default async function ProgressPage() {
             if (!s.length) return null
             const d = s.at(-1)!.value! - s[0].value!
             return (
-              <div key={k} className="rounded-xl bg-zinc-800/60 p-3">
-                <p className="text-xs text-zinc-400">{label}</p>
-                <p className="font-bold">{fmtKg(s[0].value!)} → {fmtKg(s.at(-1)!.value!)} {unit}</p>
-                {s.length > 1 && <p className={cn("text-xs", d < 0 ? "text-emerald-400" : d > 0 ? "text-orange-400" : "text-zinc-500")}>{d > 0 ? "📈 +" : d < 0 ? "📉 " : ""}{fmtKg(d)} {unit}</p>}
+              <div key={k} className="rounded-xl bg-gray-50 p-3">
+                <p className="text-xs text-gray-500">{label}</p>
+                <p className="font-bold text-gray-900">{fmtKg(s[0].value!)} → {fmtKg(s.at(-1)!.value!)} {unit}</p>
+                {s.length > 1 && <p className={cn("text-xs", d < 0 ? "text-emerald-600" : d > 0 ? "text-orange-500" : "text-gray-400")}>{d > 0 ? "📈 +" : d < 0 ? "📉 " : ""}{fmtKg(d)} {unit}</p>}
               </div>
             )
           })}
         </div>
-        {!records.some((r) => r.waist || r.chest || r.arms) && <p className="text-xs text-zinc-500">Registra tus medidas cada 2–4 semanas.</p>}
+        {!records.some((r) => r.waist || r.chest || r.arms) && <p className="text-xs text-gray-400">Registra tus medidas cada 2–4 semanas.</p>}
       </Card>
 
       {goals.length > 0 && (
@@ -77,9 +77,9 @@ export default async function ProgressPage() {
               const pct = g.startValue !== null && g.targetValue !== null && current !== null && g.startValue !== g.targetValue ? Math.max(0, Math.min(1, (g.startValue - current) / (g.startValue - g.targetValue))) : null
               return (
                 <li key={g.id}>
-                  <p className={cn("text-sm font-semibold", g.achievedAt && "text-emerald-400")}>{g.achievedAt ? "✅ " : ""}{g.title}</p>
-                  <p className="text-xs text-zinc-500">{g.startValue ?? "?"} → {g.targetValue ?? "?"} {g.unit}{g.dueDate ? ` · hasta ${formatYmd(toYmd(g.dueDate), true)}` : ""}</p>
-                  {pct !== null && !g.achievedAt && <><Bar value={pct * 100} max={100} className="mt-1.5" /><p className="text-[11px] text-zinc-500 mt-0.5">{Math.round(pct * 100)}%</p></>}
+                  <p className={cn("text-sm font-semibold", g.achievedAt ? "text-emerald-600" : "text-gray-900")}>{g.achievedAt ? "✅ " : ""}{g.title}</p>
+                  <p className="text-xs text-gray-400">{g.startValue ?? "?"} → {g.targetValue ?? "?"} {g.unit}{g.dueDate ? ` · hasta ${formatYmd(toYmd(g.dueDate), true)}` : ""}</p>
+                  {pct !== null && !g.achievedAt && <><Bar value={pct * 100} max={100} className="mt-1.5" /><p className="text-[11px] text-gray-400 mt-0.5">{Math.round(pct * 100)}%</p></>}
                 </li>
               )
             })}
@@ -98,10 +98,10 @@ export default async function ProgressPage() {
         <SectionTitle emoji="🏅">Logros</SectionTitle>
         <div className="grid grid-cols-3 gap-2">
           {achievements.map((a) => (
-            <div key={a.key} className={cn("rounded-xl p-2 text-center", a.unlocked ? "bg-orange-500/10 border border-orange-500/30" : "bg-zinc-800/50 opacity-40")}>
+            <div key={a.key} className={cn("rounded-xl p-2 text-center", a.unlocked ? "bg-orange-50 border border-orange-100" : "bg-gray-50 opacity-40")}>
               <p className="text-2xl">{a.emoji}</p>
-              <p className="text-[11px] font-semibold leading-tight mt-1">{a.title}</p>
-              <p className="text-[9px] text-zinc-500 leading-tight mt-0.5">{a.description}</p>
+              <p className="text-[11px] font-semibold leading-tight mt-1 text-gray-900">{a.title}</p>
+              <p className="text-[9px] text-gray-400 leading-tight mt-0.5">{a.description}</p>
             </div>
           ))}
         </div>

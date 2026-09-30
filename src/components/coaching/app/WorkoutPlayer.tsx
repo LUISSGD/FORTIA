@@ -53,7 +53,6 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
   const [summary, setSummary] = useState<{ duration: number; exercises: number; volume: number; sets: number; prs: string[] } | null>(null)
   const loaded = useRef(false)
 
-  // Restaurar progreso guardado (si el cliente cerró la app a mitad de sesión)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKey)
@@ -158,25 +157,25 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
         <p className="text-6xl">🎉</p>
         <div>
-          <h1 className="text-2xl font-black">ENTRENAMIENTO COMPLETADO</h1>
-          <p className="text-zinc-400">{title}</p>
+          <h1 className="text-2xl font-black text-gray-900">ENTRENAMIENTO COMPLETADO</h1>
+          <p className="text-gray-500">{title}</p>
         </div>
         <div className="grid grid-cols-3 gap-3 w-full">
           {[["Duración", `${summary.duration} min`], ["Ejercicios", summary.exercises], ["Volumen", `${summary.volume.toLocaleString("es-PE")} kg`]].map(([l, v]) => (
-            <div key={l as string} className="rounded-2xl bg-zinc-900 border border-zinc-800 p-3">
-              <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{l}</p>
-              <p className="text-lg font-black">{v}</p>
+            <div key={l as string} className="rounded-2xl bg-gray-50 border border-gray-100 p-3">
+              <p className="text-[11px] text-gray-400 uppercase tracking-wider">{l}</p>
+              <p className="text-lg font-black text-gray-900">{v}</p>
             </div>
           ))}
         </div>
         {summary.prs.length > 0 && (
-          <div className="rounded-2xl bg-orange-500/10 border border-orange-500/30 p-4 w-full">
-            <p className="font-bold text-orange-400">🏆 ¡Nuevo récord personal!</p>
-            <p className="text-sm text-zinc-300">{summary.prs.join(", ")}</p>
+          <div className="rounded-2xl bg-orange-50 border border-orange-200 p-4 w-full">
+            <p className="font-bold text-orange-600">🏆 ¡Nuevo récord personal!</p>
+            <p className="text-sm text-gray-600">{summary.prs.join(", ")}</p>
           </div>
         )}
-        <Link href="/app" className="w-full h-12 rounded-xl bg-orange-500 font-bold flex items-center justify-center">VOLVER AL INICIO</Link>
-        <Link href="/app/chat" className="text-sm text-zinc-400">Contarle a tu coach cómo te fue →</Link>
+        <Link href="/app" className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold flex items-center justify-center">VOLVER AL INICIO</Link>
+        <Link href="/app/chat" className="text-sm text-gray-400">Contarle a tu coach cómo te fue →</Link>
       </div>
     )
   }
@@ -185,66 +184,66 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
 
   return (
     <div className="space-y-3 -mt-2">
-      <div className="sticky top-14 z-30 -mx-4 px-4 py-3 bg-zinc-950/95 backdrop-blur border-b border-zinc-900">
+      <div className="sticky top-14 z-30 -mx-4 px-4 py-3 bg-white/95 backdrop-blur border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-widest text-orange-400 font-bold">🔥 Entrenamiento de hoy</p>
-            <p className="font-black truncate">{title} <span className="text-zinc-500 font-medium text-sm">· {subtitle}</span></p>
+            <p className="text-[11px] uppercase tracking-widest text-orange-500 font-bold">🔥 Entrenamiento de hoy</p>
+            <p className="font-black truncate text-gray-900">{title} <span className="text-gray-400 font-medium text-sm">· {subtitle}</span></p>
           </div>
           <div className="text-right shrink-0">
-            <p className="font-mono font-bold text-lg">{clock(elapsed)}</p>
-            <p className="text-[10px] text-zinc-500">{doneCount}/{exercises.length} · {stats.volume.toLocaleString("es-PE")} kg</p>
+            <p className="font-mono font-bold text-lg text-gray-900">{clock(elapsed)}</p>
+            <p className="text-[10px] text-gray-400">{doneCount}/{exercises.length} · {stats.volume.toLocaleString("es-PE")} kg</p>
           </div>
         </div>
-        <div className="h-1 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+        <div className="h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
           <div className="h-full bg-orange-500 transition-all" style={{ width: `${(doneCount / Math.max(1, exercises.length)) * 100}%` }} />
         </div>
       </div>
 
-      {notes && <p className="text-xs text-zinc-400 bg-zinc-900 rounded-xl p-3">📝 {notes}</p>}
+      {notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-xl p-3">📝 {notes}</p>}
 
       {exercises.map((ex, idx) => {
         const isOpen = open === ex.id
         const sets = state.sets[ex.id]
         const prevTop = Math.max(0, ...ex.previous.map((p) => p.weight ?? 0))
         return (
-          <div key={ex.id} className={cn("rounded-2xl border overflow-hidden min-w-0", state.completed[ex.id] ? "border-emerald-500/40 bg-emerald-500/5" : isOpen ? "border-orange-500/50 bg-zinc-900" : "border-zinc-800 bg-zinc-900")}>
+          <div key={ex.id} className={cn("rounded-2xl border overflow-hidden min-w-0", state.completed[ex.id] ? "border-emerald-200 bg-emerald-50" : isOpen ? "border-orange-200 bg-white" : "border-gray-200 bg-white")}>
             <button className="w-full flex items-center gap-3 p-4 text-left" onClick={() => setOpen(isOpen ? null : ex.id)}>
-              <span className={cn("text-xs font-black w-7", state.completed[ex.id] ? "text-emerald-400" : "text-zinc-500")}>{state.completed[ex.id] ? "✓" : pad(idx + 1)}</span>
+              <span className={cn("text-xs font-black w-7", state.completed[ex.id] ? "text-emerald-600" : "text-gray-400")}>{state.completed[ex.id] ? "✓" : pad(idx + 1)}</span>
               <div className="flex-1 min-w-0">
-                <p className="font-bold truncate">{ex.name}</p>
-                <p className="text-xs text-zinc-400">{ex.sets} × {ex.reps}{ex.rir ? ` · RIR ${ex.rir}` : ""}{ex.load ? ` · ${ex.load}` : ""}</p>
+                <p className="font-bold text-gray-900 truncate">{ex.name}</p>
+                <p className="text-xs text-gray-400">{ex.sets} × {ex.reps}{ex.rir ? ` · RIR ${ex.rir}` : ""}{ex.load ? ` · ${ex.load}` : ""}</p>
               </div>
-              <ChevronDown className={cn("h-4 w-4 text-zinc-500 transition", isOpen && "rotate-180")} />
+              <ChevronDown className={cn("h-4 w-4 text-gray-400 transition", isOpen && "rotate-180")} />
             </button>
             {isOpen && (
               <div className="px-4 pb-4 space-y-3">
                 <div className="flex flex-wrap gap-2 text-[11px]">
-                  <button onClick={() => setVideo(ex)} className="flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1.5 font-semibold"><Play className="h-3 w-3" /> Video</button>
-                  {prevTop > 0 && <span className="rounded-full bg-zinc-800 px-3 py-1.5">Peso anterior: <b>{fmtKg(prevTop)} kg</b></span>}
-                  {ex.tempo && <span className="rounded-full bg-zinc-800 px-3 py-1.5">Tempo {ex.tempo}</span>}
-                  {ex.restSec > 0 && <span className="rounded-full bg-zinc-800 px-3 py-1.5">Descanso {ex.restSec}s</span>}
+                  <button onClick={() => setVideo(ex)} className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1.5 font-semibold text-gray-700"><Play className="h-3 w-3" /> Video</button>
+                  {prevTop > 0 && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">Peso anterior: <b>{fmtKg(prevTop)} kg</b></span>}
+                  {ex.tempo && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">Tempo {ex.tempo}</span>}
+                  {ex.restSec > 0 && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">Descanso {ex.restSec}s</span>}
                 </div>
-                {ex.notes && <p className="text-xs text-orange-300">💡 {ex.notes}</p>}
+                {ex.notes && <p className="text-xs text-orange-500">💡 {ex.notes}</p>}
 
                 <div className="space-y-2">
-                  <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 text-[10px] uppercase tracking-wider text-zinc-500 px-1">
+                  <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 text-[10px] uppercase tracking-wider text-gray-400 px-1">
                     <span>Set</span><span>Kg</span><span>Reps</span><span />
                   </div>
                   {sets.map((s, i) => {
                     const p = ex.previous[i]
                     return (
                       <div key={i} className={cn("grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center", s.done && "opacity-80")}>
-                        <span className="text-sm font-bold text-zinc-400 text-center">{i + 1}</span>
-                        <input inputMode="decimal" className="h-11 w-full min-w-0 rounded-xl bg-zinc-800 text-center font-bold outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.weight ? fmtKg(p.weight) : "kg"} value={s.weight} onChange={(e) => updateSet(ex.id, i, { weight: e.target.value.replace(",", ".") })} />
-                        <input inputMode="numeric" className="h-11 w-full min-w-0 rounded-xl bg-zinc-800 text-center font-bold outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.reps ? String(p.reps) : ex.reps} value={s.reps} onChange={(e) => updateSet(ex.id, i, { reps: e.target.value.replace(/\D/g, "") })} />
-                        <button onClick={() => toggleSet(ex, i)} className={cn("h-11 rounded-xl flex items-center justify-center", s.done ? "bg-emerald-500 text-white" : "bg-zinc-800 text-zinc-500")} aria-label="Serie completada">
+                        <span className="text-sm font-bold text-gray-400 text-center">{i + 1}</span>
+                        <input inputMode="decimal" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.weight ? fmtKg(p.weight) : "kg"} value={s.weight} onChange={(e) => updateSet(ex.id, i, { weight: e.target.value.replace(",", ".") })} />
+                        <input inputMode="numeric" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.reps ? String(p.reps) : ex.reps} value={s.reps} onChange={(e) => updateSet(ex.id, i, { reps: e.target.value.replace(/\D/g, "") })} />
+                        <button onClick={() => toggleSet(ex, i)} className={cn("h-11 rounded-xl flex items-center justify-center", s.done ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-400")} aria-label="Serie completada">
                           <Check className="h-5 w-5" />
                         </button>
                       </div>
                     )
                   })}
-                  <button onClick={() => setState((st) => ({ ...st, sets: { ...st.sets, [ex.id]: [...st.sets[ex.id], { weight: st.sets[ex.id].at(-1)?.weight ?? "", reps: "", done: false }] } }))} className="w-full text-xs text-zinc-400 py-1 flex items-center justify-center gap-1">
+                  <button onClick={() => setState((st) => ({ ...st, sets: { ...st.sets, [ex.id]: [...st.sets[ex.id], { weight: st.sets[ex.id].at(-1)?.weight ?? "", reps: "", done: false }] } }))} className="w-full text-xs text-gray-400 py-1 flex items-center justify-center gap-1">
                     <Plus className="h-3 w-3" /> Añadir serie
                   </button>
                 </div>
@@ -254,9 +253,9 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
                   placeholder="¿Alguna molestia o comentario para tu coach?"
                   value={state.notes[ex.exerciseId] ?? ""}
                   onChange={(e) => setState((s) => ({ ...s, notes: { ...s.notes, [ex.exerciseId]: e.target.value } }))}
-                  className="w-full rounded-xl bg-zinc-800 px-3 py-2 text-sm outline-none placeholder:text-zinc-500 resize-none"
+                  className="w-full rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-orange-400 resize-none"
                 />
-                <button onClick={() => completeExercise(ex, idx)} className="w-full h-12 rounded-xl bg-orange-500 font-bold tracking-wide active:scale-[0.98]">
+                <button onClick={() => completeExercise(ex, idx)} className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold tracking-wide active:scale-[0.98]">
                   COMPLETAR EJERCICIO
                 </button>
               </div>
@@ -265,7 +264,7 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
         )
       })}
 
-      <button onClick={() => (stats.sets ? setFinishing(true) : toast.error("Marca al menos una serie completada"))} className="w-full h-14 rounded-2xl bg-white text-zinc-950 font-black tracking-wide mt-4 active:scale-[0.98]">
+      <button onClick={() => (stats.sets ? setFinishing(true) : toast.error("Marca al menos una serie completada"))} className="w-full h-14 rounded-2xl bg-gray-900 text-white font-black tracking-wide mt-4 active:scale-[0.98]">
         FINALIZAR ENTRENAMIENTO
       </button>
       <button
@@ -274,54 +273,54 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
           try { localStorage.removeItem(storageKey) } catch {}
           router.push("/app/training")
         }}
-        className="w-full text-xs text-zinc-500 py-2"
+        className="w-full text-xs text-gray-400 py-2"
       >
         Descartar y salir
       </button>
 
       {rest && (
-        <div className="fixed bottom-4 inset-x-4 z-50 max-w-md mx-auto rounded-2xl bg-zinc-800 border border-zinc-700 p-3 flex items-center gap-3 shadow-xl" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
-          <Timer className="h-5 w-5 text-orange-400" />
+        <div className="fixed bottom-4 inset-x-4 z-50 max-w-md mx-auto rounded-2xl bg-white border border-gray-200 p-3 flex items-center gap-3 shadow-xl" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+          <Timer className="h-5 w-5 text-orange-500" />
           <div className="flex-1">
-            <p className="text-xs text-zinc-400">Descanso</p>
-            <div className="h-1.5 bg-zinc-700 rounded-full mt-1 overflow-hidden"><div className="h-full bg-orange-500" style={{ width: `${(restLeft / rest.total) * 100}%` }} /></div>
+            <p className="text-xs text-gray-500">Descanso</p>
+            <div className="h-1.5 bg-gray-200 rounded-full mt-1 overflow-hidden"><div className="h-full bg-orange-500" style={{ width: `${(restLeft / rest.total) * 100}%` }} /></div>
           </div>
-          <p className="font-mono font-black text-xl">{clock(restLeft)}</p>
-          <button onClick={() => setRest((r) => (r ? { ...r, until: r.until + 30_000, total: r.total + 30 } : r))} className="text-xs bg-zinc-700 rounded-lg px-2 py-1">+30s</button>
-          <button onClick={() => setRest(null)} aria-label="Saltar"><X className="h-5 w-5 text-zinc-400" /></button>
+          <p className="font-mono font-black text-xl text-gray-900">{clock(restLeft)}</p>
+          <button onClick={() => setRest((r) => (r ? { ...r, until: r.until + 30_000, total: r.total + 30 } : r))} className="text-xs bg-gray-100 rounded-lg px-2 py-1 text-gray-700">+30s</button>
+          <button onClick={() => setRest(null)} aria-label="Saltar"><X className="h-5 w-5 text-gray-400" /></button>
         </div>
       )}
 
       {video && (
-        <div className="fixed inset-0 z-[60] bg-black/80 flex items-end sm:items-center justify-center" onClick={() => setVideo(null)}>
-          <div className="w-full max-w-md bg-zinc-900 rounded-t-3xl sm:rounded-3xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setVideo(null)}>
+          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center">
-              <p className="font-bold">{video.name}</p>
-              <button onClick={() => setVideo(null)}><X className="h-5 w-5" /></button>
+              <p className="font-bold text-gray-900">{video.name}</p>
+              <button onClick={() => setVideo(null)}><X className="h-5 w-5 text-gray-400" /></button>
             </div>
             {video.videoEmbed ? (
               <iframe src={video.videoEmbed} className="w-full aspect-video rounded-xl" allowFullScreen title={video.name} />
             ) : (
-              <a href={video.videoUrl} target="_blank" rel="noreferrer" className="block text-center rounded-xl bg-zinc-800 p-4 text-orange-400 font-semibold">🎥 Abrir video</a>
+              <a href={video.videoUrl} target="_blank" rel="noreferrer" className="block text-center rounded-xl bg-gray-50 p-4 text-orange-500 font-semibold">🎥 Abrir video</a>
             )}
-            {video.instructions && <p className="text-sm text-zinc-300">{video.instructions}</p>}
-            <Link href={`/app/training/exercise/${video.exerciseId}`} className="block text-xs text-zinc-400">Ver ficha completa e historial →</Link>
+            {video.instructions && <p className="text-sm text-gray-700">{video.instructions}</p>}
+            <Link href={`/app/training/exercise/${video.exerciseId}`} className="block text-xs text-gray-400">Ver ficha completa e historial →</Link>
           </div>
         </div>
       )}
 
       {finishing && (
-        <div className="fixed inset-0 z-[60] bg-black/80 flex items-end sm:items-center justify-center" onClick={() => setFinishing(false)}>
-          <div className="w-full max-w-md bg-zinc-900 rounded-t-3xl sm:rounded-3xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <p className="text-lg font-black">¿Cómo te sentiste hoy?</p>
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setFinishing(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-black text-gray-900">¿Cómo te sentiste hoy?</p>
             <div className="flex justify-between">
               {["😫", "😕", "😐", "🙂", "🔥"].map((e, i) => (
-                <button key={e} onClick={() => setRating(i + 1)} className={cn("h-14 w-14 rounded-2xl text-2xl", rating === i + 1 ? "bg-orange-500" : "bg-zinc-800")}>{e}</button>
+                <button key={e} onClick={() => setRating(i + 1)} className={cn("h-14 w-14 rounded-2xl text-2xl", rating === i + 1 ? "bg-orange-500" : "bg-gray-100")}>{e}</button>
               ))}
             </div>
-            <textarea rows={3} value={finalNotes} onChange={(e) => setFinalNotes(e.target.value)} placeholder="Comentarios para tu coach (opcional)" className="w-full rounded-xl bg-zinc-800 p-3 text-sm outline-none placeholder:text-zinc-500" />
-            <p className="text-xs text-zinc-500">{stats.sets} series · {stats.volume.toLocaleString("es-PE")} kg · {clock(elapsed)}</p>
-            <button onClick={finish} disabled={saving} className="w-full h-12 rounded-xl bg-orange-500 font-bold flex items-center justify-center gap-2">
+            <textarea rows={3} value={finalNotes} onChange={(e) => setFinalNotes(e.target.value)} placeholder="Comentarios para tu coach (opcional)" className="w-full rounded-xl bg-gray-50 border border-gray-200 p-3 text-sm text-gray-900 outline-none placeholder:text-gray-400" />
+            <p className="text-xs text-gray-400">{stats.sets} series · {stats.volume.toLocaleString("es-PE")} kg · {clock(elapsed)}</p>
+            <button onClick={finish} disabled={saving} className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold flex items-center justify-center gap-2">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />} GUARDAR ENTRENAMIENTO
             </button>
           </div>

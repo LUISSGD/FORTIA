@@ -21,16 +21,16 @@ export default async function NotificationsPage() {
         {unread && <MarkAllRead />}
       </div>
       {items.length === 0 ? (
-        <Card><p className="text-sm text-zinc-400">Sin notificaciones por ahora.</p></Card>
+        <Card><p className="text-sm text-gray-400">Sin notificaciones por ahora.</p></Card>
       ) : (
-        <div className="rounded-2xl bg-zinc-900 border border-zinc-800 divide-y divide-zinc-800">
+        <div className="rounded-2xl bg-white border border-gray-100 divide-y divide-gray-100">
           {items.map((n) => (
             <Link key={n.id} href={n.link ?? "/app"} className={cn("flex gap-3 px-4 py-3", !n.readAt && "bg-orange-500/5")}>
               <span className="text-xl">{ICON[n.type] ?? "🔔"}</span>
               <div className="flex-1 min-w-0">
-                <p className={cn("text-sm", !n.readAt ? "font-bold" : "font-medium text-zinc-300")}>{n.title}</p>
-                {n.body && <p className="text-xs text-zinc-400 line-clamp-2">{n.body}</p>}
-                <p className="text-[10px] text-zinc-600 mt-0.5">{dateTimeLima(n.createdAt)}</p>
+                <p className={cn("text-sm", !n.readAt ? "font-bold text-gray-900" : "font-medium text-gray-600")}>{n.title}</p>
+                {n.body && <p className="text-xs text-gray-400 line-clamp-2">{n.body}</p>}
+                <p className="text-[10px] text-gray-400 mt-0.5">{dateTimeLima(n.createdAt)}</p>
               </div>
               {!n.readAt && <span className="h-2 w-2 rounded-full bg-orange-500 mt-2" />}
             </Link>

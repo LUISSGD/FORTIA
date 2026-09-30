@@ -24,7 +24,7 @@ export default async function NutritionPage({ searchParams }: PageProps<"/app/nu
 
       <div className="flex gap-2">
         {days.map((d) => (
-          <Link key={d} href={`/app/nutrition?date=${d}`} className={cn("flex-1 text-center rounded-xl py-2 text-xs font-semibold", d === date ? "bg-orange-500 text-white" : "bg-zinc-900 text-zinc-400")}>
+          <Link key={d} href={`/app/nutrition?date=${d}`} className={cn("flex-1 text-center rounded-xl py-2 text-xs font-semibold", d === date ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-500")}>
             {d === today ? "Hoy" : d === addDaysYmd(today, -1) ? "Ayer" : formatYmdLong(d).split(" ")[0]}
           </Link>
         ))}
@@ -34,12 +34,12 @@ export default async function NutritionPage({ searchParams }: PageProps<"/app/nu
         <div className="flex items-center gap-4">
           <Ring value={consumed.kcal} max={targets.kcal} size={96} stroke={9}>
             <p className="text-lg font-black leading-none">{consumed.kcal}</p>
-            <p className="text-[10px] text-zinc-500">/ {targets.kcal} kcal</p>
+            <p className="text-[10px] text-gray-400">/ {targets.kcal} kcal</p>
           </Ring>
           <div className="flex-1 space-y-2.5">
             {([["Proteína", "protein", "bg-rose-500"], ["Carbohidratos", "carbs", "bg-amber-400"], ["Grasas", "fat", "bg-violet-500"]] as const).map(([label, k, color]) => (
               <div key={k}>
-                <div className="flex justify-between text-xs"><span className="text-zinc-400">{label}</span><span className="font-bold">{consumed[k]} / {targets[k]} g</span></div>
+                <div className="flex justify-between text-xs"><span className="text-gray-400">{label}</span><span className="font-bold text-gray-900">{consumed[k]} / {targets[k]} g</span></div>
                 <Bar value={consumed[k]} max={targets[k]} className="h-1.5 mt-1" color={color} />
               </div>
             ))}
@@ -47,7 +47,7 @@ export default async function NutritionPage({ searchParams }: PageProps<"/app/nu
         </div>
       </Card>
 
-      {plan?.description && <Card className="text-sm text-zinc-300 whitespace-pre-wrap">📋 {plan.description}</Card>}
+      {plan?.description && <Card className="text-sm text-gray-700 whitespace-pre-wrap">📋 {plan.description}</Card>}
 
       {plan ? (
         <MealsDay
@@ -67,7 +67,7 @@ export default async function NutritionPage({ searchParams }: PageProps<"/app/nu
           logs={logs.map((l) => ({ id: l.id, mealId: l.mealId, optionId: l.optionId, name: l.name, status: l.status, kcal: Math.round(l.kcal), protein: Math.round(l.protein) }))}
         />
       ) : (
-        <Card><p className="text-sm text-zinc-400">Tu coach aún no te asignó un plan. Mientras tanto puedes registrar lo que comes abajo.</p></Card>
+        <Card><p className="text-sm text-gray-400">Tu coach aún no te asignó un plan. Mientras tanto puedes registrar lo que comes abajo.</p></Card>
       )}
 
       {!plan && (
@@ -84,7 +84,7 @@ export default async function NutritionPage({ searchParams }: PageProps<"/app/nu
       {plan && (
         <Card href="/app/nutrition/shopping" className="flex items-center justify-between">
           <span className="font-semibold">🛒 Lista de compras semanal</span>
-          <span className="text-zinc-500">→</span>
+          <span className="text-gray-400">→</span>
         </Card>
       )}
     </div>

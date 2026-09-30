@@ -48,17 +48,17 @@ export default function BookingsClient({ slots, mine }: { slots: Slot[]; mine: M
       {mine.length > 0 && (
         <Card>
           <SectionTitle emoji="✅">Tus reservas</SectionTitle>
-          <ul className="divide-y divide-zinc-800">
+          <ul className="divide-y divide-gray-100">
             {mine.map((b) => (
               <li key={b.id} className="flex items-center justify-between py-2.5">
                 <div>
-                  <p className="text-sm font-semibold capitalize">{dayLabel(b.startsAt)} · {time(b.startsAt)}</p>
-                  <p className="text-xs text-zinc-500">
-                    {b.title} · {b.mode === "ONLINE" ? "Online" : "Presencial"}{b.status === "WAITLIST" && <span className="text-amber-400"> · Lista de espera</span>}
+                  <p className="text-sm font-semibold capitalize text-gray-900">{dayLabel(b.startsAt)} · {time(b.startsAt)}</p>
+                  <p className="text-xs text-gray-400">
+                    {b.title} · {b.mode === "ONLINE" ? "Online" : "Presencial"}{b.status === "WAITLIST" && <span className="text-amber-600"> · Lista de espera</span>}
                   </p>
-                  {b.location && b.mode === "ONLINE" && /^https?:/.test(b.location) && <a href={b.location} target="_blank" rel="noreferrer" className="text-xs text-orange-400">Unirse a la videollamada →</a>}
+                  {b.location && b.mode === "ONLINE" && /^https?:/.test(b.location) && <a href={b.location} target="_blank" rel="noreferrer" className="text-xs text-orange-500">Unirse a la videollamada →</a>}
                 </div>
-                <button onClick={() => cancel(b.id)} className="text-xs text-zinc-400 border border-zinc-700 rounded-lg px-2.5 py-1">Cancelar</button>
+                <button onClick={() => cancel(b.id)} className="text-xs text-gray-400 border border-gray-200 rounded-lg px-2.5 py-1">Cancelar</button>
               </li>
             ))}
           </ul>
@@ -66,7 +66,7 @@ export default function BookingsClient({ slots, mine }: { slots: Slot[]; mine: M
       )}
 
       {slots.length === 0 ? (
-        <Card><p className="text-sm text-zinc-400">No hay horarios disponibles por ahora. Escríbele a tu coach por el chat.</p></Card>
+        <Card><p className="text-sm text-gray-400">No hay horarios disponibles por ahora. Escríbele a tu coach por el chat.</p></Card>
       ) : (
         <>
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
@@ -74,7 +74,7 @@ export default function BookingsClient({ slots, mine }: { slots: Slot[]; mine: M
               const iso = slots.find((s) => ymd(s.startsAt) === d)!.startsAt
               const [wd, num] = new Intl.DateTimeFormat("es-PE", { timeZone: TZ, weekday: "short", day: "numeric" }).format(new Date(iso)).split(" ")
               return (
-                <button key={d} onClick={() => { setDay(d); setPicked(null) }} className={cn("shrink-0 w-14 rounded-2xl py-2 text-center", d === day ? "bg-orange-500" : "bg-zinc-900 border border-zinc-800")}>
+                <button key={d} onClick={() => { setDay(d); setPicked(null) }} className={cn("shrink-0 w-14 rounded-2xl py-2 text-center", d === day ? "bg-orange-500 text-white" : "bg-gray-100 border border-gray-200 text-gray-700")}>
                   <p className="text-[10px] uppercase">{wd.replace(",", "")}</p>
                   <p className="text-lg font-black">{num}</p>
                 </button>
@@ -91,7 +91,7 @@ export default function BookingsClient({ slots, mine }: { slots: Slot[]; mine: M
                   onClick={() => setPicked(s.id)}
                   className={cn(
                     "rounded-xl py-3 text-center border",
-                    s.mine ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" : picked === s.id ? "bg-white text-zinc-900 border-white" : "bg-zinc-900 border-zinc-800"
+                    s.mine ? "bg-emerald-50 border-emerald-200 text-emerald-600" : picked === s.id ? "bg-gray-900 text-white border-gray-900" : "bg-gray-50 border-gray-200 text-gray-900"
                   )}
                 >
                   <p className="font-black">{time(s.startsAt)}</p>
@@ -100,7 +100,7 @@ export default function BookingsClient({ slots, mine }: { slots: Slot[]; mine: M
               )
             })}
           </div>
-          <button onClick={book} disabled={!picked || busy} className="w-full h-12 rounded-xl bg-orange-500 font-bold disabled:opacity-40">RESERVAR</button>
+          <button onClick={book} disabled={!picked || busy} className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold disabled:opacity-40">RESERVAR</button>
         </>
       )}
     </div>

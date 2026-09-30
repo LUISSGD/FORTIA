@@ -16,11 +16,11 @@ export default async function DocumentsPage() {
   return (
     <div className="space-y-4">
       <PageTitle title="Documentos" subtitle="Guías y material de tu coach" />
-      {docs.length === 0 && <Card><p className="text-sm text-zinc-400">Aún no hay documentos.</p></Card>}
+      {docs.length === 0 && <Card><p className="text-sm text-gray-400">Aún no hay documentos.</p></Card>}
       {groups.map((g) => (
         <div key={g.label}>
-          <p className="text-xs font-bold tracking-widest uppercase text-zinc-400 mb-2">{g.label}</p>
-          <div className="rounded-2xl bg-zinc-900 border border-zinc-800 divide-y divide-zinc-800">
+          <p className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-2">{g.label}</p>
+          <div className="rounded-2xl bg-white border border-gray-100 divide-y divide-gray-100">
             {g.docs.map((d) => {
               const Icon = ICONS[d.type] ?? FileText
               return (
@@ -28,9 +28,9 @@ export default async function DocumentsPage() {
                   <Icon className="h-5 w-5 text-orange-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{d.title}</p>
-                    <p className="text-xs text-zinc-500 truncate">{d.description ?? formatYmd(toYmd(d.createdAt), true)}</p>
+                    <p className="text-xs text-gray-400 truncate">{d.description ?? formatYmd(toYmd(d.createdAt), true)}</p>
                   </div>
-                  <span className="text-zinc-600">→</span>
+                  <span className="text-gray-400">→</span>
                 </a>
               )
             })}

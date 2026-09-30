@@ -13,11 +13,11 @@ export default async function ClientChatPage() {
   ])
   return (
     <div className="-mx-4 -mt-4 -mb-28">
-      <div className="px-4 py-3 border-b border-zinc-900">
+      <div className="px-4 py-3 border-b border-gray-100">
         <p className="font-black">💬 Tu coach</p>
-        <p className="text-xs text-zinc-500">Dudas, molestias, fotos de tu comida, videos de técnica…</p>
+        <p className="text-xs text-gray-400">Dudas, molestias, fotos de tu comida, videos de técnica…</p>
       </div>
-      <ChatPanel mode="client" dark className="h-[calc(100dvh-10.5rem)]" initialMessages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))} />
+      <ChatPanel mode="client" className="h-[calc(100dvh-10.5rem)]" initialMessages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))} />
     </div>
   )
 }
