@@ -18,35 +18,7 @@ export default function NutritionNav({ desktop, mobile }: { desktop?: boolean; m
 
   if (desktop) {
     return (
-      <nav className="flex items-center gap-1 flex-1">
-        {items.map(({ href, label }) => {
-          const active = href === "/nutrition" ? path === "/nutrition" : path.startsWith(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                active ? "bg-orange-50 text-orange-600" : "text-gray-600 hover:bg-gray-100"
-              )}
-            >
-              {label}
-            </Link>
-          )
-        })}
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="ml-auto flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-100"
-        >
-          <LogOut className="h-4 w-4" /> Salir
-        </button>
-      </nav>
-    )
-  }
-
-  if (mobile) {
-    return (
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 flex h-16">
+      <nav className="flex items-center gap-0.5 flex-1">
         {items.map(({ href, label, icon: Icon }) => {
           const active = href === "/nutrition" ? path === "/nutrition" : path.startsWith(href)
           return (
@@ -54,11 +26,48 @@ export default function NutritionNav({ desktop, mobile }: { desktop?: boolean; m
               key={href}
               href={href}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px]",
-                active ? "text-orange-500" : "text-gray-500"
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                active
+                  ? "bg-orange-50 text-orange-600"
+                  : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          )
+        })}
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="ml-auto flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all"
+        >
+          <LogOut className="h-4 w-4" />
+          Salir
+        </button>
+      </nav>
+    )
+  }
+
+  if (mobile) {
+    return (
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-100 flex h-16 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
+        {items.map(({ href, label, icon: Icon }) => {
+          const active = href === "/nutrition" ? path === "/nutrition" : path.startsWith(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
+                active ? "text-orange-500" : "text-gray-400"
+              )}
+            >
+              <div className={cn(
+                "h-8 w-8 rounded-xl flex items-center justify-center transition-colors",
+                active ? "bg-orange-50" : ""
+              )}>
+                <Icon className="h-5 w-5" />
+              </div>
               {label}
             </Link>
           )
