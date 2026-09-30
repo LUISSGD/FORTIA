@@ -40,7 +40,7 @@ export default async function ShoppingPage() {
     <div className="space-y-4">
       <PageTitle title="Lista de compras" subtitle="Cantidades para 7 días según tus opciones favoritas" back="/app/nutrition" />
       {grouped.length === 0 ? (
-        <Card><p className="text-sm text-zinc-400">Tu plan aún no tiene alimentos.</p></Card>
+        <Card><p className="text-sm text-gray-400">Tu plan aún no tiene alimentos.</p></Card>
       ) : (
         <ShoppingList
           groups={grouped.map((g) => ({
