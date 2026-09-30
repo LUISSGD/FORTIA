@@ -199,7 +199,8 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
         setOpen(false)
         router.refresh()
       } else {
-        toast.error("Error al registrar el pago")
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? "Error al registrar el pago")
       }
     } finally {
       setLoading(false)
@@ -255,7 +256,9 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   <Label>Plan</Label>
                   <Select value={planId} onValueChange={(v) => v && handlePlanChange(v)} required>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar plan" />
+                      <SelectValue placeholder="Seleccionar plan">
+                        {(v: string | null) => plans.find((p) => p.id === v)?.name ?? "Seleccionar plan"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="w-[var(--radix-select-trigger-width)] max-h-72">
                       {plans.map((p) => (
@@ -287,7 +290,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   <div>
                     <Label>Entrenador</Label>
                     <Select value={entrenador} onValueChange={(v) => handleEntrenadorChange(v as Entrenador)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue>{(v: Entrenador) => ENTRENADOR_LABELS[v] ?? v}</SelectValue></SelectTrigger>
                       <SelectContent>
                         {(["HEAD_COACH", "TEAM_FORTIA"] as Entrenador[]).map((e) => (
                           <SelectItem key={e} value={e}>{ENTRENADOR_LABELS[e]}</SelectItem>
@@ -298,7 +301,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   <div>
                     <Label>Modalidad</Label>
                     <Select value={modalidad} onValueChange={(v) => handleModalidadChange(v as Modalidad)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue>{(v: Modalidad) => MODALIDAD_LABELS[v] ?? v}</SelectValue></SelectTrigger>
                       <SelectContent>
                         {availableModalidades.map((m) => (
                           <SelectItem key={m} value={m}>{MODALIDAD_LABELS[m]}</SelectItem>
@@ -309,7 +312,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   <div>
                     <Label>Tarifa</Label>
                     <Select value={tarifa} onValueChange={(v) => handleTarifaChange(v as Tarifa)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue>{(v: Tarifa) => TARIFA_LABELS[v] ?? v}</SelectValue></SelectTrigger>
                       <SelectContent>
                         {availableTarifas.map((t) => (
                           <SelectItem key={t} value={t}>{TARIFA_LABELS[t]}</SelectItem>
@@ -320,7 +323,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   <div>
                     <Label>Clases por pack</Label>
                     <Select value={String(clasesPerPack)} onValueChange={(v) => handleClasesChange(Number(v) as ClasesPerPack)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue>{(v: string) => CLASES_LABELS[Number(v) as ClasesPerPack] ?? v}</SelectValue></SelectTrigger>
                       <SelectContent>
                         {CLASES_OPTIONS.map((c) => (
                           <SelectItem key={c} value={String(c)}>{CLASES_LABELS[c]}</SelectItem>
@@ -415,7 +418,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
             <div>
               <Label>Método de pago</Label>
               <Select value={method} onValueChange={(v) => v && setMethod(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue>{(v: string) => PAYMENT_METHODS[v] ?? v}</SelectValue></SelectTrigger>
                 <SelectContent>
                   {Object.entries(PAYMENT_METHODS).map(([key, label]) => (
                     <SelectItem key={key} value={key}>{label}</SelectItem>

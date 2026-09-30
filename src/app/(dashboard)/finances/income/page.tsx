@@ -72,7 +72,7 @@ export default async function IncomePage() {
                     {i.currency === "USD" && <span className="ml-1 text-xs text-blue-500 font-normal">USD</span>}
                   </TableCell>
                   <TableCell className="text-right">
-                    <DeleteButton url={`/api/finances/income/${i.id}`} confirm="¿Eliminar este ingreso?" />
+                    <DeleteButton url={`/api/finances/income/${i.id}`} confirm="¿Eliminar este ingreso? Si viene de un pago de cliente, también se borra ese pago y su membresía vuelve a la fecha anterior." />
                   </TableCell>
                 </TableRow>
               ))}
