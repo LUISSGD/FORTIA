@@ -40,33 +40,33 @@ export default async function ClientHome() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-black tracking-tight">Hola, {client?.firstName}</h1>
-        <p className="text-sm text-zinc-400 mt-1">Tu objetivo no es simplemente entrenar. Es construir un físico fuerte, funcional y sostenible.</p>
+        <h1 className="text-3xl font-black tracking-tight text-gray-900">Hola, {client?.firstName}</h1>
+        <p className="text-sm text-gray-500 mt-1">Tu objetivo no es simplemente entrenar. Es construir un físico fuerte, funcional y sostenible.</p>
       </div>
 
       {profile?.goal && (
-        <Card className="bg-gradient-to-br from-orange-500/20 to-zinc-900 border-orange-500/30">
-          <p className="text-[11px] uppercase tracking-widest text-orange-400 font-bold">Tu objetivo</p>
-          <p className="text-lg font-bold mt-0.5">{profile.goal}</p>
+        <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-200">
+          <p className="text-[11px] uppercase tracking-widest text-orange-500 font-bold">Tu objetivo</p>
+          <p className="text-lg font-bold mt-0.5 text-gray-900">{profile.goal}</p>
           {profile.targetWeight && weight.current && (
-            <p className="text-xs text-zinc-400 mt-1">Meta: {profile.targetWeight} kg · te faltan {fmtKg(Math.abs(weight.current - profile.targetWeight))} kg</p>
+            <p className="text-xs text-gray-500 mt-1">Meta: {profile.targetWeight} kg · te faltan {fmtKg(Math.abs(weight.current - profile.targetWeight))} kg</p>
           )}
-          {streak > 0 && <p className="text-xs text-orange-300 mt-2">Racha activa: {streak} día{streak === 1 ? "" : "s"}</p>}
+          {streak > 0 && <p className="text-xs text-orange-500 mt-2">Racha activa: {streak} día{streak === 1 ? "" : "s"}</p>}
         </Card>
       )}
 
       <PushToggle dark variant="banner" />
 
       {showCheckIn && (
-        <Card href="/app/checkin" className="border-amber-500/40 bg-amber-500/10">
-          <p className="font-bold">Check-in semanal pendiente</p>
-          <p className="text-xs text-zinc-400">2 minutos para contarle a tu coach cómo te fue esta semana →</p>
+        <Card href="/app/checkin" className="border-amber-200 bg-amber-50">
+          <p className="font-bold text-amber-800">Check-in semanal pendiente</p>
+          <p className="text-xs text-amber-700">2 minutos para contarle a tu coach cómo te fue esta semana →</p>
         </Card>
       )}
 
       {pt && (
         <Card>
-          <SectionTitle action={<span className="text-[11px] text-zinc-500">Personalizado</span>}>Mis clases</SectionTitle>
+          <SectionTitle action={<span className="text-[11px] text-gray-400">Personalizado</span>}>Mis clases</SectionTitle>
           <PtCheckIn initial={pt} compact />
         </Card>
       )}
@@ -74,41 +74,41 @@ export default async function ClientHome() {
       {membership && membership.state !== "none" && <MembershipCard m={membership} href="/app/personal" />}
 
       <Card>
-        <SectionTitle action={<span className="text-[11px] text-zinc-500">{weekWorkouts}/{profile?.trainingDays ?? 4} esta semana</span>}>Entrenamiento de hoy</SectionTitle>
+        <SectionTitle action={<span className="text-[11px] text-gray-400">{weekWorkouts}/{profile?.trainingDays ?? 4} esta semana</span>}>Entrenamiento de hoy</SectionTitle>
         {!program ? (
-          <p className="text-sm text-zinc-400">Tu coach está preparando tu programa. ¡Pronto lo verás aquí!</p>
+          <p className="text-sm text-gray-500">Tu coach está preparando tu programa. ¡Pronto lo verás aquí!</p>
         ) : doneToday ? (
           <div className="space-y-3">
-            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3">
-              <p className="font-bold text-emerald-400">✅ {doneToday.dayName} completado</p>
-              <p className="text-xs text-zinc-400">{doneToday.durationMin} min · {doneToday.volumeKg.toLocaleString("es-PE")} kg de volumen</p>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+              <p className="font-bold text-emerald-700">✅ {doneToday.dayName} completado</p>
+              <p className="text-xs text-gray-500">{doneToday.durationMin} min · {doneToday.volumeKg.toLocaleString("es-PE")} kg de volumen</p>
             </div>
-            {nextDay && <Link href={`/app/workout/${nextDay.id}`} className="block text-center text-xs text-zinc-500">Siguiente: {nextDay.name} →</Link>}
+            {nextDay && <Link href={`/app/workout/${nextDay.id}`} className="block text-center text-xs text-gray-400">Siguiente: {nextDay.name} →</Link>}
           </div>
         ) : nextDay ? (
           <div className="space-y-3">
             <div>
-              <p className="text-xl font-black">{nextDay.name}</p>
-              <p className="text-xs text-zinc-400">Semana {week} / Día {dayIndex} · {nextDay.exercises.length} ejercicios</p>
+              <p className="text-xl font-black text-gray-900">{nextDay.name}</p>
+              <p className="text-xs text-gray-500">Semana {week} / Día {dayIndex} · {nextDay.exercises.length} ejercicios</p>
             </div>
             <CTA href={`/app/workout/${nextDay.id}`}>EMPEZAR</CTA>
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">Tu programa aún no tiene días.</p>
+          <p className="text-sm text-gray-500">Tu programa aún no tiene días.</p>
         )}
       </Card>
 
       <Card>
-        <SectionTitle action={<Link href="/app/nutrition" className="text-xs text-zinc-400 font-medium">VER PLAN →</Link>}>Nutrición</SectionTitle>
+        <SectionTitle action={<Link href="/app/nutrition" className="text-xs text-gray-400 font-medium">VER PLAN →</Link>}>Nutrición</SectionTitle>
         <p className="text-3xl font-black">
-          {nutrition.consumed.kcal.toLocaleString("es-PE")} <span className="text-base font-medium text-zinc-500">/ {nutrition.targets.kcal.toLocaleString("es-PE")} kcal</span>
+          {nutrition.consumed.kcal.toLocaleString("es-PE")} <span className="text-base font-medium text-gray-400">/ {nutrition.targets.kcal.toLocaleString("es-PE")} kcal</span>
         </p>
         <Bar value={nutrition.consumed.kcal} max={nutrition.targets.kcal} className="mt-2" />
         <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
           {([["Proteína", "protein", "bg-rose-500"], ["Carbos", "carbs", "bg-amber-400"], ["Grasas", "fat", "bg-violet-500"]] as const).map(([label, k, color]) => (
             <div key={k}>
-              <p className="text-zinc-400">{label}</p>
-              <p className="font-bold">{nutrition.consumed[k]}<span className="text-zinc-500 font-normal">/{nutrition.targets[k]} g</span></p>
+              <p className="text-gray-400">{label}</p>
+              <p className="font-bold text-gray-900">{nutrition.consumed[k]}<span className="text-gray-400 font-normal">/{nutrition.targets[k]} g</span></p>
               <Bar value={nutrition.consumed[k]} max={nutrition.targets[k]} className="h-1 mt-1" color={color} />
             </div>
           ))}
@@ -121,16 +121,16 @@ export default async function ClientHome() {
       </Card>
 
       <Card>
-        <SectionTitle action={<Link href="/app/progress" className="text-xs text-zinc-400 font-medium">VER EVOLUCIÓN →</Link>}>Tu progreso</SectionTitle>
+        <SectionTitle action={<Link href="/app/progress" className="text-xs text-gray-400 font-medium">VER EVOLUCIÓN →</Link>}>Tu progreso</SectionTitle>
         {weight.current ? (
           <div className="flex items-end gap-3">
-            <p className="text-3xl font-black">{fmtKg(weight.current)} <span className="text-base font-medium text-zinc-500">kg</span></p>
+            <p className="text-3xl font-black text-gray-900">{fmtKg(weight.current)} <span className="text-base font-medium text-gray-400">kg</span></p>
             {diff !== null && diff !== 0 && (
-              <p className={`text-sm font-semibold pb-1 ${diff < 0 ? "text-emerald-400" : "text-orange-400"}`}>{diff < 0 ? "📉" : "📈"} {diff > 0 ? "+" : ""}{fmtKg(diff)} kg desde el inicio</p>
+              <p className={`text-sm font-semibold pb-1 ${diff < 0 ? "text-emerald-600" : "text-orange-500"}`}>{diff < 0 ? "📉" : "📈"} {diff > 0 ? "+" : ""}{fmtKg(diff)} kg desde el inicio</p>
             )}
           </div>
         ) : (
-          <Link href="/app/progress" className="text-sm text-zinc-400">Registra tu peso para empezar a ver tu evolución →</Link>
+          <Link href="/app/progress" className="text-sm text-gray-400">Registra tu peso para empezar a ver tu evolución →</Link>
         )}
       </Card>
 
@@ -138,7 +138,7 @@ export default async function ClientHome() {
         <Card href="/app/bookings">
           <SectionTitle>Próxima sesión</SectionTitle>
           <p className="font-bold">{nextBooking.slot.title}</p>
-          <p className="text-sm text-zinc-400">{dateTimeLima(nextBooking.slot.startsAt)} · {nextBooking.slot.mode === "ONLINE" ? "Online" : "Presencial"}</p>
+          <p className="text-sm text-gray-500">{dateTimeLima(nextBooking.slot.startsAt)} · {nextBooking.slot.mode === "ONLINE" ? "Online" : "Presencial"}</p>
         </Card>
       )}
 
@@ -147,7 +147,7 @@ export default async function ClientHome() {
           <SectionTitle>Reto del mes</SectionTitle>
           <p className="font-bold">{challenge.title}</p>
           <Bar value={challengeValue} max={challenge.target} className="mt-2 h-3" />
-          <p className="text-xs text-zinc-400 mt-1">{challengeValue} / {challenge.target} · {Math.min(100, Math.round((challengeValue / challenge.target) * 100))}%</p>
+          <p className="text-xs text-gray-500 mt-1">{challengeValue} / {challenge.target} · {Math.min(100, Math.round((challengeValue / challenge.target) * 100))}%</p>
         </Card>
       )}
 

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#09090b",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -32,15 +32,15 @@ export default async function ClientAppLayout({ children }: { children: React.Re
   ])
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur border-b border-zinc-900" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-100" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="max-w-md mx-auto flex items-center justify-between px-4 h-14">
           <Link href="/app" className="flex items-center gap-2">
             <Image src="/logo.png" alt="FORTIA" width={28} height={28} className="rounded-md" />
-            <span className="font-black tracking-widest text-sm">FORTIA <span className="text-orange-500">COACHING</span></span>
+            <span className="font-black tracking-widest text-sm text-gray-900">FORTIA <span className="text-orange-500">COACHING</span></span>
           </Link>
           <Link href="/app/notifications" className="relative p-2 -mr-2" aria-label="Notificaciones">
-            <Bell className="h-5 w-5 text-zinc-300" />
+            <Bell className="h-5 w-5 text-gray-500" />
             {unreadNotifs > 0 && (
               <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-orange-500 text-[10px] font-bold flex items-center justify-center">{unreadNotifs > 9 ? "9+" : unreadNotifs}</span>
             )}
