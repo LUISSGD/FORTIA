@@ -8,7 +8,7 @@ import { ArrowDown, ArrowUp, Download, Filter, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ClientOverview } from "@/lib/coaching/stats"
 import { formatYmd } from "@/lib/coaching/dates"
-import { Btn, Input, Panel, StatusDot, api } from "@/components/coaching/kit"
+import { Btn, Field, Input, Modal, Panel, StatusDot, api } from "@/components/coaching/kit"
 
 // Tabla de clientes con filtros y orden por columna, al estilo de Excel.
 
@@ -111,7 +111,10 @@ const COLS: Col[] = [
   { key: "weight", label: "Peso", sort: (c) => c.lastWeight, filter: (c) => (c.lastWeight ? "Con peso" : "Sin peso"), cell: (c) => <>{c.lastWeight ? `${c.lastWeight} kg` : "—"}</> },
   {
     key: "app", label: "App", sort: (c) => (c.hasApp ? 0 : 1), filter: (c) => (c.hasApp ? "Con acceso" : "Sin acceso"), order: ["Con acceso", "Sin acceso"],
-    cell: (c) => (c.hasApp ? <span className="text-emerald-600 text-xs">📱 Sí</span> : <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 rounded">Sin app</span>),
+    cell: (c) => (c.hasApp
+      ? <span className="text-emerald-600 text-xs font-medium">✓ Con acceso</span>
+      : <QuickAccessTrigger id={c.id} name={c.name} email={c.email} />
+    ),
   },
 ]
 
@@ -334,6 +337,66 @@ export default function ClientsTable({ rows }: { rows: Row[] }) {
           Mostrando {visible.length} de {base.length}
         </div>
       </Panel>
+    </>
+  )
+}
+
+function QuickAccessTrigger({ id, name, email }: { id: string; name: string; email: string | null }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({ email: email ?? "", password: "" })
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    if (!form.email) return toast.error("El email es obligatorio")
+    if (form.password.length < 6) return toast.error("La contraseña debe tener al menos 6 caracteres")
+    setSaving(true)
+    try {
+      await api(`/api/coaching/clients/${id}/access`, "POST", form)
+      toast.success(`Acceso creado para ${name}`)
+      setOpen(false)
+      router.refresh()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(true) }}
+        className="text-[10px] bg-amber-50 text-amber-700 hover:bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200 transition-colors"
+      >
+        + Dar acceso
+      </button>
+      <Modal open={open} onClose={() => setOpen(false)} title={`Dar acceso a ${name}`}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500">Crea el usuario con el que <b>{name}</b> iniciará sesión en la app.</p>
+          <Field label="Email">
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="email@ejemplo.com"
+              autoFocus
+            />
+          </Field>
+          <Field label="Contraseña (mín. 6 caracteres)">
+            <Input
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              placeholder="········"
+              onKeyDown={(e) => e.key === "Enter" && save()}
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-1">
+            <Btn variant="outline" onClick={() => setOpen(false)}>Cancelar</Btn>
+            <Btn onClick={save} disabled={saving}>{saving ? "Creando…" : "Crear acceso"}</Btn>
+          </div>
+        </div>
+      </Modal>
     </>
   )
 }

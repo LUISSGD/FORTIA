@@ -10,6 +10,7 @@ export type ClientOverview = {
   name: string
   firstName: string
   phone: string | null
+  email: string | null
   status: string
   goal: string | null
   startDate: string
@@ -44,7 +45,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
 
   const profiles = await prisma.coachingProfile.findMany({
     where: { status: { not: "ENDED" } },
-    include: { client: { select: { id: true, firstName: true, lastName: true, phone: true, membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } } } } },
+    include: { client: { select: { id: true, firstName: true, lastName: true, phone: true, email: true, membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } } } } },
     orderBy: { client: { firstName: "asc" } },
   })
   const ids = profiles.map((p) => p.clientId)
@@ -136,6 +137,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       name: `${p.client.firstName} ${p.client.lastName}`,
       firstName: p.client.firstName,
       phone: p.client.phone,
+      email: p.client.email,
       status: p.status,
       goal: p.goal,
       startDate,
