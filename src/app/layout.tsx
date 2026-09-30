@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
-import { Geist } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
 import { SessionProvider } from "next-auth/react"
 import { Toaster } from "@/components/ui/sonner"
 
-const geistSans = Geist({
+const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 })
@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="es" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SessionProvider>
           {children}

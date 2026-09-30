@@ -48,7 +48,7 @@ export function ProgressBar({ value, max, className, barClassName }: { value: nu
 
 export function Btn({ variant = "primary", size = "md", className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "outline" | "ghost" | "danger" | "dark"; size?: "sm" | "md" }) {
   const variants = {
-    primary: "bg-orange-500 text-white hover:bg-orange-600",
+    primary: "bg-gray-900 text-white hover:bg-gray-800",
     outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
     ghost: "text-gray-600 hover:bg-gray-100",
     danger: "bg-red-50 text-red-600 hover:bg-red-100",

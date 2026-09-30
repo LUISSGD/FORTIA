@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { AlertTriangle, Bell, Calendar, ClipboardCheck, Ticket } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { getClientsOverview } from "@/lib/coaching/stats"
 import { dateTimeLima, todayYmd, weekStartYmd } from "@/lib/coaching/dates"
@@ -63,7 +64,7 @@ async function CoachingDashboard() {
     <>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Hola, coach 👋</h1>
+          <h1 className="text-xl font-bold text-gray-900">Hola, coach</h1>
           <p className="text-sm text-gray-500">
             {overview.length} clientes en coaching · hoy {todayYmd().split("-").reverse().join("/")}
           </p>
@@ -74,12 +75,12 @@ async function CoachingDashboard() {
       {overview.length === 0 ? (
         <Panel>
           <div className="text-center py-8 space-y-2">
-            <p className="text-4xl">🏋️</p>
+            <p className="text-4xl font-bold text-gray-200">F</p>
             <p className="font-semibold">Empieza tu coaching</p>
             <p className="text-sm text-gray-500 max-w-md mx-auto">
               1) Carga la biblioteca base de ejercicios y alimentos. 2) Da de alta a tus clientes y crea su acceso a la app. 3) Asígnales una rutina y un plan nutricional.
             </p>
-            <Link href="/coaching/clients" className="inline-block mt-2 text-sm font-medium text-orange-600 hover:underline">
+            <Link href="/coaching/clients" className="inline-block mt-2 text-sm font-medium text-gray-900 underline hover:no-underline">
               Ir a clientes →
             </Link>
           </div>
@@ -97,26 +98,26 @@ async function CoachingDashboard() {
 
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">
-              <p className="text-2xl font-bold text-emerald-700">🟢 {green}</p>
-              <p className="text-xs text-emerald-700">Al día</p>
+              <p className="text-2xl font-bold text-emerald-700">{green}</p>
+              <p className="text-xs text-emerald-600 mt-0.5">Al día</p>
             </div>
             <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 text-center">
-              <p className="text-2xl font-bold text-amber-700">🟡 {yellow}</p>
-              <p className="text-xs text-amber-700">Necesitan atención</p>
+              <p className="text-2xl font-bold text-amber-700">{yellow}</p>
+              <p className="text-xs text-amber-600 mt-0.5">Necesitan atención</p>
             </div>
             <div className="rounded-xl bg-red-50 border border-red-100 p-3 text-center">
-              <p className="text-2xl font-bold text-red-700">🔴 {red}</p>
-              <p className="text-xs text-red-700">En riesgo</p>
+              <p className="text-2xl font-bold text-red-700">{red}</p>
+              <p className="text-xs text-red-600 mt-0.5">En riesgo</p>
             </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-4">
-            <Panel title="⚠️ Clientes que requieren atención" className="lg:col-span-2">
+            <Panel title={<span className="flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" />Clientes que requieren atención</span>} className="lg:col-span-2">
               <AttentionList clients={attention} />
             </Panel>
 
             <div className="space-y-4">
-              <Panel title="🎟️ Renovaciones" action={<Link href="/coaching/clients" className="text-xs text-orange-600">Clientes →</Link>}>
+              <Panel title={<span className="flex items-center gap-1.5"><Ticket className="h-3.5 w-3.5 text-gray-400" />Renovaciones</span>} action={<Link href="/coaching/clients" className="text-xs text-gray-500 hover:text-gray-900">Clientes →</Link>}>
                 {renewals.length === 0 && ptEnding.length === 0 ? (
                   <p className="text-sm text-gray-500">Nada por renovar esta semana ✅</p>
                 ) : (
@@ -137,7 +138,7 @@ async function CoachingDashboard() {
                         <li key={`pt-${p.clientId}`}>
                           <Link href={`/coaching/clients/${p.clientId}?tab=membership`} className="flex items-center justify-between py-2 hover:bg-gray-50 -mx-2 px-2 rounded">
                             <span className="text-sm font-medium">{p.client.firstName} {p.client.lastName}</span>
-                            <span className="text-xs text-sky-700">🏋️ {left <= 0 ? "Paquete terminado" : "Le queda 1 clase"}</span>
+                            <span className="text-xs text-sky-700">{left <= 0 ? "Paquete terminado" : "Le queda 1 clase"}</span>
                           </Link>
                         </li>
                       )
@@ -146,7 +147,7 @@ async function CoachingDashboard() {
                 )}
               </Panel>
 
-              <Panel title="📝 Check-ins por revisar">
+              <Panel title={<span className="flex items-center gap-1.5"><ClipboardCheck className="h-3.5 w-3.5 text-gray-400" />Check-ins por revisar</span>}>
                 {pendingCheckIns.length === 0 ? (
                   <p className="text-sm text-gray-500">Todo revisado ✅</p>
                 ) : (
@@ -156,7 +157,7 @@ async function CoachingDashboard() {
                         <Link href={`/coaching/clients/${c.client.id}?tab=checkins`} className="flex items-center justify-between py-2 hover:bg-gray-50 -mx-2 px-2 rounded">
                           <span className="text-sm font-medium">{c.client.firstName} {c.client.lastName}</span>
                           <span className="text-xs text-gray-500">
-                            ⚡{c.energy}/5 · 🍽️{c.nutritionAdherence}%{c.discomfort ? " · ⚠️" : ""}
+                            E:{c.energy}/5 · N:{c.nutritionAdherence}%{c.discomfort ? " · !" : ""}
                           </span>
                         </Link>
                       </li>
@@ -165,7 +166,7 @@ async function CoachingDashboard() {
                 )}
               </Panel>
 
-              <Panel title="📅 Próximas sesiones" action={<Link href="/coaching/agenda" className="text-xs text-orange-600">Agenda →</Link>}>
+              <Panel title={<span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-gray-400" />Próximas sesiones</span>} action={<Link href="/coaching/agenda" className="text-xs text-gray-500 hover:text-gray-900">Agenda →</Link>}>
                 {upcoming.length === 0 ? (
                   <p className="text-sm text-gray-500">Sin sesiones en las próximas 48 h.</p>
                 ) : (
@@ -182,7 +183,7 @@ async function CoachingDashboard() {
             </div>
           </div>
 
-          <Panel title="🔔 Actividad reciente">
+          <Panel title={<span className="flex items-center gap-1.5"><Bell className="h-3.5 w-3.5 text-gray-400" />Actividad reciente</span>}>
             {notifications.length === 0 ? (
               <p className="text-sm text-gray-500">Aquí verás cuando tus clientes entrenen, envíen check-ins, reserven o te escriban.</p>
             ) : (

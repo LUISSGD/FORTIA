@@ -40,7 +40,7 @@ export default async function ClientHome() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-black tracking-tight">Hola, {client?.firstName} 👋</h1>
+        <h1 className="text-3xl font-black tracking-tight">Hola, {client?.firstName}</h1>
         <p className="text-sm text-zinc-400 mt-1">Tu objetivo no es simplemente entrenar. Es construir un físico fuerte, funcional y sostenible.</p>
       </div>
 
@@ -51,7 +51,7 @@ export default async function ClientHome() {
           {profile.targetWeight && weight.current && (
             <p className="text-xs text-zinc-400 mt-1">Meta: {profile.targetWeight} kg · te faltan {fmtKg(Math.abs(weight.current - profile.targetWeight))} kg</p>
           )}
-          {streak > 0 && <p className="text-xs text-orange-300 mt-2">⚡ Racha activa: {streak} día{streak === 1 ? "" : "s"}</p>}
+          {streak > 0 && <p className="text-xs text-orange-300 mt-2">Racha activa: {streak} día{streak === 1 ? "" : "s"}</p>}
         </Card>
       )}
 
@@ -59,14 +59,14 @@ export default async function ClientHome() {
 
       {showCheckIn && (
         <Card href="/app/checkin" className="border-amber-500/40 bg-amber-500/10">
-          <p className="font-bold">📝 Tu check-in semanal está pendiente</p>
+          <p className="font-bold">Check-in semanal pendiente</p>
           <p className="text-xs text-zinc-400">2 minutos para contarle a tu coach cómo te fue esta semana →</p>
         </Card>
       )}
 
       {pt && (
         <Card>
-          <SectionTitle emoji="🏋️" action={<span className="text-[11px] text-zinc-500">Personalizado</span>}>Mis clases</SectionTitle>
+          <SectionTitle action={<span className="text-[11px] text-zinc-500">Personalizado</span>}>Mis clases</SectionTitle>
           <PtCheckIn initial={pt} compact />
         </Card>
       )}
@@ -74,7 +74,7 @@ export default async function ClientHome() {
       {membership && membership.state !== "none" && <MembershipCard m={membership} href="/app/personal" />}
 
       <Card>
-        <SectionTitle emoji="🔥" action={<span className="text-[11px] text-zinc-500">{weekWorkouts}/{profile?.trainingDays ?? 4} esta semana</span>}>Entrenamiento de hoy</SectionTitle>
+        <SectionTitle action={<span className="text-[11px] text-zinc-500">{weekWorkouts}/{profile?.trainingDays ?? 4} esta semana</span>}>Entrenamiento de hoy</SectionTitle>
         {!program ? (
           <p className="text-sm text-zinc-400">Tu coach está preparando tu programa. ¡Pronto lo verás aquí!</p>
         ) : doneToday ? (
@@ -99,7 +99,7 @@ export default async function ClientHome() {
       </Card>
 
       <Card>
-        <SectionTitle emoji="🥗" action={<Link href="/app/nutrition" className="text-xs text-orange-400 font-semibold">VER PLAN</Link>}>Nutrición</SectionTitle>
+        <SectionTitle action={<Link href="/app/nutrition" className="text-xs text-zinc-400 font-medium">VER PLAN →</Link>}>Nutrición</SectionTitle>
         <p className="text-3xl font-black">
           {nutrition.consumed.kcal.toLocaleString("es-PE")} <span className="text-base font-medium text-zinc-500">/ {nutrition.targets.kcal.toLocaleString("es-PE")} kcal</span>
         </p>
@@ -116,12 +116,12 @@ export default async function ClientHome() {
       </Card>
 
       <Card>
-        <SectionTitle emoji="💧">Agua</SectionTitle>
+        <SectionTitle>Agua</SectionTitle>
         <WaterWidget initialMl={nutrition.waterMl} targetMl={nutrition.waterTargetMl} />
       </Card>
 
       <Card>
-        <SectionTitle emoji="📈" action={<Link href="/app/progress" className="text-xs text-orange-400 font-semibold">VER EVOLUCIÓN</Link>}>Tu progreso</SectionTitle>
+        <SectionTitle action={<Link href="/app/progress" className="text-xs text-zinc-400 font-medium">VER EVOLUCIÓN →</Link>}>Tu progreso</SectionTitle>
         {weight.current ? (
           <div className="flex items-end gap-3">
             <p className="text-3xl font-black">{fmtKg(weight.current)} <span className="text-base font-medium text-zinc-500">kg</span></p>
@@ -136,7 +136,7 @@ export default async function ClientHome() {
 
       {nextBooking && (
         <Card href="/app/bookings">
-          <SectionTitle emoji="📅">Próxima sesión</SectionTitle>
+          <SectionTitle>Próxima sesión</SectionTitle>
           <p className="font-bold">{nextBooking.slot.title}</p>
           <p className="text-sm text-zinc-400">{dateTimeLima(nextBooking.slot.startsAt)} · {nextBooking.slot.mode === "ONLINE" ? "Online" : "Presencial"}</p>
         </Card>
@@ -144,7 +144,7 @@ export default async function ClientHome() {
 
       {challenge && (
         <Card href="/app/challenge">
-          <SectionTitle emoji="🏆">Reto del mes</SectionTitle>
+          <SectionTitle>Reto del mes</SectionTitle>
           <p className="font-bold">{challenge.title}</p>
           <Bar value={challengeValue} max={challenge.target} className="mt-2 h-3" />
           <p className="text-xs text-zinc-400 mt-1">{challengeValue} / {challenge.target} · {Math.min(100, Math.round((challengeValue / challenge.target) * 100))}%</p>
@@ -152,8 +152,8 @@ export default async function ClientHome() {
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <Card href="/app/bookings" className="text-center py-5"><p className="text-2xl">📅</p><p className="text-sm font-semibold mt-1">Reservar sesión</p></Card>
-        <Card href="/app/checkin" className="text-center py-5"><p className="text-2xl">📝</p><p className="text-sm font-semibold mt-1">Check-in</p></Card>
+        <Card href="/app/bookings" className="text-center py-5"><p className="text-sm font-semibold">Reservar sesión</p></Card>
+        <Card href="/app/checkin" className="text-center py-5"><p className="text-sm font-semibold">Check-in semanal</p></Card>
       </div>
     </div>
   )
