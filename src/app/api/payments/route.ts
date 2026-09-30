@@ -60,6 +60,21 @@ export async function POST(request: Request) {
         receiptUrl: receiptUrl ?? null,
       },
     })
+    // Crear también el paquete de clases, vinculado a este pago.
+    if (body.createPlan) {
+      const total = numPacks * clasesPerPack
+      const plan = await prisma.clientTrainingPlan.create({
+        data: {
+          clientId, modalidad, tipoEntrenador: entrenador, tarifa, numPacks, clasesPerPack,
+          pricePaid: Number(amount), currency, currentPackStart: incomeDate, incomeId: income.id,
+        },
+      })
+      await prisma.trainingSession.createMany({
+        data: Array.from({ length: total }, (_, i) => ({
+          planId: plan.id, sessionNumber: i + 1, packNumber: Math.floor(i / clasesPerPack) + 1,
+        })),
+      })
+    }
     return NextResponse.json({ payment, income }, { status: 201 })
   }
 

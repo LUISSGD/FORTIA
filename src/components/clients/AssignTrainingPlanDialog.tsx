@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Plus, X } from "lucide-react"
+import { PAYMENT_METHODS } from "@/lib/utils"
 import {
   getTrainingPrice,
   getAvailableModalidades,
@@ -45,6 +46,8 @@ export default function AssignTrainingPlanDialog({ clientId, onAssigned }: Props
   const [numPacks, setNumPacks] = useState<NumPacks | 0>(0)
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0])
   const [notes, setNotes] = useState("")
+  const [registerPayment, setRegisterPayment] = useState(true)
+  const [paymentMethod, setPaymentMethod] = useState("CASH")
 
   // Schedule state
   const [selectedDays, setSelectedDays] = useState<number[]>([])
@@ -104,7 +107,7 @@ export default function AssignTrainingPlanDialog({ clientId, onAssigned }: Props
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         tipoEntrenador: entrenador, modalidad, tarifa, numPacks, clasesPerPack,
-        startDate, notes,
+        startDate, notes, registerPayment, paymentMethod,
         scheduleDays: scheduleDays.length > 0 ? scheduleDays : undefined,
       }),
     })
@@ -122,7 +125,7 @@ export default function AssignTrainingPlanDialog({ clientId, onAssigned }: Props
   function handleOpen() {
     setEntrenador(""); setModalidad(""); setTarifa(""); setClasesPerPack(0); setNumPacks(0)
     setStartDate(new Date().toISOString().split("T")[0])
-    setNotes(""); setSelectedDays([]); setScheduleDays([])
+    setNotes(""); setSelectedDays([]); setScheduleDays([]); setRegisterPayment(true); setPaymentMethod("CASH")
     setSchedStartTime("07:00"); setSchedEndTime("08:00")
     setOpen(true)
   }
@@ -220,6 +223,21 @@ export default function AssignTrainingPlanDialog({ clientId, onAssigned }: Props
                 <p className="text-xs text-gray-400">{numPacks} pack{Number(numPacks) > 1 ? "s" : ""} × {clasesPerPack} clases = {Number(numPacks) * Number(clasesPerPack)} clases totales</p>
               </div>
             )}
+
+            <div className="rounded-lg border p-3 space-y-2">
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="mt-0.5" checked={registerPayment} onChange={(e) => setRegisterPayment(e.target.checked)} />
+                <span>
+                  Registrar el pago en Finanzas
+                  <span className="block text-xs text-gray-500">Se agrega a los ingresos y al historial de pagos del cliente. Desmárcalo si ya lo registraste.</span>
+                </span>
+              </label>
+              {registerPayment && (
+                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full h-9 rounded-md border px-2 text-sm bg-white">
+                  {Object.entries(PAYMENT_METHODS).filter(([k]) => k !== "EXTENSION").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>

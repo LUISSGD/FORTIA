@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { deactivateClient } from "@/lib/coaching/lifecycle"
 export async function GET(_req: Request, ctx: RouteContext<"/api/clients/[id]">) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
@@ -61,6 +62,7 @@ export async function DELETE(_req: Request, ctx: RouteContext<"/api/clients/[id]
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   const { id } = await ctx.params
-  await prisma.client.update({ where: { id }, data: { isActive: false } })
+  // Baja en FORTIA → stand-by (ex cliente) en coaching.
+  await deactivateClient(id)
   return NextResponse.json({ ok: true })
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -50,6 +50,20 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [paymentType, setPaymentType] = useState<PaymentType>("membership")
+  // Al cobrar entrenamiento personal se crea también el paquete de clases, salvo que ya tenga uno activo.
+  const [createPlan, setCreatePlan] = useState(true)
+  const [hasActivePlan, setHasActivePlan] = useState(false)
+  useEffect(() => {
+    if (!open || paymentType !== "training") return
+    fetch(`/api/clients/${clientId}/training-plans`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((plans: { status: string; sessionsCompleted: number; numPacks: number; clasesPerPack: number }[]) => {
+        const active = plans.some((p) => p.status === "ACTIVE" && p.sessionsCompleted < p.numPacks * p.clasesPerPack)
+        setHasActivePlan(active)
+        setCreatePlan(!active)
+      })
+      .catch(() => {})
+  }, [open, paymentType, clientId])
 
   // Membership fields
   const [planId, setPlanId] = useState(currentPlanId ?? "")
@@ -184,6 +198,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                 method,
                 receiptUrl,
                 paymentType: "training",
+                createPlan,
                 entrenador,
                 modalidad,
                 tarifa,
@@ -469,6 +484,18 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                 />
               </div>
             </div>
+
+            {paymentType === "training" && (
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="mt-0.5" checked={createPlan} onChange={(e) => setCreatePlan(e.target.checked)} />
+                <span>
+                  Crear también el paquete de clases
+                  <span className="block text-xs text-gray-500">
+                    {hasActivePlan ? "Ya tiene un paquete activo con clases pendientes: márcalo solo si es un paquete nuevo." : "Aparecerá en Entrenamiento Personal y el cliente podrá marcar sus clases desde la app."}
+                  </span>
+                </span>
+              </label>
+            )}
 
             {paymentType === "membership" && selectedPlan && (
               <p className="text-xs text-gray-500">

@@ -340,7 +340,7 @@ async function TrainingTab({ clientId }: { clientId: string }) {
 
 async function NutritionTab({ clientId, profile }: { clientId: string; profile: Profile }) {
   const days = lastNDays(14)
-  const [plans, templates, logs, water] = await Promise.all([
+  const [plans, templates, logs, water, nutrition] = await Promise.all([
     prisma.mealPlan.findMany({
       where: { clientId },
       orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
@@ -349,6 +349,10 @@ async function NutritionTab({ clientId, profile }: { clientId: string; profile: 
     prisma.mealPlan.findMany({ where: { isTemplate: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.mealLog.findMany({ where: { clientId, date: { gte: days[0] } }, orderBy: { createdAt: "asc" } }),
     prisma.waterLog.groupBy({ by: ["date"], where: { clientId, date: { gte: days[0] } }, _sum: { ml: true } }),
+    prisma.nutritionClient.findFirst({
+      where: { clientId },
+      include: { consultations: { orderBy: { date: "desc" }, take: 5 }, _count: { select: { consultations: true } } },
+    }),
   ])
   const active = plans.find((p) => p.isActive)
   const targetKcal = profile.calTarget ?? active?.calTarget ?? null
@@ -381,7 +385,29 @@ async function NutritionTab({ clientId, profile }: { clientId: string; profile: 
         <Panel title="Objetivos diarios">
           <p className="text-sm">{targetKcal ?? "—"} kcal · P {targetP ?? "—"} g · C {profile.carbsTarget ?? active?.carbsTarget ?? "—"} g · G {profile.fatTarget ?? active?.fatTarget ?? "—"} g</p>
           <p className="text-sm mt-1">💧 {(profile.waterTargetMl / 1000).toFixed(2)} L</p>
-          <p className="text-xs text-gray-400 mt-2">Edita los objetivos en la pestaña Ajustes.</p>
+          <p className="text-xs text-gray-400 mt-2">Edita los objetivos en la pestaña Ajustes. Se actualizan solos con cada consulta de nutrición.</p>
+        </Panel>
+        <Panel
+          title={`🩺 Consultas de nutrición${nutrition ? ` (${nutrition._count.consultations})` : ""}`}
+          action={nutrition ? <Link href={`/nutrition/${nutrition.id}`} className="text-xs text-orange-600">Abrir ficha →</Link> : null}
+        >
+          {!nutrition ? (
+            <p className="text-sm text-gray-500">No tiene ficha en el módulo Nutrición.</p>
+          ) : nutrition.consultations.length === 0 ? (
+            <p className="text-sm text-gray-500">Sin consultas registradas.</p>
+          ) : (
+            <ul className="text-sm divide-y divide-gray-100">
+              {nutrition.consultations.map((c) => (
+                <li key={c.id} className="py-1.5 flex justify-between gap-2">
+                  <span>#{c.consultationNumber} · {formatYmd(c.date.toISOString().slice(0, 10), true)}</span>
+                  <span className="text-xs text-gray-500">{[c.weight && `${c.weight} kg`, c.calTarget && `${Math.round(c.calTarget)} kcal`].filter(Boolean).join(" · ") || "—"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {nutrition && (
+            <Link href={`/nutrition/${nutrition.id}/consulta`} className="mt-3 inline-block text-xs font-medium text-orange-600">+ Nueva consulta</Link>
+          )}
         </Panel>
       </div>
       <Panel title="Registro de los últimos 14 días" className="lg:col-span-2">

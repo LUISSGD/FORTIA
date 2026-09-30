@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { applyConsultationToCoaching, removeConsultationFromCoaching } from "@/lib/coaching/sync-fortia"
 
 type Params = { params: Promise<{ id: string; cid: string }> }
 
@@ -49,6 +50,7 @@ export async function PATCH(request: Request, { params }: Params) {
       paymentMethod: body.paymentMethod || null,
     },
   })
+  await applyConsultationToCoaching(consultation.id)
   return NextResponse.json(consultation)
 }
 
@@ -57,6 +59,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
   const { cid } = await params
-  await prisma.nutritionConsultation.delete({ where: { id: cid } })
+  const deleted = await prisma.nutritionConsultation.delete({ where: { id: cid } })
+  await removeConsultationFromCoaching(deleted)
   return NextResponse.json({ ok: true })
 }

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import AssignTrainingPlanDialog from "./AssignTrainingPlanDialog"
+import { PAYMENT_METHODS } from "@/lib/utils"
 import { ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS } from "@/lib/training-pricing"
 import type { Entrenador, Modalidad, Tarifa } from "@/lib/training-pricing"
 
@@ -313,7 +314,7 @@ function EditPlanDialog({ plan, clientId, onSaved, onDeleted }: EditDialogProps)
           {confirmDelete ? (
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                ¿Seguro que quieres eliminar este plan? Se borrarán todas las clases registradas y el ingreso asociado.
+                ¿Seguro que quieres eliminar este plan? Se borrarán todas las clases registradas y, si su pago se registró al asignarlo o renovarlo, también ese pago y su ingreso en Finanzas.
               </p>
               <div className="flex gap-2">
                 <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={deleting}>
@@ -428,10 +429,13 @@ function RenewPlanDialog({ plan, clientId, onRenewed }: RenewPlanDialogProps) {
   const [startDate, setStartDate] = useState("")
   const [pricePaid, setPricePaid] = useState(String(plan.pricePaid))
   const [saving, setSaving] = useState(false)
+  const [registerPayment, setRegisterPayment] = useState(true)
+  const [paymentMethod, setPaymentMethod] = useState("CASH")
 
   function handleOpen() {
     setStartDate("")
     setPricePaid(String(plan.pricePaid))
+    setRegisterPayment(true)
     setOpen(true)
   }
 
@@ -441,7 +445,7 @@ function RenewPlanDialog({ plan, clientId, onRenewed }: RenewPlanDialogProps) {
     const res = await fetch(`/api/clients/${clientId}/training-plans/${plan.id}/renew`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startDate, pricePaid: Number(pricePaid) }),
+      body: JSON.stringify({ startDate, pricePaid: Number(pricePaid), registerPayment, paymentMethod }),
     })
     setSaving(false)
     if (res.ok) {
@@ -493,6 +497,20 @@ function RenewPlanDialog({ plan, clientId, onRenewed }: RenewPlanDialogProps) {
                 step="0.01"
                 className="mt-1"
               />
+            </div>
+            <div className="rounded-lg border p-3 space-y-2">
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="mt-0.5" checked={registerPayment} onChange={(e) => setRegisterPayment(e.target.checked)} />
+                <span>
+                  Registrar el pago en Finanzas
+                  <span className="block text-xs text-gray-500">Se agrega a los ingresos y al historial de pagos del cliente. Desmárcalo si ya lo registraste.</span>
+                </span>
+              </label>
+              {registerPayment && (
+                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full h-9 rounded-md border px-2 text-sm bg-white">
+                  {Object.entries(PAYMENT_METHODS).filter(([k]) => k !== "EXTENSION").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              )}
             </div>
             <div className="flex gap-2">
               <Button

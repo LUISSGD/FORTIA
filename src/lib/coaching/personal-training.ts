@@ -202,3 +202,19 @@ export async function attendedPtDates(clientIds: string[], sinceYmd: string) {
   }
   return map
 }
+
+/** Clases grupales asistidas (Calendario de FORTIA) por cliente desde una fecha. */
+export async function attendedClassDates(clientIds: string[], sinceYmd: string) {
+  const map = new Map<string, string[]>()
+  if (!clientIds.length) return map
+  const rows = await prisma.attendance.findMany({
+    where: { clientId: { in: clientIds }, attended: true, date: { gte: ymdToDate(sinceYmd) } },
+    select: { clientId: true, date: true },
+  })
+  for (const r of rows) {
+    const list = map.get(r.clientId) ?? []
+    list.push(r.date.toISOString().slice(0, 10))
+    map.set(r.clientId, list)
+  }
+  return map
+}
