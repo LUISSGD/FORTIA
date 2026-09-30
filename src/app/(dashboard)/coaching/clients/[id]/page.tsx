@@ -68,7 +68,7 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
               {client.firstName} {client.lastName}
-              {overview && <StatusDot level={profile.status === "PAUSED" ? "gray" : overview.level} />}
+              {overview && <StatusDot level={profile.status !== "ACTIVE" ? "gray" : overview.level} />}
               <RenewalBadge membershipEnd={client.membershipEnd} />
             </h1>
             <p className="text-sm text-gray-500">

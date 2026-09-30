@@ -86,6 +86,7 @@ export const CHALLENGE_METRICS: Record<string, string> = {
 export const PROFILE_STATUS: Record<string, string> = {
   ACTIVE: "Activo",
   PAUSED: "Pausado",
+  STANDBY: "Stand-by (ex cliente)",
   ENDED: "Finalizado",
 }
 

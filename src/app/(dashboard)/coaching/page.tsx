@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic"
 
 async function CoachingDashboard() {
   const weekStart = weekStartYmd()
-  const [overview, libraryCount, notifications, pendingCheckIns, upcoming] = await Promise.all([
+  const [allClients, libraryCount, notifications, pendingCheckIns, upcoming] = await Promise.all([
     getClientsOverview(),
     prisma.exercise.count(),
     prisma.notification.findMany({ where: { audience: "COACH" }, orderBy: { createdAt: "desc" }, take: 12, include: { client: { select: { firstName: true } } } }),
@@ -28,6 +28,8 @@ async function CoachingDashboard() {
     }),
   ])
 
+  // Los clientes en stand-by (ex clientes) no cuentan en el panel.
+  const overview = allClients.filter((c) => c.status !== "STANDBY")
   const active = overview.filter((c) => c.status === "ACTIVE")
   const green = active.filter((c) => c.level === "green").length
   const yellow = active.filter((c) => c.level === "yellow").length
