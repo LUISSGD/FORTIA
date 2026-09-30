@@ -21,10 +21,11 @@ export default async function NutritionMessagesPage() {
     <NutritionMessagesClient
       threads={lastByClient.map((m) => ({
         clientId: m.clientId,
-        clientName: `${m.client.firstName} ${m.client.lastName}`,
+        firstName: m.client.firstName,
         lastName: m.client.lastName,
         lastBody: m.body,
-        lastAt: m.createdAt,
+        lastAt: m.createdAt.toISOString(),
+        sender: m.sender,
         unread: !m.readAt && m.sender === "CLIENT",
       }))}
     />
