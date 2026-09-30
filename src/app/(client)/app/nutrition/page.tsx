@@ -8,11 +8,18 @@ import { cn } from "@/lib/utils"
 import { Bar, Card, PageTitle, Ring, SectionTitle } from "@/components/coaching/app/ui"
 import WaterWidget from "@/components/coaching/app/WaterWidget"
 import MealsDay from "@/components/coaching/app/MealsDay"
+import { prisma } from "@/lib/prisma"
 
 export default async function NutritionPage({ searchParams }: PageProps<"/app/nutrition">) {
   const ctx = await getClientSession()
   if (!ctx) redirect("/login")
   const today = todayYmd()
+
+  const nextNutritionBooking = await prisma.coachingBooking.findFirst({
+    where: { clientId: ctx.clientId, status: "BOOKED", slot: { type: "NUTRITION", startsAt: { gte: new Date() } } },
+    orderBy: { slot: { startsAt: "asc" } },
+    include: { slot: { select: { startsAt: true, mode: true, location: true } } },
+  }).catch(() => null)
   const sp = await searchParams
   const date = typeof sp.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) && sp.date <= today && sp.date >= addDaysYmd(today, -6) ? sp.date : today
   const { plan, logs, consumed, targets, waterMl, waterTargetMl } = await getNutritionDay(ctx.clientId, date)
@@ -21,6 +28,30 @@ export default async function NutritionPage({ searchParams }: PageProps<"/app/nu
   return (
     <div className="space-y-4">
       <PageTitle title="Nutrición" subtitle={plan?.name ?? "Sin plan asignado"} />
+
+      {/* Nutritionist card */}
+      <div className="flex gap-3">
+        {nextNutritionBooking ? (
+          <Card className="flex-1 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Próxima consulta</p>
+              <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                {new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(nextNutritionBooking.slot.startsAt)}
+              </p>
+              {nextNutritionBooking.slot.mode && <p className="text-xs text-gray-400">{nextNutritionBooking.slot.mode}{nextNutritionBooking.slot.location ? ` · ${nextNutritionBooking.slot.location}` : ""}</p>}
+            </div>
+            <Link href="/app/nutrition/chat" className="shrink-0 bg-orange-500 text-white text-xs px-3 py-1.5 rounded-full font-semibold">Chat →</Link>
+          </Card>
+        ) : (
+          <Card href="/app/nutrition/chat" className="flex-1 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tu nutricionista</p>
+              <p className="text-sm font-semibold text-gray-900 mt-0.5">Escríbele un mensaje</p>
+            </div>
+            <span className="shrink-0 text-orange-500 text-lg">💬</span>
+          </Card>
+        )}
+      </div>
 
       <div className="flex gap-2">
         {days.map((d) => (

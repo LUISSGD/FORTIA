@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { requireCoach, jsonError, str } from "@/lib/coaching/auth"
+import { requireNutritionist, jsonError, str } from "@/lib/coaching/auth"
 import { notifyClient } from "@/lib/coaching/notify"
 import { copyMealPlan } from "../../shared"
 
 type Params = { params: Promise<{ id: string }> }
 
 export async function POST(request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireNutritionist()
   if ("error" in guard) return guard.error
   const { id } = await params
   const body = await request.json()

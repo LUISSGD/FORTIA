@@ -20,6 +20,7 @@ function time(d: string) {
 
 /**
  * Chat entrenador ↔ cliente. `mode` determina qué lado es "mío".
+ * `channel` separa el chat de coaching del de nutrición.
  * Hace polling cada 6 s mientras la pestaña está visible.
  */
 export default function ChatPanel({
@@ -27,12 +28,14 @@ export default function ChatPanel({
   clientId,
   initialMessages,
   dark = false,
+  channel = "COACHING",
   className,
 }: {
-  mode: "coach" | "client"
+  mode: "coach" | "nutritionist" | "client"
   clientId?: string
   initialMessages: ChatMessage[]
   dark?: boolean
+  channel?: "COACHING" | "NUTRITION"
   className?: string
 }) {
   const [messages, setMessages] = useState(initialMessages)
@@ -40,8 +43,15 @@ export default function ChatPanel({
   const [sending, setSending] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const url = mode === "coach" ? `/api/coaching/messages/${clientId}` : "/api/app/messages"
-  const mine = mode === "coach" ? "COACH" : "CLIENT"
+  const url =
+    mode === "coach"
+      ? `/api/coaching/messages/${clientId}`
+      : mode === "nutritionist"
+        ? `/api/nutrition/messages/${clientId}`
+        : channel === "NUTRITION"
+          ? "/api/app/nutrition-messages"
+          : "/api/app/messages"
+  const mine = mode === "client" ? "CLIENT" : "COACH"
 
   useEffect(() => setMessages(initialMessages), [initialMessages])
 
@@ -100,7 +110,7 @@ export default function ChatPanel({
       <div className={cn("flex-1 overflow-y-auto space-y-2 p-3", dark ? "bg-zinc-950" : "bg-gray-50")}>
         {messages.length === 0 && (
           <p className={cn("text-sm text-center py-10", dark ? "text-zinc-500" : "text-gray-400")}>
-            {mode === "client" ? "Escríbele a tu coach: dudas, molestias, cómo te sentiste…" : "Aún no hay mensajes."}
+            {mode === "client" && channel === "NUTRITION" ? "Escríbele a tu nutricionista: dudas, cómo te sentiste, qué comiste…" : mode === "client" ? "Escríbele a tu coach: dudas, molestias, cómo te sentiste…" : "Aún no hay mensajes."}
           </p>
         )}
         {messages.map((m) => {

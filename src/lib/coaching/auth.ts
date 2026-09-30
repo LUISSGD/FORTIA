@@ -14,6 +14,15 @@ export async function requireCoach() {
   return { session } as const
 }
 
+/** ADMIN o NUTRITIONIST pueden gestionar el módulo de nutrición. */
+export async function requireNutritionist() {
+  const session = await auth()
+  if (!session?.user) return { error: jsonError("No autorizado", 401) } as const
+  const role = session.user.role as string
+  if (role !== "ADMIN" && role !== "NUTRITIONIST") return { error: jsonError("Sin permisos", 403) } as const
+  return { session, role } as const
+}
+
 /** Cliente con acceso a la app. Devuelve el clientId vinculado a su usuario. */
 export async function requireClient() {
   const session = await auth()

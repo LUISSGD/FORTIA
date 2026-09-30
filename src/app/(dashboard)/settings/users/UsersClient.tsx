@@ -26,7 +26,7 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
   const [users, setUsers] = useState(initialUsers)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", password: "" })
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "USER" })
   const [error, setError] = useState("")
 
   async function handleCreate() {
@@ -40,7 +40,7 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
       const res = await fetch("/api/settings/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, role: form.role }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -49,7 +49,7 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
       }
       const newUser = await res.json()
       setUsers((prev) => [...prev, newUser])
-      setForm({ name: "", email: "", password: "" })
+      setForm({ name: "", email: "", password: "", role: "USER" })
       setOpen(false)
     } catch {
       setError("Error de conexión")
@@ -109,9 +109,16 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
                   placeholder="Mínimo 8 caracteres"
                 />
               </div>
+              <div>
+                <Label>Rol</Label>
+                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm mt-1">
+                  <option value="USER">Staff (acceso limitado a la app)</option>
+                  <option value="NUTRITIONIST">Nutricionista (módulo de nutrición)</option>
+                </select>
+              </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <p className="text-xs text-gray-500">
-                El usuario tendrá acceso limitado: Clientes, Calendario y Finanzas (solo registro básico).
+                {form.role === "NUTRITIONIST" ? "El nutricionista accede al panel en /nutrition con clientes, agenda y chat." : "El usuario tendrá acceso limitado: Clientes, Calendario y Finanzas (solo registro básico)."}
               </p>
               <Button
                 onClick={handleCreate}
@@ -144,9 +151,9 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
                 <td className="px-4 py-3">
                   <Badge
                     variant={user.role === "ADMIN" ? "default" : "secondary"}
-                    className={user.role === "ADMIN" ? "bg-orange-500 text-white" : ""}
+                    className={user.role === "ADMIN" ? "bg-orange-500 text-white" : user.role === "NUTRITIONIST" ? "bg-green-100 text-green-700" : ""}
                   >
-                    {user.role === "ADMIN" ? "Administrador" : "Usuario"}
+                    {user.role === "ADMIN" ? "Administrador" : user.role === "NUTRITIONIST" ? "Nutricionista" : "Usuario"}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-right">

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireCoach, jsonError, str } from "@/lib/coaching/auth"
+import { requireNutritionist, jsonError, str } from "@/lib/coaching/auth"
 import { notifyClient } from "@/lib/coaching/notify"
 import { copyMealPlan, mealPlanInclude, planTargets, saveMeals } from "./shared"
 
 export async function GET(request: Request) {
-  const guard = await requireCoach()
+  const guard = await requireNutritionist()
   if ("error" in guard) return guard.error
   const clientId = new URL(request.url).searchParams.get("clientId")
   return NextResponse.json(
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireCoach()
+  const guard = await requireNutritionist()
   if ("error" in guard) return guard.error
   const body = await request.json()
   const clientId = str(body.clientId)

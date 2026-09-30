@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireCoach, jsonError, str } from "@/lib/coaching/auth"
+import { requireNutritionist, jsonError, str } from "@/lib/coaching/auth"
 import { mealPlanInclude, planTargets, saveMeals } from "../shared"
 
 type Params = { params: Promise<{ id: string }> }
 
 export async function GET(_request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireNutritionist()
   if ("error" in guard) return guard.error
   const { id } = await params
   const plan = await prisma.mealPlan.findUnique({ where: { id }, include: mealPlanInclude })
@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function PUT(request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireNutritionist()
   if ("error" in guard) return guard.error
   const { id } = await params
   const body = await request.json()
@@ -35,7 +35,7 @@ export async function PUT(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireNutritionist()
   if ("error" in guard) return guard.error
   const { id } = await params
   await prisma.mealPlan.delete({ where: { id } })

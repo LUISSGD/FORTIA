@@ -654,7 +654,8 @@ model CoachMessage {
   id             String    @id @default(cuid())
   clientId       String
   client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  sender         String    // COACH | CLIENT | SYSTEM
+  sender         String    // COACH | CLIENT | SYSTEM | NUTRITIONIST
+  channel        String    @default("COACHING") // COACHING | NUTRITION
   body           String
   attachmentUrl  String?
   attachmentType String?   // IMAGE | VIDEO | AUDIO | FILE
@@ -684,6 +685,7 @@ model CoachingSlot {
   startsAt  DateTime
   endsAt    DateTime
   title     String   @default("Sesión de entrenamiento")
+  type      String   @default("COACHING") // COACHING | NUTRITION
   mode      String   @default("PRESENCIAL") // PRESENCIAL | ONLINE
   capacity  Int      @default(1)
   location  String?
