@@ -3,6 +3,18 @@ import { notFound } from "next/navigation"
 import { differenceInYears } from "date-fns"
 import { prisma } from "@/lib/prisma"
 import { cn } from "@/lib/utils"
+import {
+  LayoutDashboard,
+  CreditCard,
+  Dumbbell,
+  Salad,
+  TrendingUp,
+  CheckSquare,
+  DollarSign,
+  MessageSquare,
+  FileText,
+  Settings2,
+} from "lucide-react"
 import { getClientsOverview, clientAchievements } from "@/lib/coaching/stats"
 import { formatYmd, lastNDays, periodLabel, todayYmd, toYmd, dateTimeLima } from "@/lib/coaching/dates"
 import { LEVELS, PROFILE_STATUS, ADHERENCE_OPTIONS, SLEEP_OPTIONS, ENERGY_OPTIONS } from "@/lib/coaching/constants"
@@ -28,16 +40,16 @@ import { getMembership, getPersonalTraining } from "@/lib/coaching/personal-trai
 export const dynamic = "force-dynamic"
 
 const TABS = [
-  ["summary", "Resumen"],
-  ["membership", "Plan y membresía"],
-  ["training", "Entrenamiento"],
-  ["nutrition", "Nutrición"],
-  ["progress", "Progreso"],
-  ["checkins", "Check-ins"],
-  ["payments", "Pagos"],
-  ["chat", "Chat"],
-  ["documents", "Documentos"],
-  ["settings", "Ajustes"],
+  ["summary", "Resumen", LayoutDashboard],
+  ["membership", "Plan y membresía", CreditCard],
+  ["training", "Entrenamiento", Dumbbell],
+  ["nutrition", "Nutrición", Salad],
+  ["progress", "Progreso", TrendingUp],
+  ["checkins", "Check-ins", CheckSquare],
+  ["payments", "Pagos", DollarSign],
+  ["chat", "Chat", MessageSquare],
+  ["documents", "Documentos", FileText],
+  ["settings", "Ajustes", Settings2],
 ] as const
 
 type Tab = (typeof TABS)[number][0]
@@ -86,7 +98,8 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
         )}
       </div>
 
-      <div className="flex gap-1 overflow-x-auto no-scrollbar border-b border-gray-200">
+      {/* Mobile: horizontal scrollable tabs */}
+      <div className="md:hidden flex gap-1 overflow-x-auto no-scrollbar border-b border-gray-200">
         {TABS.map(([k, label]) => (
           <Link
             key={k}
@@ -99,29 +112,53 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
         ))}
       </div>
 
-      {tab === "summary" && <SummaryTab clientId={id} profile={profile} age={age} overview={overview} birthDate={client.birthDate} phone={client.phone} />}
-      {tab === "membership" && <MembershipTab clientId={id} />}
-      {tab === "training" && <TrainingTab clientId={id} />}
-      {tab === "nutrition" && <NutritionTab clientId={id} profile={profile} />}
-      {tab === "progress" && <ProgressTab clientId={id} />}
-      {tab === "checkins" && <CheckInsTab clientId={id} />}
-      {tab === "payments" && <PaymentsTab clientId={id} profile={profile} />}
-      {tab === "chat" && <ChatTab clientId={id} />}
-      {tab === "documents" && <DocumentsTab clientId={id} />}
-      {tab === "settings" && (
-        <ProfileSettings
-          clientId={id}
-          accessEmail={client.user?.email ?? null}
-          defaultEmail={client.email}
-          profile={{
-            ...profile,
-            startDate: toYmd(profile.startDate),
-            phone: client.phone ?? "",
-            email: client.email ?? "",
-            birthDate: client.birthDate ? toYmd(client.birthDate) : "",
-          }}
-        />
-      )}
+      {/* Desktop: icon sidebar + content */}
+      <div className="flex gap-6">
+        <div className="hidden md:flex flex-col gap-0.5 shrink-0 pt-1 border-r border-gray-100 pr-3">
+          {TABS.map(([k, label, Icon]) => (
+            <Link
+              key={k}
+              href={`/coaching/clients/${id}?tab=${k}`}
+              title={label}
+              className={cn(
+                "relative flex items-center justify-center h-10 w-10 rounded-lg transition-colors",
+                tab === k ? "bg-gray-900 text-white" : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              {k === "chat" && unread > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-orange-500 rounded-full" />
+              )}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-4 md:space-y-6">
+          {tab === "summary" && <SummaryTab clientId={id} profile={profile} age={age} overview={overview} birthDate={client.birthDate} phone={client.phone} />}
+          {tab === "membership" && <MembershipTab clientId={id} />}
+          {tab === "training" && <TrainingTab clientId={id} />}
+          {tab === "nutrition" && <NutritionTab clientId={id} profile={profile} />}
+          {tab === "progress" && <ProgressTab clientId={id} />}
+          {tab === "checkins" && <CheckInsTab clientId={id} />}
+          {tab === "payments" && <PaymentsTab clientId={id} profile={profile} />}
+          {tab === "chat" && <ChatTab clientId={id} />}
+          {tab === "documents" && <DocumentsTab clientId={id} />}
+          {tab === "settings" && (
+            <ProfileSettings
+              clientId={id}
+              accessEmail={client.user?.email ?? null}
+              defaultEmail={client.email}
+              profile={{
+                ...profile,
+                startDate: toYmd(profile.startDate),
+                phone: client.phone ?? "",
+                email: client.email ?? "",
+                birthDate: client.birthDate ? toYmd(client.birthDate) : "",
+              }}
+            />
+          )}
+        </div>
+      </div>
     </>
   )
 }
