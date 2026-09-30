@@ -12,7 +12,7 @@ type GymClient = { id: string; firstName: string; lastName: string; phone: strin
 const EMPTY = {
   firstName: "", lastName: "", phone: "", email: "", birthDate: "",
   goal: GOALS[0], level: "INTERMEDIO", sex: "M", heightCm: "", startWeight: "", targetWeight: "",
-  trainingDays: "4", planName: "Coaching Premium", price: "600", billingDay: "1",
+  trainingDays: "4", planName: "", price: "600", billingDay: "1",
   accessEmail: "", accessPassword: "",
 }
 
@@ -110,7 +110,6 @@ export default function AddCoachingClient({ gymClients }: { gymClients: GymClien
             <Field label="Peso inicial (kg)"><Input type="number" step="0.1" value={form.startWeight} onChange={(e) => set("startWeight", e.target.value)} /></Field>
             <Field label="Peso objetivo (kg)"><Input type="number" step="0.1" value={form.targetWeight} onChange={(e) => set("targetWeight", e.target.value)} /></Field>
             <Field label="Días de entreno/sem"><Input type="number" min={1} max={7} value={form.trainingDays} onChange={(e) => set("trainingDays", e.target.value)} /></Field>
-            <Field label="Plan" className="col-span-2"><Input value={form.planName} onChange={(e) => set("planName", e.target.value)} /></Field>
             <Field label="Precio mensual (S/)"><Input type="number" value={form.price} onChange={(e) => set("price", e.target.value)} /></Field>
             <Field label="Día de cobro"><Input type="number" min={1} max={28} value={form.billingDay} onChange={(e) => set("billingDay", e.target.value)} /></Field>
           </div>
