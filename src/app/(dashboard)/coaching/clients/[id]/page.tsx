@@ -426,7 +426,7 @@ async function NutritionTab({ clientId, profile }: { clientId: string; profile: 
         </Panel>
         <Panel
           title={`🩺 Consultas de nutrición${nutrition ? ` (${nutrition._count.consultations})` : ""}`}
-          action={nutrition ? <Link href={`/nutrition/${nutrition.id}`} className="text-xs text-orange-600">Abrir ficha →</Link> : null}
+          action={nutrition ? <Link href={`/nutrition/clients/${clientId}`} className="text-xs text-orange-600">Abrir ficha →</Link> : null}
         >
           {!nutrition ? (
             <p className="text-sm text-gray-500">No tiene ficha en el módulo Nutrición.</p>
@@ -435,9 +435,23 @@ async function NutritionTab({ clientId, profile }: { clientId: string; profile: 
           ) : (
             <ul className="text-sm divide-y divide-gray-100">
               {nutrition.consultations.map((c) => (
-                <li key={c.id} className="py-1.5 flex justify-between gap-2">
-                  <span>#{c.consultationNumber} · {formatYmd(c.date.toISOString().slice(0, 10), true)}</span>
-                  <span className="text-xs text-gray-500">{[c.weight && `${c.weight} kg`, c.calTarget && `${Math.round(c.calTarget)} kcal`].filter(Boolean).join(" · ") || "—"}</span>
+                <li key={c.id} className="py-2 flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-medium">#{c.consultationNumber}</span>
+                    <span className="text-gray-400 ml-1">· {formatYmd(c.date.toISOString().slice(0, 10), true)}</span>
+                    <div className="text-xs text-gray-400 mt-0.5">{[c.weight && `${c.weight} kg`, c.calTarget && `${Math.round(c.calTarget)} kcal`].filter(Boolean).join(" · ") || "—"}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {c.isPaid ? (
+                      <span className="inline-block text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                        Pagada{c.paymentAmount ? ` · S/ ${c.paymentAmount}` : ""}
+                      </span>
+                    ) : (
+                      <span className="inline-block text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
+                        Pendiente
+                      </span>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
