@@ -100,6 +100,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ payment, income }, { status: 201 })
   }
 
+  // ── Nutrición ───────────────────────────────────────────────────────────
+  if (paymentType === "nutrition") {
+    const { paymentDate, concept } = body as { paymentDate?: string; concept?: string }
+    const incomeDate = paymentDate ? new Date(paymentDate + "T00:00:00") : now
+    const description = concept ?? `Consulta de nutrición — ${client.firstName} ${client.lastName}`
+
+    const income = await prisma.income.create({
+      data: { amount: Number(amount), currency, category: "NUTRITION", description, clientId, date: incomeDate },
+    })
+    const payment = await prisma.payment.create({
+      data: {
+        clientId,
+        amount: Number(amount),
+        method: method ?? "CASH",
+        concept: description,
+        periodStart: incomeDate,
+        periodEnd: incomeDate,
+        incomeId: income.id,
+        receiptUrl: receiptUrl ?? null,
+      },
+    })
+    return NextResponse.json({ payment, income }, { status: 201 })
+  }
+
   // ── Membresía ───────────────────────────────────────────────────────────
   const { planId, startDate } = body
   const plan = planId

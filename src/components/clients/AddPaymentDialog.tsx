@@ -40,7 +40,7 @@ interface Props {
   currentPlanId?: string | null
 }
 
-type PaymentType = "membership" | "training"
+type PaymentType = "membership" | "training" | "nutrition"
 type ScheduleSlot = { dayOfWeek: string; startTime: string; endTime: string }
 
 const CLASES_OPTIONS: ClasesPerPack[] = [4, 8, 12, 16]
@@ -88,6 +88,10 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
   const [numPacks, setNumPacks] = useState<NumPacks>(1)
   const [clasesPerPack, setClasesPerPack] = useState<ClasesPerPack>(8)
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10))
+
+  // Nutrition fields
+  const [nutritionConcept, setNutritionConcept] = useState("")
+  const [nutritionDate, setNutritionDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   // Shared
   const [amount, setAmount] = useState("")
@@ -210,37 +214,40 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
         receiptUrl = url
       }
 
+      let body: object
+      if (paymentType === "membership") {
+        body = { clientId, planId, amount, currency, method, receiptUrl, startDate }
+      } else if (paymentType === "training") {
+        body = {
+          clientId, amount, currency, method, receiptUrl,
+          paymentType: "training", createPlan, entrenador, modalidad, tarifa, numPacks, clasesPerPack, paymentDate,
+          scheduleSlots: createPlan
+            ? scheduleSlots
+                .filter((s) => s.dayOfWeek && s.startTime && s.endTime)
+                .map((s) => ({ dayOfWeek: parseInt(s.dayOfWeek), startTime: s.startTime, endTime: s.endTime }))
+            : [],
+        }
+      } else {
+        body = {
+          clientId, amount, currency, method, receiptUrl,
+          paymentType: "nutrition",
+          paymentDate: nutritionDate,
+          concept: nutritionConcept || undefined,
+        }
+      }
+
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          paymentType === "membership"
-            ? { clientId, planId, amount, currency, method, receiptUrl, startDate }
-            : {
-                clientId,
-                amount,
-                currency,
-                method,
-                receiptUrl,
-                paymentType: "training",
-                createPlan,
-                entrenador,
-                modalidad,
-                tarifa,
-                numPacks,
-                clasesPerPack,
-                paymentDate,
-                scheduleSlots: createPlan
-                  ? scheduleSlots
-                      .filter((s) => s.dayOfWeek && s.startTime && s.endTime)
-                      .map((s) => ({ dayOfWeek: parseInt(s.dayOfWeek), startTime: s.startTime, endTime: s.endTime }))
-                  : [],
-              }
-        ),
+        body: JSON.stringify(body),
       })
 
       if (res.ok) {
-        toast.success(paymentType === "membership" ? "Pago registrado. Membresía renovada." : "Pago de entrenamiento registrado.")
+        toast.success(
+          paymentType === "membership" ? "Pago registrado. Membresía renovada." :
+          paymentType === "nutrition" ? "Pago de nutrición registrado." :
+          "Pago de entrenamiento registrado."
+        )
         setOpen(false)
         router.refresh()
       } else {
@@ -290,6 +297,17 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   }`}
                 >
                   Entrenamiento Personal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPaymentType("nutrition"); setAmount("") }}
+                  className={`flex-1 py-2 rounded-md text-sm font-medium border transition-colors ${
+                    paymentType === "nutrition"
+                      ? "bg-orange-500 text-white border-orange-500"
+                      : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+                  }`}
+                >
+                  Nutrición
                 </button>
               </div>
             </div>
@@ -423,6 +441,29 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                 {!trainingPrice && (
                   <p className="text-xs text-red-500">Esta combinación no está disponible.</p>
                 )}
+              </>
+            )}
+
+            {/* Nutrition fields */}
+            {paymentType === "nutrition" && (
+              <>
+                <div>
+                  <Label>Fecha del pago</Label>
+                  <Input
+                    type="date"
+                    value={nutritionDate}
+                    onChange={(e) => setNutritionDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Concepto <span className="text-gray-400 font-normal text-xs">(opcional)</span></Label>
+                  <Input
+                    value={nutritionConcept}
+                    onChange={(e) => setNutritionConcept(e.target.value)}
+                    placeholder={`Consulta de nutrición — ${clientName}`}
+                  />
+                </div>
               </>
             )}
 
@@ -590,7 +631,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
               <Button
                 type="submit"
                 className="bg-orange-500 hover:bg-orange-600 flex-1"
-                disabled={loading || (paymentType === "training" && !trainingPrice)}
+                disabled={loading || (paymentType === "training" && !trainingPrice) || !amount}
               >
                 {loading ? "Registrando..." : "Confirmar pago"}
               </Button>
