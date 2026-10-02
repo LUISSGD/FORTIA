@@ -114,11 +114,12 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
                 <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm mt-1">
                   <option value="USER">Staff (acceso limitado a la app)</option>
                   <option value="NUTRITIONIST">Nutricionista (módulo de nutrición)</option>
+                  <option value="TRAINER">Entrenador Personal (agenda EP y marcado de asistencia)</option>
                 </select>
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <p className="text-xs text-gray-500">
-                {form.role === "NUTRITIONIST" ? "El nutricionista accede al panel en /nutrition con clientes, agenda y chat." : "El usuario tendrá acceso limitado: Clientes, Calendario y Finanzas (solo registro básico)."}
+                {form.role === "NUTRITIONIST" ? "El nutricionista accede al panel en /nutrition con clientes, agenda y chat." : form.role === "TRAINER" ? "El entrenador accede al panel en /trainer con la agenda EP, marcado de asistencia y ficha de clientes." : "El usuario tendrá acceso limitado: Clientes, Calendario y Finanzas (solo registro básico)."}
               </p>
               <Button
                 onClick={handleCreate}
@@ -151,9 +152,15 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
                 <td className="px-4 py-3">
                   <Badge
                     variant={user.role === "ADMIN" ? "default" : "secondary"}
-                    className={user.role === "ADMIN" ? "bg-orange-500 text-white" : user.role === "NUTRITIONIST" ? "bg-green-100 text-green-700" : ""}
+                    className={
+                      user.role === "ADMIN" ? "bg-orange-500 text-white" :
+                      user.role === "NUTRITIONIST" ? "bg-green-100 text-green-700" :
+                      user.role === "TRAINER" ? "bg-sky-100 text-sky-700" : ""
+                    }
                   >
-                    {user.role === "ADMIN" ? "Administrador" : user.role === "NUTRITIONIST" ? "Nutricionista" : "Usuario"}
+                    {user.role === "ADMIN" ? "Administrador" :
+                     user.role === "NUTRITIONIST" ? "Nutricionista" :
+                     user.role === "TRAINER" ? "Entrenador EP" : "Usuario"}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-right">
