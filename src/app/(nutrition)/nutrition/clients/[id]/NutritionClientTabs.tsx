@@ -746,7 +746,7 @@ export default function NutritionClientTabs({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">{mealPlans.length} plan(es) creados</p>
-            <Link href={`/coaching/nutrition/new?clientId=${client.id}`} className="flex items-center gap-1.5 text-sm bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition-colors">
+            <Link href={`/nutrition/new?clientId=${client.id}`} className="flex items-center gap-1.5 text-sm bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition-colors">
               <Plus className="h-4 w-4" /> Nuevo plan
             </Link>
           </div>
@@ -754,7 +754,7 @@ export default function NutritionClientTabs({
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
               <ChefHat className="h-12 w-12 text-gray-200 mx-auto mb-3" />
               <p className="text-sm text-gray-400">Aún no hay planes nutricionales para este cliente</p>
-              <Link href={`/coaching/nutrition/new?clientId=${client.id}`} className="mt-3 inline-block text-sm font-medium text-orange-500 hover:text-orange-600">
+              <Link href={`/nutrition/new?clientId=${client.id}`} className="mt-3 inline-block text-sm font-medium text-orange-500 hover:text-orange-600">
                 Crear primer plan →
               </Link>
             </div>
