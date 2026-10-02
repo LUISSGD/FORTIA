@@ -64,44 +64,54 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
       <div className="grid md:grid-cols-7 gap-3">
         {days.map((d, i) => {
           const daySlots = slots.filter((s) => ymd(new Date(s.startsAt)) === d)
-          const dayTraining = trainingSlots.filter((s) => s.scheduledDate === d).sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""))
-          const isEmpty = daySlots.length === 0 && dayTraining.length === 0
+          const dayTraining = trainingSlots.filter((s) => s.scheduledDate === d)
+          // Merge coaching slots + EP sessions sorted chronologically
+          type Item = { key: string; time: string } & ({ kind: "coaching"; slot: typeof daySlots[0] } | { kind: "training"; session: typeof dayTraining[0] })
+          const merged: Item[] = [
+            ...daySlots.map((s) => ({ key: s.id, kind: "coaching" as const, slot: s, time: hhmm(s.startsAt) })),
+            ...dayTraining.map((s) => ({ key: s.sessionId, kind: "training" as const, session: s, time: s.startTime?.slice(0, 5) ?? "00:00" })),
+          ].sort((a, b) => a.time.localeCompare(b.time))
+          const isEmpty = merged.length === 0
           return (
             <Panel key={d} className={cn("p-3", d === today && "ring-2 ring-orange-300")}>
               <p className="text-xs font-semibold text-gray-500 uppercase">{DAYS_OF_WEEK[i].slice(0, 3)} <span className="text-gray-900">{d.slice(8)}</span></p>
               <div className="mt-2 space-y-1.5">
                 {isEmpty && <p className="text-[11px] text-gray-300">—</p>}
-                {daySlots.map((s) => {
-                  const booked = s.bookings.filter((b) => ["BOOKED", "ATTENDED", "NO_SHOW"].includes(b.status))
-                  const waiting = s.bookings.filter((b) => b.status === "WAITLIST").length
+                {merged.map((item) => {
+                  if (item.kind === "coaching") {
+                    const s = item.slot
+                    const booked = s.bookings.filter((b) => ["BOOKED", "ATTENDED", "NO_SHOW"].includes(b.status))
+                    const waiting = s.bookings.filter((b) => b.status === "WAITLIST").length
+                    return (
+                      <button key={item.key} onClick={() => { setDetail(s); setBookClient("") }} className={cn("w-full text-left rounded-lg px-2 py-1.5 text-xs border", booked.length ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-100 hover:border-gray-300")}>
+                        <p className="font-semibold">{item.time} {s.mode === "ONLINE" && <Video className="inline h-3 w-3" />}</p>
+                        {booked.length ? (
+                          booked.map((b) => <p key={b.id} className="truncate">{b.status === "ATTENDED" ? "✅ " : b.status === "NO_SHOW" ? "❌ " : ""}{b.name.split(" ")[0]}</p>)
+                        ) : (
+                          <p className="text-gray-400">Libre</p>
+                        )}
+                        {s.capacity > 1 && <p className="text-[10px] text-gray-400">{booked.length}/{s.capacity}{waiting ? ` · ${waiting} en espera` : ""}</p>}
+                      </button>
+                    )
+                  }
+                  const s = item.session
                   return (
-                    <button key={s.id} onClick={() => { setDetail(s); setBookClient("") }} className={cn("w-full text-left rounded-lg px-2 py-1.5 text-xs border", booked.length ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-100 hover:border-gray-300")}>
-                      <p className="font-semibold">{hhmm(s.startsAt)} {s.mode === "ONLINE" && <Video className="inline h-3 w-3" />}</p>
-                      {booked.length ? (
-                        booked.map((b) => <p key={b.id} className="truncate">{b.status === "ATTENDED" ? "✅ " : b.status === "NO_SHOW" ? "❌ " : ""}{b.name.split(" ")[0]}</p>)
-                      ) : (
-                        <p className="text-gray-400">Libre</p>
-                      )}
-                      {s.capacity > 1 && <p className="text-[10px] text-gray-400">{booked.length}/{s.capacity}{waiting ? ` · ${waiting} en espera` : ""}</p>}
-                    </button>
+                    <Link
+                      key={item.key}
+                      href={`/coaching/clients/${s.clientId}?tab=training`}
+                      className="w-full text-left rounded-lg px-2 py-1.5 text-xs border bg-sky-50 border-sky-200 hover:border-sky-400 block"
+                    >
+                      <div className="flex items-center gap-1 font-semibold text-sky-700">
+                        <Dumbbell className="h-3 w-3 shrink-0" />
+                        {item.time !== "00:00" ? item.time : "EP"}
+                      </div>
+                      <p className="truncate text-sky-900">
+                        {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}{s.clientName.trim().split(" ")[0]}
+                      </p>
+                      <p className="text-[10px] text-sky-400">S{s.sessionNumber}</p>
+                    </Link>
                   )
                 })}
-                {dayTraining.map((s) => (
-                  <Link
-                    key={s.sessionId}
-                    href={`/coaching/clients/${s.clientId}?tab=training`}
-                    className="w-full text-left rounded-lg px-2 py-1.5 text-xs border bg-sky-50 border-sky-200 hover:border-sky-400 block"
-                  >
-                    <div className="flex items-center gap-1 font-semibold text-sky-700">
-                      <Dumbbell className="h-3 w-3 shrink-0" />
-                      {s.startTime ? `${s.startTime.slice(0, 5)}` : "EP"}
-                    </div>
-                    <p className="truncate text-sky-900">
-                      {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}{s.clientName.trim().split(" ")[0]}
-                    </p>
-                    <p className="text-[10px] text-sky-400">S{s.sessionNumber}</p>
-                  </Link>
-                ))}
               </div>
             </Panel>
           )
