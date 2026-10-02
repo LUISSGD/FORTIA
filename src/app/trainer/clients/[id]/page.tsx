@@ -77,6 +77,8 @@ export default async function TrainerClientPage({ params }: Ctx) {
 
           {/* Lista de sesiones interactiva */}
           <TrainerClientSessions
+            clientId={client.id}
+            planId={plan.id}
             sessions={plan.sessions.map((s) => ({
               sessionId: s.id,
               sessionNumber: s.sessionNumber,

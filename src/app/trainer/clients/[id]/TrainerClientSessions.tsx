@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Session = {
@@ -52,8 +53,9 @@ function SessionRow({ s }: { s: Session }) {
   return (
     <div className={cn("rounded-lg border px-3 py-2 space-y-1.5", statusColor)}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-gray-700">
+        <span className={cn("text-xs font-medium", s.isRescheduled ? "text-sky-600" : "text-gray-700")}>
           {s.isRescheduled ? "↩ " : ""}S{s.sessionNumber}
+          {s.isRescheduled && <span className="ml-1 text-[10px] text-sky-400">Reprog.</span>}
         </span>
 
         {/* Fecha */}
@@ -119,10 +121,82 @@ function SessionRow({ s }: { s: Session }) {
   )
 }
 
-export default function TrainerClientSessions({ sessions }: { sessions: Session[] }) {
+export default function TrainerClientSessions({
+  sessions,
+  clientId,
+  planId,
+}: {
+  sessions: Session[]
+  clientId: string
+  planId: string
+}) {
+  const router = useRouter()
+  const [adding, setAdding] = useState(false)
+  const [newDate, setNewDate] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  async function addRescheduled() {
+    if (!newDate) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/trainer/clients/${clientId}/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, scheduledDate: newDate }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? "Error al agregar")
+      }
+      toast.success("Clase de reprogramación agregada")
+      setAdding(false)
+      setNewDate("")
+      router.refresh()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-semibold text-gray-500 uppercase">Sesiones</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-gray-500 uppercase">Sesiones</p>
+        <button
+          onClick={() => { setAdding(!adding); setNewDate("") }}
+          className="flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700"
+        >
+          <Plus className="h-3 w-3" />
+          Reprogramación
+        </button>
+      </div>
+
+      {/* Formulario para agregar reprogramación */}
+      {adding && (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 space-y-2">
+          <p className="text-xs font-medium text-sky-700">↩ Nueva clase de reprogramación</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs bg-white"
+            />
+            <button
+              disabled={saving || !newDate}
+              onClick={addRescheduled}
+              className="text-xs px-3 py-1 bg-sky-600 text-white rounded hover:bg-sky-700 disabled:opacity-40 font-medium"
+            >
+              Agregar
+            </button>
+            <button onClick={() => setAdding(false)} className="text-xs text-gray-400 hover:text-gray-600">
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {sessions.map((s) => (
         <SessionRow key={s.sessionId} s={s} />
       ))}
