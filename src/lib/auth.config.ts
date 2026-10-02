@@ -1,5 +1,13 @@
 import type { NextAuthConfig } from "next-auth"
 
+// Rutas permitidas para TRAINER
+const TRAINER_ALLOWED_PREFIXES = [
+  "/trainer",
+  "/api/trainer",
+  "/api/auth",
+  "/login",
+]
+
 // Rutas permitidas para NUTRITIONIST
 const NUTRITIONIST_ALLOWED_PREFIXES = [
   "/nutrition",
@@ -56,11 +64,19 @@ export const authConfig: NextAuthConfig = {
 
       if (isLoggedIn && isLoginPage) {
         const role = (auth?.user as { role?: string })?.role ?? "ADMIN"
-        const dest = role === "CLIENT" ? "/app" : role === "USER" ? "/clients" : role === "NUTRITIONIST" ? "/nutrition" : "/dashboard"
+        const dest = role === "CLIENT" ? "/app" : role === "USER" ? "/clients" : role === "NUTRITIONIST" ? "/nutrition" : role === "TRAINER" ? "/trainer/agenda" : "/dashboard"
         return Response.redirect(new URL(dest, nextUrl))
       }
 
       const role = (auth?.user as { role?: string })?.role ?? "ADMIN"
+
+      if (role === "TRAINER") {
+        const path = nextUrl.pathname
+        const allowed = TRAINER_ALLOWED_PREFIXES.some(r => path === r || path.startsWith(r + "/"))
+        if (allowed) return true
+        if (path.startsWith("/api/")) return Response.json({ error: "Sin permisos" }, { status: 403 })
+        return Response.redirect(new URL("/trainer/agenda", nextUrl))
+      }
 
       if (role === "NUTRITIONIST") {
         const path = nextUrl.pathname
