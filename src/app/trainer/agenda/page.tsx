@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { addDaysYmd, weekStartYmd, todayYmd } from "@/lib/coaching/dates"
+import { addDaysYmd, limaDateTime, weekStartYmd, todayYmd } from "@/lib/coaching/dates"
 import TrainerAgendaClient from "./TrainerAgendaClient"
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
@@ -12,20 +12,32 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
   const weekStart = new Date(week + "T00:00:00.000Z")
   const weekEnd = new Date(addDaysYmd(week, 7) + "T00:00:00.000Z")
 
-  const trainingSessions = await prisma.trainingSession.findMany({
-    where: { scheduledDate: { gte: weekStart, lt: weekEnd }, plan: { status: { in: ["ACTIVE", "PAUSED"] } } },
-    include: {
-      plan: {
-        select: {
-          tipoEntrenador: true,
-          modalidad: true,
-          scheduleSlots: true,
-          client: { select: { id: true, firstName: true, lastName: true } },
+  const [trainingSessions, coachingSlots] = await Promise.all([
+    prisma.trainingSession.findMany({
+      where: { scheduledDate: { gte: weekStart, lt: weekEnd }, plan: { status: { in: ["ACTIVE", "PAUSED"] } } },
+      include: {
+        plan: {
+          select: {
+            tipoEntrenador: true,
+            modalidad: true,
+            scheduleSlots: true,
+            client: { select: { id: true, firstName: true, lastName: true } },
+          },
         },
       },
-    },
-    orderBy: { scheduledDate: "asc" },
-  })
+      orderBy: { scheduledDate: "asc" },
+    }),
+    prisma.coachingSlot.findMany({
+      where: { startsAt: { gte: limaDateTime(week, "00:00"), lt: limaDateTime(addDaysYmd(week, 7), "00:00") } },
+      include: {
+        bookings: {
+          orderBy: { createdAt: "asc" },
+          include: { client: { select: { id: true, firstName: true, lastName: true } } },
+        },
+      },
+      orderBy: { startsAt: "asc" },
+    }),
+  ])
 
   const trainingSlots = trainingSessions.map((s) => {
     const dateStr = s.scheduledDate!.toISOString().slice(0, 10)
@@ -44,5 +56,29 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
     }
   })
 
-  return <TrainerAgendaClient week={week} trainingSlots={trainingSlots} />
+  const coachingSlotsMapped = coachingSlots.map((s) => ({
+    id: s.id,
+    startsAt: s.startsAt.toISOString(),
+    endsAt: s.endsAt.toISOString(),
+    title: s.title,
+    mode: s.mode,
+    capacity: s.capacity,
+    location: s.location,
+    bookings: s.bookings.map((b) => ({
+      id: b.id,
+      status: b.status,
+      clientId: b.client.id,
+      name: `${b.client.firstName} ${b.client.lastName}`,
+    })),
+  }))
+
+  return (
+    <div className="p-4 space-y-4">
+      <TrainerAgendaClient
+        week={week}
+        trainingSlots={trainingSlots}
+        coachingSlots={coachingSlotsMapped}
+      />
+    </div>
+  )
 }

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if ("error" in guard) return guard.error
   try {
     const { name, email, password, role: rawRole } = await request.json()
-    const role = rawRole === "NUTRITIONIST" ? "NUTRITIONIST" : "USER"
+    const role = rawRole === "NUTRITIONIST" ? "NUTRITIONIST" : rawRole === "TRAINER" ? "TRAINER" : "USER"
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })

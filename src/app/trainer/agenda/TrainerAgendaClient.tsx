@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { ChevronLeft, ChevronRight, Dumbbell, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Dumbbell, Video, MapPin, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
@@ -20,6 +20,17 @@ type TrainingSlot = {
   attended: boolean | null
 }
 
+type CoachingSlot = {
+  id: string
+  startsAt: string
+  endsAt: string
+  title: string
+  mode: string
+  capacity: number
+  location: string | null
+  bookings: { id: string; status: string; clientId: string; name: string }[]
+}
+
 const addDays = (s: string, n: number) => {
   const d = new Date(`${s}T12:00:00Z`)
   d.setUTCDate(d.getUTCDate() + n)
@@ -27,7 +38,8 @@ const addDays = (s: string, n: number) => {
 }
 
 const ymd = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(d)
-const today = ymd(new Date())
+const hhmm = (iso: string) =>
+  new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso))
 
 async function patchSession(sessionId: string, body: object) {
   const res = await fetch(`/api/trainer/sessions/${sessionId}`, {
@@ -42,11 +54,20 @@ async function patchSession(sessionId: string, body: object) {
   return res.json()
 }
 
-export default function TrainerAgendaClient({ week, trainingSlots }: { week: string; trainingSlots: TrainingSlot[] }) {
+export default function TrainerAgendaClient({
+  week,
+  trainingSlots,
+  coachingSlots = [],
+}: {
+  week: string
+  trainingSlots: TrainingSlot[]
+  coachingSlots?: CoachingSlot[]
+}) {
   const router = useRouter()
   const [selected, setSelected] = useState<TrainingSlot | null>(null)
   const [newDate, setNewDate] = useState("")
   const [saving, setSaving] = useState(false)
+  const today = ymd(new Date())
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i))
 
   async function markAttendance(sessionId: string, attended: boolean | null) {
@@ -79,57 +100,98 @@ export default function TrainerAgendaClient({ week, trainingSlots }: { week: str
   }
 
   return (
-    <div className="p-4 max-w-2xl mx-auto space-y-4">
-      {/* Navegación de semana */}
-      <div className="flex items-center gap-2">
-        <Link href={`?week=${addDays(week, -7)}`} className="p-2 rounded-lg hover:bg-gray-100">
-          <ChevronLeft className="h-4 w-4" />
-        </Link>
-        <span className="flex-1 text-center text-sm font-semibold">
-          Semana del {week.split("-").reverse().join("/")}
-        </span>
-        <Link href={`?week=${addDays(week, 7)}`} className="p-2 rounded-lg hover:bg-gray-100">
-          <ChevronRight className="h-4 w-4" />
-        </Link>
-        <Link href="/trainer/agenda" className="text-xs text-orange-500">Hoy</Link>
+    <>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Link href={`?week=${addDays(week, -7)}`} className="p-2 rounded-lg hover:bg-gray-100">
+            <ChevronLeft className="h-4 w-4" />
+          </Link>
+          <h1 className="text-lg font-bold">Semana del {week.split("-").reverse().join("/")}</h1>
+          <Link href={`?week=${addDays(week, 7)}`} className="p-2 rounded-lg hover:bg-gray-100">
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+          <Link href="/trainer/agenda" className="text-xs text-orange-600 ml-1">Hoy</Link>
+        </div>
       </div>
 
-      {/* Columnas de días */}
-      <div className="space-y-3">
+      <div className="grid md:grid-cols-7 gap-3">
         {days.map((d, i) => {
-          const daySessions = trainingSlots.filter((s) => s.scheduledDate === d)
-          if (daySessions.length === 0) return null
+          const dayTraining = trainingSlots.filter((s) => s.scheduledDate === d)
+          const dayCoaching = coachingSlots.filter((s) => ymd(new Date(s.startsAt)) === d)
+
+          type Item =
+            | { key: string; time: string; kind: "coaching"; slot: CoachingSlot }
+            | { key: string; time: string; kind: "training"; session: TrainingSlot }
+
+          const merged: Item[] = [
+            ...dayCoaching.map((s) => ({ key: s.id, kind: "coaching" as const, slot: s, time: hhmm(s.startsAt) })),
+            ...dayTraining.map((s) => ({ key: s.sessionId, kind: "training" as const, session: s, time: s.startTime?.slice(0, 5) ?? "00:00" })),
+          ].sort((a, b) => a.time.localeCompare(b.time))
+
+          const isEmpty = merged.length === 0
+
           return (
-            <div key={d} className={cn("rounded-xl border p-3 space-y-2", d === today && "ring-2 ring-orange-300")}>
+            <div key={d} className={cn("rounded-xl border p-3 space-y-2 bg-white", d === today && "ring-2 ring-orange-300")}>
               <p className="text-xs font-semibold text-gray-500 uppercase">
                 {DAYS[i]} <span className="text-gray-900">{d.slice(8)}</span>
               </p>
-              {daySessions
-                .sort((a, b) => (a.startTime ?? "00:00").localeCompare(b.startTime ?? "00:00"))
-                .map((s) => (
-                  <button
-                    key={s.sessionId}
-                    onClick={() => { setSelected(s); setNewDate(s.scheduledDate) }}
-                    className="w-full text-left rounded-lg px-3 py-2 text-xs border bg-sky-50 border-sky-200 hover:border-sky-400 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-2">
+              <div className="mt-2 space-y-1.5">
+                {isEmpty && <p className="text-[11px] text-gray-300">—</p>}
+                {merged.map((item) => {
+                  if (item.kind === "coaching") {
+                    const s = item.slot
+                    const booked = s.bookings.filter((b) => ["BOOKED", "ATTENDED", "NO_SHOW"].includes(b.status))
+                    return (
+                      <div
+                        key={item.key}
+                        className={cn("w-full text-left rounded-lg px-2 py-1.5 text-xs border", booked.length ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-100")}
+                      >
+                        <p className="font-semibold">
+                          {item.time}
+                          {s.mode === "ONLINE" && <Video className="inline h-3 w-3 ml-1" />}
+                          {s.mode === "PRESENCIAL" && s.location && <MapPin className="inline h-3 w-3 ml-1" />}
+                        </p>
+                        {booked.length ? (
+                          booked.map((b) => (
+                            <p key={b.id} className="truncate">
+                              {b.status === "ATTENDED" ? "✅ " : b.status === "NO_SHOW" ? "❌ " : ""}
+                              {b.name.split(" ")[0]}
+                            </p>
+                          ))
+                        ) : (
+                          <p className="text-gray-400">Libre</p>
+                        )}
+                        {s.capacity > 1 && <p className="text-[10px] text-gray-400">{booked.length}/{s.capacity}</p>}
+                      </div>
+                    )
+                  }
+
+                  const s = item.session
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => { setSelected(s); setNewDate(s.scheduledDate) }}
+                      className="w-full text-left rounded-lg px-2 py-1.5 text-xs border bg-sky-50 border-sky-200 hover:border-sky-400 block transition-colors"
+                    >
                       <div className="flex items-center gap-1 font-semibold text-sky-700">
                         <Dumbbell className="h-3 w-3 shrink-0" />
-                        {s.startTime ? s.startTime.slice(0, 5) : "EP"}
+                        {item.time !== "00:00" ? item.time : "EP"}
                       </div>
-                      <span className="text-[10px] text-sky-400">S{s.sessionNumber}</span>
-                    </div>
-                    <p className="truncate text-sky-900">
-                      {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}{s.clientName.trim().split(" ")[0]}
-                    </p>
-                  </button>
-                ))}
+                      <p className="truncate text-sky-900">
+                        {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}
+                        {s.clientName.trim().split(" ")[0]}
+                      </p>
+                      <p className="text-[10px] text-sky-400">S{s.sessionNumber}</p>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )
         })}
       </div>
 
-      {/* Modal de sesión */}
+      {/* Modal de sesión EP */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4" onClick={() => setSelected(null)}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
@@ -143,7 +205,6 @@ export default function TrainerAgendaClient({ week, trainingSlots }: { week: str
               </button>
             </div>
 
-            {/* Link a ficha del cliente */}
             <Link
               href={`/trainer/clients/${selected.clientId}`}
               className="block text-xs text-center text-sky-600 hover:underline"
@@ -152,7 +213,6 @@ export default function TrainerAgendaClient({ week, trainingSlots }: { week: str
               Ver ficha del cliente →
             </Link>
 
-            {/* Cambiar fecha */}
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-600">Fecha de la sesión</label>
               <div className="flex gap-2">
@@ -172,14 +232,11 @@ export default function TrainerAgendaClient({ week, trainingSlots }: { week: str
               </div>
             </div>
 
-            {/* Marcar asistencia */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-gray-600">Asistencia</p>
               {selected.attended !== null ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-700">
-                    {selected.attended ? "✅ Asistió" : "❌ No asistió"}
-                  </p>
+                  <p className="text-sm text-gray-700">{selected.attended ? "✅ Asistió" : "❌ No asistió"}</p>
                   <button
                     disabled={saving}
                     onClick={() => markAttendance(selected.sessionId, null)}
@@ -210,6 +267,6 @@ export default function TrainerAgendaClient({ week, trainingSlots }: { week: str
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
