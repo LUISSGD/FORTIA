@@ -83,6 +83,19 @@ export async function POST(request: Request) {
         })
         await assignPlanScheduleDates(plan.id, incomeDate)
       }
+      // Actualizar período de membresía para que refleje el plan de entrenamiento
+      const lastSession = await prisma.trainingSession.findFirst({
+        where: { planId: plan.id, scheduledDate: { not: null } },
+        orderBy: { scheduledDate: "desc" },
+        select: { scheduledDate: true },
+      })
+      await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          membershipStart: incomeDate,
+          membershipEnd: lastSession?.scheduledDate ?? incomeDate,
+        },
+      })
     }
     return NextResponse.json({ payment, income }, { status: 201 })
   }

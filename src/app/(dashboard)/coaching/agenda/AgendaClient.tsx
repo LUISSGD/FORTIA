@@ -97,7 +97,7 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
                       {s.startTime ? `${s.startTime.slice(0, 5)}` : "EP"}
                     </div>
                     <p className="truncate text-sky-900">
-                      {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}{s.clientName.split(" ")[0]}
+                      {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}{s.clientName.trim().split(" ")[0]}
                     </p>
                     <p className="text-[10px] text-sky-400">S{s.sessionNumber}</p>
                   </Link>
