@@ -41,8 +41,18 @@ interface Props {
 }
 
 type PaymentType = "membership" | "training"
+type ScheduleSlot = { dayOfWeek: string; startTime: string; endTime: string }
 
 const CLASES_OPTIONS: ClasesPerPack[] = [4, 8, 12, 16]
+const DAYS_OF_WEEK = [
+  { value: "1", label: "Lunes" },
+  { value: "2", label: "Martes" },
+  { value: "3", label: "Miércoles" },
+  { value: "4", label: "Jueves" },
+  { value: "5", label: "Viernes" },
+  { value: "6", label: "Sábado" },
+  { value: "7", label: "Domingo" },
+]
 const CLASES_LABELS: Record<number, string> = { 4: "4 clases/pack", 8: "8 clases/pack", 12: "12 clases/pack", 16: "16 clases/pack" }
 
 export default function AddPaymentDialog({ clientId, clientName, plans, currentPlanId }: Props) {
@@ -53,6 +63,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
   // Al cobrar entrenamiento personal se crea también el paquete de clases, salvo que ya tenga uno activo.
   const [createPlan, setCreatePlan] = useState(true)
   const [hasActivePlan, setHasActivePlan] = useState(false)
+  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([{ dayOfWeek: "1", startTime: "", endTime: "" }])
   useEffect(() => {
     if (!open || paymentType !== "training") return
     fetch(`/api/clients/${clientId}/training-plans`)
@@ -145,6 +156,16 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
     if (price) setAmount(String(price))
   }
 
+  function addScheduleSlot() {
+    setScheduleSlots((prev) => [...prev, { dayOfWeek: "1", startTime: "", endTime: "" }])
+  }
+  function removeScheduleSlot(idx: number) {
+    setScheduleSlots((prev) => prev.filter((_, i) => i !== idx))
+  }
+  function updateScheduleSlot(idx: number, key: keyof ScheduleSlot, val: string) {
+    setScheduleSlots((prev) => prev.map((s, i) => i === idx ? { ...s, [key]: val } : s))
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] ?? null
     setFile(selected)
@@ -163,7 +184,10 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
 
   function handleClose(isOpen: boolean) {
     setOpen(isOpen)
-    if (!isOpen) removeFile()
+    if (!isOpen) {
+      removeFile()
+      setScheduleSlots([{ dayOfWeek: "1", startTime: "", endTime: "" }])
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -205,6 +229,11 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                 numPacks,
                 clasesPerPack,
                 paymentDate,
+                scheduleSlots: createPlan
+                  ? scheduleSlots
+                      .filter((s) => s.dayOfWeek && s.startTime && s.endTime)
+                      .map((s) => ({ dayOfWeek: parseInt(s.dayOfWeek), startTime: s.startTime, endTime: s.endTime }))
+                  : [],
               }
         ),
       })
@@ -486,15 +515,68 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
             </div>
 
             {paymentType === "training" && (
-              <label className="flex items-start gap-2 text-sm cursor-pointer">
-                <input type="checkbox" className="mt-0.5" checked={createPlan} onChange={(e) => setCreatePlan(e.target.checked)} />
-                <span>
-                  Crear también el paquete de clases
-                  <span className="block text-xs text-gray-500">
-                    {hasActivePlan ? "Ya tiene un paquete activo con clases pendientes: márcalo solo si es un paquete nuevo." : "Aparecerá en Entrenamiento Personal y el cliente podrá marcar sus clases desde la app."}
+              <div className="space-y-3">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" className="mt-0.5" checked={createPlan} onChange={(e) => setCreatePlan(e.target.checked)} />
+                  <span>
+                    Crear también el paquete de clases
+                    <span className="block text-xs text-gray-500">
+                      {hasActivePlan ? "Ya tiene un paquete activo con clases pendientes: márcalo solo si es un paquete nuevo." : "Aparecerá en Entrenamiento Personal y el cliente podrá marcar sus clases desde la app."}
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+
+                {createPlan && (
+                  <div className="pl-5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-gray-600">Horarios de clases <span className="text-gray-400 font-normal">(opcional)</span></Label>
+                    </div>
+                    {scheduleSlots.map((slot, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5">
+                        <select
+                          value={slot.dayOfWeek}
+                          onChange={(e) => updateScheduleSlot(idx, "dayOfWeek", e.target.value)}
+                          className="flex-1 min-w-0 text-sm border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                        >
+                          {DAYS_OF_WEEK.map((d) => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="time"
+                          value={slot.startTime}
+                          onChange={(e) => updateScheduleSlot(idx, "startTime", e.target.value)}
+                          className="w-24 text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                        />
+                        <span className="text-xs text-gray-400 shrink-0">a</span>
+                        <input
+                          type="time"
+                          value={slot.endTime}
+                          onChange={(e) => updateScheduleSlot(idx, "endTime", e.target.value)}
+                          className="w-24 text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                        />
+                        {scheduleSlots.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeScheduleSlot(idx)}
+                            className="shrink-0 text-gray-400 hover:text-red-500 transition-colors p-0.5"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addScheduleSlot}
+                      className="text-xs text-orange-500 hover:text-orange-600 font-medium flex items-center gap-1 transition-colors"
+                    >
+                      <PlusCircle className="h-3.5 w-3.5" />
+                      Agregar otro horario
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {paymentType === "membership" && selectedPlan && (

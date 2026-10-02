@@ -74,6 +74,13 @@ export async function POST(request: Request) {
           planId: plan.id, sessionNumber: i + 1, packNumber: Math.floor(i / clasesPerPack) + 1,
         })),
       })
+      // Guardar horarios recurrentes si se enviaron
+      const slots = body.scheduleSlots as { dayOfWeek: number; startTime: string; endTime: string }[] | undefined
+      if (slots && slots.length > 0) {
+        await prisma.personalTrainingSlot.createMany({
+          data: slots.map((s) => ({ planId: plan.id, dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime })),
+        })
+      }
     }
     return NextResponse.json({ payment, income }, { status: 201 })
   }
