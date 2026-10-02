@@ -7,14 +7,32 @@ export const dynamic = "force-dynamic"
 export default async function AgendaPage({ searchParams }: PageProps<"/coaching/agenda">) {
   const sp = await searchParams
   const week = typeof sp.week === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.week) ? weekStartYmd(sp.week) : weekStartYmd(todayYmd())
-  const [slots, clients] = await Promise.all([
+  const weekStart = new Date(week + "T00:00:00.000Z")
+  const weekEnd = new Date(addDaysYmd(week, 7) + "T00:00:00.000Z")
+
+  const [slots, clients, trainingSessions] = await Promise.all([
     prisma.coachingSlot.findMany({
       where: { startsAt: { gte: limaDateTime(week, "00:00"), lt: limaDateTime(addDaysYmd(week, 7), "00:00") } },
       include: { bookings: { orderBy: { createdAt: "asc" }, include: { client: { select: { id: true, firstName: true, lastName: true } } } } },
       orderBy: { startsAt: "asc" },
     }),
     prisma.coachingProfile.findMany({ where: { status: "ACTIVE" }, select: { client: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { client: { firstName: "asc" } } }),
+    prisma.trainingSession.findMany({
+      where: { scheduledDate: { gte: weekStart, lt: weekEnd }, plan: { status: "ACTIVE" } },
+      include: {
+        plan: {
+          select: {
+            tipoEntrenador: true,
+            modalidad: true,
+            scheduleSlots: true,
+            client: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+      },
+      orderBy: { scheduledDate: "asc" },
+    }),
   ])
+
   return (
     <AgendaClient
       week={week}
@@ -29,6 +47,24 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
         bookings: s.bookings.map((b) => ({ id: b.id, status: b.status, clientId: b.client.id, name: `${b.client.firstName} ${b.client.lastName}` })),
       }))}
       clients={clients.map((c) => ({ id: c.client.id, name: `${c.client.firstName} ${c.client.lastName}` }))}
+      trainingSlots={trainingSessions.map((s) => {
+        const dateStr = s.scheduledDate!.toISOString().slice(0, 10)
+        const jsDay = new Date(dateStr + "T12:00:00Z").getUTCDay()
+        const fortiaDay = jsDay === 0 ? 6 : jsDay - 1
+        const slot = s.plan.scheduleSlots.find((sl) => sl.dayOfWeek === fortiaDay)
+        return {
+          sessionId: s.id,
+          sessionNumber: s.sessionNumber,
+          scheduledDate: dateStr,
+          clientId: s.plan.client.id,
+          clientName: `${s.plan.client.firstName} ${s.plan.client.lastName}`,
+          startTime: slot?.startTime ?? null,
+          endTime: slot?.endTime ?? null,
+          attended: s.attended ?? null,
+          tipoEntrenador: s.plan.tipoEntrenador,
+          modalidad: s.plan.modalidad,
+        }
+      })}
     />
   )
 }

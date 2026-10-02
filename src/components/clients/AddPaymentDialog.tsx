@@ -44,14 +44,15 @@ type PaymentType = "membership" | "training"
 type ScheduleSlot = { dayOfWeek: string; startTime: string; endTime: string }
 
 const CLASES_OPTIONS: ClasesPerPack[] = [4, 8, 12, 16]
+// dayOfWeek: 0=Lun, 1=Mar, 2=Mié, 3=Jue, 4=Vie, 5=Sáb, 6=Dom (matches PersonalTrainingSection)
 const DAYS_OF_WEEK = [
-  { value: "1", label: "Lunes" },
-  { value: "2", label: "Martes" },
-  { value: "3", label: "Miércoles" },
-  { value: "4", label: "Jueves" },
-  { value: "5", label: "Viernes" },
-  { value: "6", label: "Sábado" },
-  { value: "7", label: "Domingo" },
+  { value: "0", label: "Lunes" },
+  { value: "1", label: "Martes" },
+  { value: "2", label: "Miércoles" },
+  { value: "3", label: "Jueves" },
+  { value: "4", label: "Viernes" },
+  { value: "5", label: "Sábado" },
+  { value: "6", label: "Domingo" },
 ]
 const CLASES_LABELS: Record<number, string> = { 4: "4 clases/pack", 8: "8 clases/pack", 12: "12 clases/pack", 16: "16 clases/pack" }
 
@@ -63,7 +64,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
   // Al cobrar entrenamiento personal se crea también el paquete de clases, salvo que ya tenga uno activo.
   const [createPlan, setCreatePlan] = useState(true)
   const [hasActivePlan, setHasActivePlan] = useState(false)
-  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([{ dayOfWeek: "1", startTime: "", endTime: "" }])
+  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([{ dayOfWeek: "0", startTime: "", endTime: "" }])
   useEffect(() => {
     if (!open || paymentType !== "training") return
     fetch(`/api/clients/${clientId}/training-plans`)
@@ -186,7 +187,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
     setOpen(isOpen)
     if (!isOpen) {
       removeFile()
-      setScheduleSlots([{ dayOfWeek: "1", startTime: "", endTime: "" }])
+      setScheduleSlots([{ dayOfWeek: "0", startTime: "", endTime: "" }])
     }
   }
 

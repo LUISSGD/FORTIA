@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Video, MapPin } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Video, MapPin, Dumbbell } from "lucide-react"
 import { BOOKING_STATUS } from "@/lib/coaching/constants"
 import { DAYS_OF_WEEK } from "@/lib/utils"
 import { cn } from "@/lib/utils"
@@ -12,12 +12,13 @@ import { Btn, Field, Input, Modal, Panel, Select, api } from "@/components/coach
 
 type Booking = { id: string; status: string; clientId: string; name: string }
 type Slot = { id: string; startsAt: string; endsAt: string; title: string; mode: string; capacity: number; location: string | null; bookings: Booking[] }
+type TrainingSlot = { sessionId: string; sessionNumber: number; scheduledDate: string; clientId: string; clientName: string; startTime: string | null; endTime: string | null; attended: boolean | null; tipoEntrenador: string; modalidad: string }
 
 const ymd = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(d)
 const hhmm = (iso: string) => new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso))
 const addDays = (s: string, n: number) => { const d = new Date(`${s}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
 
-export default function AgendaClient({ week, slots, clients }: { week: string; slots: Slot[]; clients: { id: string; name: string }[] }) {
+export default function AgendaClient({ week, slots, clients, trainingSlots = [] }: { week: string; slots: Slot[]; clients: { id: string; name: string }[]; trainingSlots?: TrainingSlot[] }) {
   const router = useRouter()
   const [creating, setCreating] = useState(false)
   const [detail, setDetail] = useState<Slot | null>(null)
@@ -63,11 +64,13 @@ export default function AgendaClient({ week, slots, clients }: { week: string; s
       <div className="grid md:grid-cols-7 gap-3">
         {days.map((d, i) => {
           const daySlots = slots.filter((s) => ymd(new Date(s.startsAt)) === d)
+          const dayTraining = trainingSlots.filter((s) => s.scheduledDate === d).sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""))
+          const isEmpty = daySlots.length === 0 && dayTraining.length === 0
           return (
             <Panel key={d} className={cn("p-3", d === today && "ring-2 ring-orange-300")}>
               <p className="text-xs font-semibold text-gray-500 uppercase">{DAYS_OF_WEEK[i].slice(0, 3)} <span className="text-gray-900">{d.slice(8)}</span></p>
               <div className="mt-2 space-y-1.5">
-                {daySlots.length === 0 && <p className="text-[11px] text-gray-300">—</p>}
+                {isEmpty && <p className="text-[11px] text-gray-300">—</p>}
                 {daySlots.map((s) => {
                   const booked = s.bookings.filter((b) => ["BOOKED", "ATTENDED", "NO_SHOW"].includes(b.status))
                   const waiting = s.bookings.filter((b) => b.status === "WAITLIST").length
@@ -83,6 +86,22 @@ export default function AgendaClient({ week, slots, clients }: { week: string; s
                     </button>
                   )
                 })}
+                {dayTraining.map((s) => (
+                  <Link
+                    key={s.sessionId}
+                    href={`/coaching/clients/${s.clientId}?tab=training`}
+                    className="w-full text-left rounded-lg px-2 py-1.5 text-xs border bg-sky-50 border-sky-200 hover:border-sky-400 block"
+                  >
+                    <div className="flex items-center gap-1 font-semibold text-sky-700">
+                      <Dumbbell className="h-3 w-3 shrink-0" />
+                      {s.startTime ? `${s.startTime.slice(0, 5)}` : "EP"}
+                    </div>
+                    <p className="truncate text-sky-900">
+                      {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}{s.clientName.split(" ")[0]}
+                    </p>
+                    <p className="text-[10px] text-sky-400">S{s.sessionNumber}</p>
+                  </Link>
+                ))}
               </div>
             </Panel>
           )

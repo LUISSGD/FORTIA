@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { addDays } from "date-fns"
 import { membershipSnapshot } from "@/lib/finance-sync"
 import { getTrainingPrice, ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS, type Entrenador, type Modalidad, type Tarifa, type NumPacks, type ClasesPerPack } from "@/lib/training-pricing"
+import { assignPlanScheduleDates } from "@/lib/coaching/personal-training"
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -74,12 +75,13 @@ export async function POST(request: Request) {
           planId: plan.id, sessionNumber: i + 1, packNumber: Math.floor(i / clasesPerPack) + 1,
         })),
       })
-      // Guardar horarios recurrentes si se enviaron
+      // Guardar horarios recurrentes y auto-asignar fechas a todas las sesiones
       const slots = body.scheduleSlots as { dayOfWeek: number; startTime: string; endTime: string }[] | undefined
       if (slots && slots.length > 0) {
         await prisma.personalTrainingSlot.createMany({
           data: slots.map((s) => ({ planId: plan.id, dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime })),
         })
+        await assignPlanScheduleDates(plan.id, incomeDate)
       }
     }
     return NextResponse.json({ payment, income }, { status: 201 })

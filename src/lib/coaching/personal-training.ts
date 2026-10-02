@@ -37,6 +37,79 @@ export async function getMembership(clientId: string) {
   return c ? membershipInfo(c) : null
 }
 
+// ── Schedule date auto-generation ────────────────────────────────────────────
+// dayOfWeek convention: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+// This matches PersonalTrainingSection.tsx DAY_LABELS index.
+
+function generateSessionDates(slots: { dayOfWeek: number }[], startDate: Date, count: number): Date[] {
+  if (slots.length === 0 || count === 0) return []
+  const sorted = [...slots].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+  const dates: Date[] = []
+  let cursor = new Date(startDate)
+
+  // Find first slot whose dayOfWeek >= startDate's fortia-day (0=Mon)
+  const cursorFortiaDay = cursor.getUTCDay() === 0 ? 6 : cursor.getUTCDay() - 1
+  let slotIdx = sorted.findIndex((s) => s.dayOfWeek >= cursorFortiaDay)
+  if (slotIdx === -1) slotIdx = 0
+
+  while (dates.length < count) {
+    const slot = sorted[slotIdx]
+    // Convert fortia dayOfWeek (0=Mon) to JS getUTCDay (0=Sun)
+    const targetJsDay = slot.dayOfWeek === 6 ? 0 : slot.dayOfWeek + 1
+    const cursorJsDay = cursor.getUTCDay()
+    let diff = targetJsDay - cursorJsDay
+    if (diff < 0) diff += 7
+    // If cursor is already on that day and it's not the very first session, skip to next week
+    if (diff === 0 && dates.length > 0) diff = 7
+
+    const d = new Date(cursor)
+    d.setUTCDate(d.getUTCDate() + diff)
+    dates.push(d)
+
+    // Advance cursor past this date so the next iteration picks the next occurrence
+    cursor = new Date(d)
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+    slotIdx = (slotIdx + 1) % sorted.length
+  }
+
+  return dates
+}
+
+/**
+ * Reads the schedule slots for a plan and assigns scheduledDate to all
+ * pending (not yet completed) sessions in sessionNumber order.
+ * Completed sessions are left untouched.
+ */
+export async function assignPlanScheduleDates(planId: string, startDate?: Date) {
+  const [plan, slots] = await Promise.all([
+    prisma.clientTrainingPlan.findUnique({
+      where: { id: planId },
+      include: { sessions: { orderBy: { sessionNumber: "asc" } } },
+    }),
+    prisma.personalTrainingSlot.findMany({
+      where: { planId },
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+    }),
+  ])
+
+  if (!plan || slots.length === 0) return
+
+  const pendingSessions = plan.sessions.filter((s) => !s.completedAt)
+  if (pendingSessions.length === 0) return
+
+  const start = startDate ?? (plan.currentPackStart ? new Date(plan.currentPackStart) : new Date())
+  const dates = generateSessionDates(slots, start, pendingSessions.length)
+
+  await Promise.all(
+    pendingSessions.map((session, idx) =>
+      prisma.trainingSession.update({
+        where: { id: session.id },
+        data: { scheduledDate: dates[idx] ?? null },
+      })
+    )
+  )
+}
+
 const isAttended = (s: { attended: boolean | null; completedAt: Date | null }) => s.attended ?? (s.completedAt ? true : null)
 
 /** Paquete de entrenamiento personal vigente del cliente (o el último pausado). */

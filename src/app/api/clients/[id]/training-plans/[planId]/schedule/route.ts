@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { assignPlanScheduleDates } from "@/lib/coaching/personal-training"
 
 type Ctx = { params: Promise<{ id: string; planId: string }> }
 
@@ -31,6 +32,8 @@ export async function POST(req: Request, { params }: Ctx) {
   const slot = await prisma.personalTrainingSlot.create({
     data: { planId, dayOfWeek, startTime, endTime },
   })
+  // Re-assign session dates based on updated weekly schedule
+  await assignPlanScheduleDates(planId)
   return NextResponse.json(slot, { status: 201 })
 }
 
@@ -50,5 +53,7 @@ export async function DELETE(req: Request, { params }: Ctx) {
   }
 
   await prisma.personalTrainingSlot.delete({ where: { id: slotId } })
+  // Re-assign session dates based on remaining slots
+  await assignPlanScheduleDates(planId)
   return NextResponse.json({ ok: true })
 }
