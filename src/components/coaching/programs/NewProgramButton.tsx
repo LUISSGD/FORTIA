@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { Plus } from "lucide-react"
 import { Btn, api } from "@/components/coaching/kit"
 
-export default function NewProgramButton() {
+export default function NewProgramButton({ basePath = "/coaching" }: { basePath?: string }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   return (
@@ -21,7 +21,7 @@ export default function NewProgramButton() {
             name,
             days: [{ name: "Día 1", exercises: [] }],
           })
-          router.push(`/coaching/programs/${p.id}`)
+          router.push(`${basePath}/programs/${p.id}`)
         } catch (e) {
           toast.error((e as Error).message)
           setBusy(false)

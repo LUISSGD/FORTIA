@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireCoach, jsonError } from "@/lib/coaching/auth"
+import { requireCoachOrTrainer, jsonError } from "@/lib/coaching/auth"
 import { exerciseData } from "../shared"
 
 type Params = { params: Promise<{ id: string }> }
 
 export async function PATCH(request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const { id } = await params
   const data = exerciseData(await request.json())
@@ -18,7 +18,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
 /** Si el ejercicio ya se usó en rutinas o registros, se archiva para no perder el historial. */
 export async function DELETE(_request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const { id } = await params
   const used = await prisma.exercise.findUnique({ where: { id }, select: { _count: { select: { programExercises: true, setLogs: true } } } })

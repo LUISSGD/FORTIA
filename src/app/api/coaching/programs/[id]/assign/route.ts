@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireCoach, jsonError, str } from "@/lib/coaching/auth"
+import { requireCoachOrTrainer, jsonError, str } from "@/lib/coaching/auth"
 import { notifyClient } from "@/lib/coaching/notify"
 import { copyProgram } from "../../shared"
 
@@ -7,7 +7,7 @@ type Params = { params: Promise<{ id: string }> }
 
 /** Asigna una plantilla a uno o varios clientes (copia independiente para cada uno). */
 export async function POST(request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const { id } = await params
   const body = await request.json()

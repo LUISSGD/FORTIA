@@ -31,4 +31,20 @@ async function sendTo(where: { userId?: { in: string[] }; user?: { role: string 
 }
 
 export const pushToClient = (clientId: string, payload: Payload) => sendTo({ user: { clientId } }, payload)
-export const pushToCoaches = (payload: Payload) => sendTo({ user: { role: "ADMIN" } }, payload)
+/** Los links del panel de coaching equivalentes en el panel del entrenador (/trainer). */
+export function trainerLink(link?: string | null) {
+  if (!link) return "/trainer/clients"
+  const msg = link.match(/^\/coaching\/messages\?c=([^&]+)/)
+  if (msg) return `/trainer/clients/${msg[1]}?tab=chat`
+  const client = link.match(/^\/coaching\/clients\/([^/?]+)(\?.*)?$/)
+  if (client) return `/trainer/clients/${client[1]}${client[2] ?? ""}`
+  return "/trainer/clients"
+}
+
+/** Push al staff: ADMIN con el link original y TRAINER con el link de su panel. */
+export const pushToCoaches = async (payload: Payload) => {
+  await Promise.all([
+    sendTo({ user: { role: "ADMIN" } }, payload),
+    sendTo({ user: { role: "TRAINER" } }, { ...payload, link: trainerLink(payload.link) }),
+  ])
+}

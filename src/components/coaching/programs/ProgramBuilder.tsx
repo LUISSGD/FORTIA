@@ -26,7 +26,18 @@ function move<T>(arr: T[], i: number, dir: -1 | 1) {
   return copy
 }
 
-export default function ProgramBuilder({ program, exercises, clients }: { program: Program; exercises: Exercise[]; clients: { id: string; name: string }[] }) {
+export default function ProgramBuilder({
+  program,
+  exercises,
+  clients,
+  basePath = "/coaching",
+}: {
+  program: Program
+  exercises: Exercise[]
+  clients: { id: string; name: string }[]
+  /** Panel donde vive el editor: "/coaching" (coach) o "/trainer" (entrenador). */
+  basePath?: string
+}) {
   const router = useRouter()
   const [meta, setMeta] = useState({ name: program.name, goal: program.goal, level: program.level, description: program.description, weeks: String(program.weeks), isActive: program.isActive })
   const [days, setDays] = useState<Day[]>(program.days.length ? program.days : [{ key: uid(), name: "Día 1", dayOfWeek: "", notes: "", exercises: [] }])
@@ -81,7 +92,7 @@ export default function ProgramBuilder({ program, exercises, clients }: { progra
     if (dirty) await save()
     const p = await api<{ id: string }>("/api/coaching/programs", "POST", { copyFrom: program.id, name: `${meta.name} (copia)` })
     toast.success("Plantilla creada")
-    router.push(`/coaching/programs/${p.id}`)
+    router.push(`${basePath}/programs/${p.id}`)
   }
 
   async function assign() {
@@ -100,7 +111,7 @@ export default function ProgramBuilder({ program, exercises, clients }: { progra
   async function remove() {
     if (!confirm("¿Eliminar esta rutina? El historial de entrenamientos del cliente se conserva.")) return
     await api(`/api/coaching/programs/${program.id}`, "DELETE")
-    router.push(program.client ? `/coaching/clients/${program.client.id}?tab=training` : "/coaching/programs")
+    router.push(program.client ? `${basePath}/clients/${program.client.id}?tab=training` : `${basePath}/programs`)
   }
 
   const totalSets = days.reduce((a, d) => a + d.exercises.reduce((b, e) => b + (Number(e.sets) || 0), 0), 0)
@@ -109,7 +120,7 @@ export default function ProgramBuilder({ program, exercises, clients }: { progra
     <>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <Link href={program.client ? `/coaching/clients/${program.client.id}?tab=training` : "/coaching/programs"} className="text-xs text-gray-500 hover:text-gray-800">
+          <Link href={program.client ? `${basePath}/clients/${program.client.id}?tab=training` : `${basePath}/programs`} className="text-xs text-gray-500 hover:text-gray-800">
             ← {program.client ? program.client.name : "Rutinas"}
           </Link>
           <h1 className="text-xl font-bold">{program.isTemplate ? "Plantilla de rutina" : `Rutina de ${program.client?.name}`}</h1>
@@ -231,6 +242,7 @@ export default function ProgramBuilder({ program, exercises, clients }: { progra
       </div>
 
       <ExercisePicker
+        basePath={basePath}
         open={picker !== null}
         exercises={exercises}
         onClose={() => setPicker(null)}
@@ -264,7 +276,7 @@ export default function ProgramBuilder({ program, exercises, clients }: { progra
   )
 }
 
-function ExercisePicker({ open, exercises, onClose, onPick }: { open: boolean; exercises: Exercise[]; onClose: () => void; onPick: (id: string) => void }) {
+function ExercisePicker({ open, exercises, onClose, onPick, basePath }: { open: boolean; exercises: Exercise[]; onClose: () => void; onPick: (id: string) => void; basePath: string }) {
   const [q, setQ] = useState("")
   const [group, setGroup] = useState("")
   const list = exercises.filter((e) => (!group || e.muscleGroup === group) && e.name.toLowerCase().includes(q.toLowerCase()))
@@ -290,7 +302,7 @@ function ExercisePicker({ open, exercises, onClose, onPick }: { open: boolean; e
           ))}
           {!list.length && (
             <p className="p-3 text-sm text-gray-500">
-              Sin resultados. <Link href="/coaching/exercises" className="text-orange-600">Crear ejercicio</Link>
+              Sin resultados. <Link href={`${basePath}/exercises`} className="text-orange-600">Crear ejercicio</Link>
             </p>
           )}
         </div>

@@ -11,6 +11,7 @@ export type ChatMessage = {
   body: string
   attachmentUrl: string | null
   attachmentType: string | null
+  authorName?: string | null
   createdAt: string
 }
 
@@ -128,6 +129,9 @@ export default function ChatPanel({
                 )}
               >
                 {m.sender === "SYSTEM" && <p className="text-[10px] uppercase tracking-wide opacity-70 mb-0.5">Automático</p>}
+                {m.sender === "COACH" && m.authorName && (
+                  <p className={cn("text-[11px] font-semibold mb-0.5", isMine ? "text-orange-100" : dark ? "text-orange-300" : "text-orange-600")}>{m.authorName}</p>
+                )}
                 {m.attachmentUrl && m.attachmentType === "IMAGE" && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <a href={m.attachmentUrl} target="_blank" rel="noreferrer"><img src={m.attachmentUrl} alt="" className="rounded-lg mb-1 max-h-60 object-cover" /></a>

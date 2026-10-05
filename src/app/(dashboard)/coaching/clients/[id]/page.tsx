@@ -17,18 +17,18 @@ import {
 } from "lucide-react"
 import { getClientsOverview, clientAchievements } from "@/lib/coaching/stats"
 import { formatYmd, lastNDays, periodLabel, todayYmd, toYmd, dateTimeLima } from "@/lib/coaching/dates"
-import { LEVELS, PROFILE_STATUS, ADHERENCE_OPTIONS, SLEEP_OPTIONS, ENERGY_OPTIONS } from "@/lib/coaching/constants"
+import { LEVELS, PROFILE_STATUS } from "@/lib/coaching/constants"
 import { optionMacros, roundMacros } from "@/lib/coaching/nutrition"
-import { formatSet, fmtKg } from "@/lib/coaching/workout"
+import { fmtKg } from "@/lib/coaching/workout"
 import { Panel, Stat, StatusDot } from "@/components/coaching/kit"
 import LineChartCard from "@/components/coaching/LineChartCard"
-import ChatPanel from "@/components/coaching/ChatPanel"
 import PhysicalTrackingSection from "@/components/clients/PhysicalTrackingSection"
 import ProfileSettings from "./ProfileSettings"
 import GoalsPanel from "./GoalsPanel"
-import AssignPlan from "./AssignPlan"
-import ExerciseProgression from "./ExerciseProgression"
-import CheckInReview from "./CheckInReview"
+import AssignPlan from "@/components/coaching/client-tabs/AssignPlan"
+import TrainingTab from "@/components/coaching/client-tabs/TrainingTab"
+import CheckInsTab from "@/components/coaching/client-tabs/CheckInsTab"
+import ChatTab from "@/components/coaching/client-tabs/ChatTab"
 import PhotoCompare from "@/components/coaching/PhotoCompare"
 import PaymentsTable from "@/components/coaching/PaymentsTable"
 import { mpEnabled } from "@/lib/coaching/mercadopago"
@@ -136,7 +136,7 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
         <div className="flex-1 min-w-0 space-y-4 md:space-y-6">
           {tab === "summary" && <SummaryTab clientId={id} profile={profile} age={age} overview={overview} birthDate={client.birthDate} phone={client.phone} />}
           {tab === "membership" && <MembershipTab clientId={id} />}
-          {tab === "training" && <TrainingTab clientId={id} />}
+          {tab === "training" && <TrainingTab clientId={id} basePath="/coaching" />}
           {tab === "nutrition" && <NutritionTab clientId={id} profile={profile} />}
           {tab === "progress" && <ProgressTab clientId={id} />}
           {tab === "checkins" && <CheckInsTab clientId={id} />}
@@ -263,110 +263,6 @@ async function SummaryTab({ clientId, profile, age, overview, birthDate, phone }
               </span>
             ))}
           </div>
-        </Panel>
-      </div>
-    </div>
-  )
-}
-
-// ── Entrenamiento ───────────────────────────────────────────────────
-
-async function TrainingTab({ clientId }: { clientId: string }) {
-  const [programs, templates, workouts] = await Promise.all([
-    prisma.program.findMany({ where: { clientId }, orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }], include: { days: { orderBy: { order: "asc" }, include: { _count: { select: { exercises: true } } } } } }),
-    prisma.program.findMany({ where: { isTemplate: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.workoutLog.findMany({
-      where: { clientId, completedAt: { not: null } },
-      orderBy: { startedAt: "desc" },
-      take: 60,
-      include: { sets: { orderBy: [{ exerciseId: "asc" }, { setNumber: "asc" }], include: { exercise: { select: { id: true, name: true } } } } },
-    }),
-  ])
-  const active = programs.find((p) => p.isActive)
-
-  // Progresión por ejercicio (orden cronológico)
-  const byExercise = new Map<string, { name: string; sessions: { date: string; sets: { weight: number | null; reps: number | null }[] }[] }>()
-  for (const w of [...workouts].reverse()) {
-    const grouped = new Map<string, { weight: number | null; reps: number | null }[]>()
-    w.sets.forEach((s) => {
-      if (!byExercise.has(s.exerciseId)) byExercise.set(s.exerciseId, { name: s.exercise.name, sessions: [] })
-      if (!grouped.has(s.exerciseId)) grouped.set(s.exerciseId, [])
-      grouped.get(s.exerciseId)!.push({ weight: s.weight, reps: s.reps })
-    })
-    grouped.forEach((sets, exId) => byExercise.get(exId)!.sessions.push({ date: w.date, sets }))
-  }
-  const progression = [...byExercise.entries()].map(([exerciseId, v]) => ({ exerciseId, ...v })).sort((a, b) => b.sessions.length - a.sessions.length)
-
-  return (
-    <div className="grid lg:grid-cols-3 gap-4">
-      <div className="space-y-4">
-        <Panel title="Programa actual">
-          {active ? (
-            <div className="space-y-2">
-              <Link href={`/coaching/programs/${active.id}`} className="font-semibold text-orange-600 hover:underline">{active.name}</Link>
-              <ul className="text-sm space-y-1">
-                {active.days.map((d) => (
-                  <li key={d.id} className="flex justify-between"><span>{d.name}</span><span className="text-gray-400">{d._count.exercises} ejercicios</span></li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 mb-2">Este cliente no tiene programa activo.</p>
-          )}
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <AssignPlan kind="program" clientId={clientId} templates={templates} />
-          </div>
-        </Panel>
-        {programs.filter((p) => !p.isActive).length > 0 && (
-          <Panel title="Programas anteriores">
-            <ul className="text-sm space-y-1">
-              {programs.filter((p) => !p.isActive).map((p) => (
-                <li key={p.id}><Link href={`/coaching/programs/${p.id}`} className="hover:text-orange-600">{p.name}</Link></li>
-              ))}
-            </ul>
-          </Panel>
-        )}
-      </div>
-      <div className="lg:col-span-2 space-y-4">
-        <Panel title="📈 Progresión por ejercicio">
-          <ExerciseProgression data={progression} />
-        </Panel>
-        <Panel title={`Historial de entrenamientos (${workouts.length})`}>
-          {workouts.length === 0 ? (
-            <p className="text-sm text-gray-500">Aún no registra entrenamientos.</p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {workouts.map((w) => {
-                const notes = (w.exerciseNotes ?? {}) as Record<string, string>
-                const groups = new Map<string, { name: string; sets: typeof w.sets }>()
-                w.sets.forEach((s) => {
-                  if (!groups.has(s.exerciseId)) groups.set(s.exerciseId, { name: s.exercise.name, sets: [] })
-                  groups.get(s.exerciseId)!.sets.push(s)
-                })
-                return (
-                  <details key={w.id} className="py-2 group">
-                    <summary className="flex items-center justify-between cursor-pointer list-none">
-                      <span className="text-sm font-medium">{w.dayName} <span className="text-gray-400 font-normal">· {formatYmd(w.date, true)}</span></span>
-                      <span className="text-xs text-gray-500">
-                        {w.durationMin} min · {w.volumeKg.toLocaleString("es-PE")} kg{w.rating ? ` · ${"⭐".repeat(w.rating)}` : ""}
-                        {(w.notes || Object.values(notes).some(Boolean)) && " · 💬"}
-                      </span>
-                    </summary>
-                    <div className="mt-2 space-y-2 pl-2">
-                      {[...groups.entries()].map(([exId, g]) => (
-                        <div key={exId} className="text-sm">
-                          <p className="font-medium">{g.name}</p>
-                          <p className="text-gray-600 text-xs">{g.sets.map((s) => formatSet(s)).join(" · ")}</p>
-                          {notes[exId] && <p className="text-xs text-orange-700 bg-orange-50 rounded px-2 py-1 mt-1">💬 {notes[exId]}</p>}
-                        </div>
-                      ))}
-                      {w.notes && <p className="text-xs bg-gray-50 rounded p-2">📝 {w.notes}</p>}
-                    </div>
-                  </details>
-                )
-              })}
-            </div>
-          )}
         </Panel>
       </div>
     </div>
@@ -571,45 +467,6 @@ async function ProgressTab({ clientId }: { clientId: string }) {
   )
 }
 
-// ── Check-ins ───────────────────────────────────────────────────────
-
-async function CheckInsTab({ clientId }: { clientId: string }) {
-  const checkIns = await prisma.checkIn.findMany({ where: { clientId }, orderBy: { weekStart: "desc" }, include: { photos: true } })
-  if (!checkIns.length) return <Panel><p className="text-sm text-gray-500 text-center py-6">El cliente aún no envió check-ins. Se le recuerda automáticamente los domingos.</p></Panel>
-  const energySeries = [...checkIns].reverse().map((c) => ({ label: formatYmd(c.weekStart), value: c.energy }))
-  return (
-    <div className="space-y-4">
-      <Panel title="Energía semanal (1–5)"><LineChartCard data={energySeries} height={160} color="#8b5cf6" /></Panel>
-      {checkIns.map((c) => (
-        <Panel key={c.id} title={`Semana del ${formatYmd(c.weekStart, true)}`} action={c.reviewedAt ? <span className="text-xs text-emerald-600">✅ Revisado</span> : <span className="text-xs text-amber-600">Pendiente de revisión</span>}>
-          <div className="grid md:grid-cols-2 gap-4">
-            <dl className="grid grid-cols-2 gap-y-1.5 text-sm">
-              <dt className="text-gray-500">Energía</dt><dd>{ENERGY_OPTIONS.find((o) => o.value === c.energy)?.emoji} {ENERGY_OPTIONS.find((o) => o.value === c.energy)?.label}</dd>
-              <dt className="text-gray-500">Alimentación</dt><dd>{ADHERENCE_OPTIONS.find((o) => o.value === c.nutritionAdherence)?.label}</dd>
-              <dt className="text-gray-500">Sueño</dt><dd>{SLEEP_OPTIONS.find((o) => o.value === c.sleep)?.label}</dd>
-              {c.stress && (<><dt className="text-gray-500">Estrés</dt><dd>{c.stress}/5</dd></>)}
-              {c.weight && (<><dt className="text-gray-500">Peso</dt><dd>{c.weight} kg</dd></>)}
-              {c.discomfort && (<><dt className="text-gray-500">Molestias</dt><dd className="text-red-600">{c.discomfort}</dd></>)}
-              {c.feelings && (<><dt className="text-gray-500 col-span-2">¿Cómo se sintió?</dt><dd className="col-span-2 bg-gray-50 rounded p-2">{c.feelings}</dd></>)}
-            </dl>
-            <div className="space-y-2">
-              {c.photos.length > 0 && (
-                <div className="flex gap-2">
-                  {c.photos.map((p) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <a key={p.id} href={p.url} target="_blank" rel="noreferrer"><img src={p.url} alt={p.pose} className="h-24 w-20 object-cover rounded-lg" /></a>
-                  ))}
-                </div>
-              )}
-              <CheckInReview id={c.id} reply={c.coachReply} reviewed={!!c.reviewedAt} />
-            </div>
-          </div>
-        </Panel>
-      ))}
-    </div>
-  )
-}
-
 // ── Pagos ───────────────────────────────────────────────────────────
 
 async function PaymentsTab({ clientId, profile }: { clientId: string; profile: Profile }) {
@@ -632,20 +489,6 @@ async function PaymentsTab({ clientId, profile }: { clientId: string; profile: P
         />
       </Panel>
     </div>
-  )
-}
-
-// ── Chat ────────────────────────────────────────────────────────────
-
-async function ChatTab({ clientId }: { clientId: string }) {
-  const [messages] = await Promise.all([
-    prisma.coachMessage.findMany({ where: { clientId }, orderBy: { createdAt: "asc" }, take: 300 }),
-    prisma.coachMessage.updateMany({ where: { clientId, sender: "CLIENT", readAt: null }, data: { readAt: new Date() } }),
-  ])
-  return (
-    <Panel className="p-0 overflow-hidden">
-      <ChatPanel mode="coach" clientId={clientId} className="h-[65vh]" initialMessages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))} />
-    </Panel>
   )
 }
 

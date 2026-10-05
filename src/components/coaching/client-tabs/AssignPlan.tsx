@@ -6,12 +6,23 @@ import { toast } from "sonner"
 import { Btn, Select, api } from "@/components/coaching/kit"
 
 /** Asigna una plantilla (rutina o plan nutricional) al cliente, o crea uno vacío para editar. */
-export default function AssignPlan({ kind, clientId, templates }: { kind: "program" | "mealPlan"; clientId: string; templates: { id: string; name: string }[] }) {
+export default function AssignPlan({
+  kind,
+  clientId,
+  templates,
+  basePath = "/coaching",
+}: {
+  kind: "program" | "mealPlan"
+  clientId: string
+  templates: { id: string; name: string }[]
+  /** Panel donde vive el editor: "/coaching" (coach) o "/trainer" (entrenador). */
+  basePath?: string
+}) {
   const router = useRouter()
   const [templateId, setTemplateId] = useState("")
   const [busy, setBusy] = useState(false)
   const base = kind === "program" ? "/api/coaching/programs" : "/api/coaching/meal-plans"
-  const editBase = kind === "program" ? "/coaching/programs" : "/coaching/nutrition"
+  const editBase = kind === "program" ? `${basePath}/programs` : "/coaching/nutrition"
 
   async function assign() {
     if (!templateId) return
@@ -40,7 +51,7 @@ export default function AssignPlan({ kind, clientId, templates }: { kind: "progr
   }
 
   if (templates.length === 0) {
-    const libLink = kind === "program" ? "/coaching/programs" : "/coaching/nutrition"
+    const libLink = kind === "program" ? `${basePath}/programs` : "/coaching/nutrition"
     const libLabel = kind === "program" ? "Rutinas" : "Nutrición"
     return (
       <div className="space-y-2">
