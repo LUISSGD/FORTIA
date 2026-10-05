@@ -1,22 +1,24 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { differenceInYears } from "date-fns"
 import { prisma } from "@/lib/prisma"
 import { getClientSession } from "@/lib/coaching/auth"
-import { LEVELS } from "@/lib/coaching/constants"
 import { formatYmd, periodLabel, toYmd, todayYmd } from "@/lib/coaching/dates"
 import { Card, SectionTitle } from "@/components/coaching/app/ui"
 import { Suspense } from "react"
 import ProfileActions from "@/components/coaching/app/ProfileActions"
+import ProfileInfo from "@/components/coaching/app/ProfileInfo"
+import { getLatestWeight } from "@/lib/coaching/client-data"
 import { PayOnlineButton, PaymentReturn } from "@/components/coaching/app/PayOnline"
 import { mpEnabled } from "@/lib/coaching/mercadopago"
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: PageProps<"/app/profile">) {
+  const sp = await searchParams
   const ctx = await getClientSession()
   if (!ctx) redirect("/login")
-  const [client, payments] = await Promise.all([
+  const [client, payments, weight] = await Promise.all([
     prisma.client.findUnique({ where: { id: ctx.clientId }, include: { coachingProfile: true, user: { select: { email: true } } } }),
     prisma.coachingPayment.findMany({ where: { clientId: ctx.clientId }, orderBy: { period: "desc" }, take: 6 }),
+    getLatestWeight(ctx.clientId),
   ])
   if (!client) redirect("/login")
   const p = client.coachingProfile
@@ -34,17 +36,22 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      <Card>
-        <SectionTitle emoji="👤">Información</SectionTitle>
-        <dl className="grid grid-cols-2 gap-y-2 text-sm">
-          <dt className="text-gray-400">Objetivo</dt><dd>{p?.goal ?? "—"}</dd>
-          <dt className="text-gray-400">Nivel</dt><dd>{LEVELS[p?.level ?? ""] ?? "—"}</dd>
-          <dt className="text-gray-400">Edad</dt><dd>{client.birthDate ? `${differenceInYears(new Date(), client.birthDate)} años` : "—"}</dd>
-          <dt className="text-gray-400">Altura</dt><dd>{p?.heightCm ? `${p.heightCm} cm` : "—"}</dd>
-          <dt className="text-gray-400">Inicio</dt><dd>{p ? formatYmd(toYmd(p.startDate), true) : "—"}</dd>
-          <dt className="text-gray-400">Entrenos/semana</dt><dd>{p?.trainingDays ?? "—"}</dd>
-        </dl>
-      </Card>
+      <ProfileInfo
+        openOnLoad={sp.editar === "1"}
+        startDate={p ? formatYmd(toYmd(p.startDate), true) : null}
+        initial={{
+          phone: client.phone ?? "",
+          birthDate: client.birthDate ? client.birthDate.toISOString().slice(0, 10) : "",
+          sex: p?.sex ?? "",
+          heightCm: p?.heightCm ? String(p.heightCm) : "",
+          currentWeight: weight.current !== null ? String(weight.current) : "",
+          targetWeight: p?.targetWeight ? String(p.targetWeight) : "",
+          goal: p?.goal ?? "",
+          level: p?.level ?? "",
+          trainingDays: String(p?.trainingDays ?? 4),
+          injuries: p?.injuries ?? "",
+        }}
+      />
 
       <Card>
         <SectionTitle emoji="💳">Tu plan</SectionTitle>

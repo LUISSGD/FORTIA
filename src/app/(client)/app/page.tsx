@@ -20,7 +20,7 @@ export default async function ClientHome() {
   const today = todayYmd()
 
   const [client, training, nutrition, weight, checkIn, nextBooking, challenge, { streak }, membership, pt] = await Promise.all([
-    prisma.client.findUnique({ where: { id: clientId }, select: { firstName: true, coachingProfile: true } }),
+    prisma.client.findUnique({ where: { id: clientId }, select: { firstName: true, phone: true, birthDate: true, coachingProfile: true } }),
     getTrainingState(clientId),
     getNutritionDay(clientId),
     getLatestWeight(clientId),
@@ -56,6 +56,13 @@ export default async function ClientHome() {
       )}
 
       <PushToggle dark variant="banner" />
+
+      {client && (!client.phone || !client.birthDate || !profile?.goal) && (
+        <Card href="/app/profile?editar=1#datos" className="border-orange-200 bg-orange-50">
+          <p className="font-bold text-orange-800">Completa tus datos</p>
+          <p className="text-xs text-orange-700">Tu cumpleaños, teléfono y objetivo ayudan a tu coach a personalizar tu plan →</p>
+        </Card>
+      )}
 
       {showCheckIn && (
         <Card href="/app/checkin" className="border-amber-200 bg-amber-50">
