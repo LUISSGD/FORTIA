@@ -141,7 +141,7 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
           {tab === "progress" && <ProgressTab clientId={id} />}
           {tab === "checkins" && <CheckInsTab clientId={id} />}
           {tab === "payments" && <PaymentsTab clientId={id} profile={profile} />}
-          {tab === "chat" && <ChatTab clientId={id} />}
+          {tab === "chat" && <ChatTab clientId={id} showNutrition nutrition={sp.canal === "nutricion"} />}
           {tab === "documents" && <DocumentsTab clientId={id} />}
           {tab === "settings" && (
             <ProfileSettings

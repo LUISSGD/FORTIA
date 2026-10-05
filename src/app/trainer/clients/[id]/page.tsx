@@ -46,7 +46,7 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
         orderBy: { currentPackStart: "desc" },
         take: 1,
       },
-      _count: { select: { coachMessages: { where: { sender: "CLIENT", readAt: null } }, checkIns: { where: { reviewedAt: null } } } },
+      _count: { select: { coachMessages: { where: { channel: "COACHING", sender: "CLIENT", readAt: null } }, checkIns: { where: { reviewedAt: null } } } },
     },
   })
   if (!client) notFound()

@@ -9,8 +9,8 @@ export async function GET() {
   if ("error" in guard) return guard.error
   const { clientId } = guard
   const [messages] = await Promise.all([
-    prisma.coachMessage.findMany({ where: { clientId }, orderBy: { createdAt: "asc" }, take: 300 }),
-    prisma.coachMessage.updateMany({ where: { clientId, sender: { not: "CLIENT" }, readAt: null }, data: { readAt: new Date() } }),
+    prisma.coachMessage.findMany({ where: { clientId, channel: "COACHING" }, orderBy: { createdAt: "asc" }, take: 300 }),
+    prisma.coachMessage.updateMany({ where: { clientId, channel: "COACHING", sender: { not: "CLIENT" }, readAt: null }, data: { readAt: new Date() } }),
     prisma.notification.updateMany({ where: { clientId, audience: "CLIENT", type: "MESSAGE", readAt: null }, data: { readAt: new Date() } }),
   ])
   return NextResponse.json(messages)

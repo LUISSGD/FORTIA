@@ -18,8 +18,8 @@ export default async function MessagesPage({ searchParams }: PageProps<"/coachin
       client: {
         select: {
           id: true, firstName: true, lastName: true,
-          coachMessages: { orderBy: { createdAt: "desc" }, take: 1 },
-          _count: { select: { coachMessages: { where: { sender: "CLIENT", readAt: null } } } },
+          coachMessages: { where: { channel: "COACHING" }, orderBy: { createdAt: "desc" }, take: 1 },
+          _count: { select: { coachMessages: { where: { channel: "COACHING", sender: "CLIENT", readAt: null } } } },
         },
       },
     },
@@ -31,8 +31,8 @@ export default async function MessagesPage({ searchParams }: PageProps<"/coachin
   let messages: Awaited<ReturnType<typeof prisma.coachMessage.findMany>> = []
   if (selected) {
     ;[messages] = await Promise.all([
-      prisma.coachMessage.findMany({ where: { clientId: selected }, orderBy: { createdAt: "asc" }, take: 300 }),
-      prisma.coachMessage.updateMany({ where: { clientId: selected, sender: "CLIENT", readAt: null }, data: { readAt: new Date() } }),
+      prisma.coachMessage.findMany({ where: { clientId: selected, channel: "COACHING" }, orderBy: { createdAt: "asc" }, take: 300 }),
+      prisma.coachMessage.updateMany({ where: { clientId: selected, channel: "COACHING", sender: "CLIENT", readAt: null }, data: { readAt: new Date() } }),
     ])
   }
   const current = convos.find((c) => c.id === selected)

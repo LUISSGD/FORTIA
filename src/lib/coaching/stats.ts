@@ -59,7 +59,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
     prisma.checkIn.findMany({ where: { clientId: { in: ids } }, select: { clientId: true, weekStart: true, weight: true, createdAt: true }, orderBy: { weekStart: "desc" } }),
     prisma.physicalRecord.findMany({ where: { clientId: { in: ids }, weight: { not: null } }, select: { clientId: true, date: true, weight: true }, orderBy: { date: "desc" } }),
     prisma.coachingPayment.findMany({ where: { clientId: { in: ids }, status: "PENDING" }, orderBy: { dueDate: "asc" } }),
-    prisma.coachMessage.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, sender: "CLIENT", readAt: null }, _count: { _all: true } }),
+    prisma.coachMessage.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, channel: "COACHING", sender: "CLIENT", readAt: null }, _count: { _all: true } }),
     attendedPtDates(ids, since30),
     attendedClassDates(ids, since30),
   ])

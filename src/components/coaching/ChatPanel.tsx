@@ -31,6 +31,8 @@ export default function ChatPanel({
   dark = false,
   channel = "COACHING",
   className,
+  readOnly = false,
+  safeBottom = false,
 }: {
   mode: "coach" | "nutritionist" | "client"
   clientId?: string
@@ -38,6 +40,10 @@ export default function ChatPanel({
   dark?: boolean
   channel?: "COACHING" | "NUTRITION"
   className?: string
+  /** Solo lectura: oculta la caja de texto y no marca mensajes como leídos. */
+  readOnly?: boolean
+  /** Deja espacio para la barra inferior del iPhone (chat a pantalla completa). */
+  safeBottom?: boolean
 }) {
   const [messages, setMessages] = useState(initialMessages)
   const [text, setText] = useState("")
@@ -52,6 +58,7 @@ export default function ChatPanel({
         : channel === "NUTRITION"
           ? "/api/app/nutrition-messages"
           : "/api/app/messages"
+  const pollUrl = readOnly ? `${url}?peek=1` : url
   const mine = mode === "client" ? "CLIENT" : "COACH"
 
   useEffect(() => setMessages(initialMessages), [initialMessages])
@@ -63,12 +70,12 @@ export default function ChatPanel({
   useEffect(() => {
     const tick = async () => {
       if (document.visibilityState !== "visible") return
-      const res = await fetch(url)
+      const res = await fetch(pollUrl)
       if (res.ok) setMessages(await res.json())
     }
     const id = setInterval(tick, 6000)
     return () => clearInterval(id)
-  }, [url])
+  }, [pollUrl])
 
   async function upload(file: File) {
     const fd = new FormData()
@@ -151,8 +158,12 @@ export default function ChatPanel({
         })}
         <div ref={endRef} />
       </div>
+      {readOnly ? (
+        <p className={cn("text-xs text-center py-2 border-t", dark ? "text-zinc-500 border-zinc-800" : "text-gray-400 border-gray-200 bg-white")}>Solo lectura</p>
+      ) : (
       <form
         className={cn("flex items-end gap-2 p-2 border-t", dark ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200")}
+        style={safeBottom ? { paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" } : undefined}
         onSubmit={(e) => {
           e.preventDefault()
           send()
@@ -184,7 +195,7 @@ export default function ChatPanel({
           rows={1}
           placeholder="Escribe un mensaje…"
           className={cn(
-            "flex-1 resize-none rounded-2xl px-3 py-2 text-sm outline-none max-h-32",
+            "flex-1 resize-none rounded-2xl px-3 py-2 text-base md:text-sm outline-none max-h-32",
             dark ? "bg-zinc-800 text-white placeholder:text-zinc-500" : "bg-gray-100 text-gray-900"
           )}
         />
@@ -192,6 +203,7 @@ export default function ChatPanel({
           {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
         </button>
       </form>
+      )}
     </div>
   )
 }
