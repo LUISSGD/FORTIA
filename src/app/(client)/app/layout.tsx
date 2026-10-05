@@ -28,7 +28,7 @@ export default async function ClientAppLayout({ children }: { children: React.Re
   if (!ctx) redirect("/login")
   const [unreadNotifs, unreadMsgs] = await Promise.all([
     prisma.notification.count({ where: { clientId: ctx.clientId, audience: "CLIENT", readAt: null, type: { not: "MESSAGE" } } }),
-    prisma.coachMessage.count({ where: { clientId: ctx.clientId, sender: { not: "CLIENT" }, readAt: null } }),
+    prisma.coachMessage.count({ where: { clientId: ctx.clientId, channel: "COACHING", sender: { not: "CLIENT" }, readAt: null } }),
   ])
 
   return (
