@@ -28,7 +28,7 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
       orderBy: { scheduledDate: "asc" },
     }),
     prisma.coachingSlot.findMany({
-      where: { startsAt: { gte: limaDateTime(week, "00:00"), lt: limaDateTime(addDaysYmd(week, 7), "00:00") } },
+      where: { type: "COACHING", startsAt: { gte: limaDateTime(week, "00:00"), lt: limaDateTime(addDaysYmd(week, 7), "00:00") } },
       include: {
         bookings: {
           orderBy: { createdAt: "asc" },

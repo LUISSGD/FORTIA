@@ -21,14 +21,24 @@ export async function notifyCoach(n: NotifyInput & { clientId?: string | null })
   return notification
 }
 
-/** Mensaje del entrenador en el chat + notificación al cliente. */
-export async function sendCoachMessage(clientId: string, body: string, sender: "COACH" | "SYSTEM" = "COACH", attachment?: { url: string; type: string } | null) {
+/** Mensaje del staff (coach o entrenador) en el chat + notificación al cliente. */
+export async function sendCoachMessage(
+  clientId: string,
+  body: string,
+  sender: "COACH" | "SYSTEM" = "COACH",
+  attachment?: { url: string; type: string } | null,
+  author?: { id: string; name: string } | null,
+) {
   const msg = await prisma.coachMessage.create({
-    data: { clientId, sender, body, attachmentUrl: attachment?.url ?? null, attachmentType: attachment?.type ?? null },
+    data: {
+      clientId, sender, body,
+      attachmentUrl: attachment?.url ?? null, attachmentType: attachment?.type ?? null,
+      authorUserId: author?.id ?? null, authorName: author?.name ?? null,
+    },
   })
   await notifyClient(clientId, {
     type: "MESSAGE",
-    title: "Nuevo mensaje de tu coach",
+    title: author?.name ? `Nuevo mensaje de ${author.name}` : "Nuevo mensaje de tu coach",
     body: body.length > 90 ? `${body.slice(0, 87)}…` : body,
     link: "/app/chat",
   })

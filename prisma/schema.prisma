@@ -659,6 +659,8 @@ model CoachMessage {
   body           String
   attachmentUrl  String?
   attachmentType String?   // IMAGE | VIDEO | AUDIO | FILE
+  authorUserId   String?   // usuario del staff que escribió (coach o entrenador)
+  authorName     String?   // nombre mostrado al cliente
   readAt         DateTime?
   createdAt      DateTime  @default(now())
 

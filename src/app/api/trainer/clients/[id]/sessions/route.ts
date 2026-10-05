@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       planId,
       sessionNumber: lastNumber + 1,
       packNumber: plan.numPacks,
-      scheduledDate: new Date(scheduledDate + "T00:00:00Z"),
+      scheduledDate: new Date(scheduledDate + "T12:00:00Z"),
       isRescheduled: true,
     },
   })

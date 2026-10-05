@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
@@ -30,6 +31,19 @@ export async function requireTrainer() {
   const role = session.user.role as string
   if (role !== "ADMIN" && role !== "TRAINER") return { error: jsonError("Sin permisos", 403) } as const
   return { session, role } as const
+}
+
+/** ADMIN o TRAINER: rutinas, ejercicios, check-ins y chat con los clientes de coaching. */
+export async function requireCoachOrTrainer() {
+  return requireTrainer()
+}
+
+/** Para páginas server-side del panel del entrenador (/trainer). */
+export async function requireTrainerPage() {
+  const session = await auth()
+  const role = session?.user?.role as string | undefined
+  if (!session?.user || (role !== "ADMIN" && role !== "TRAINER")) redirect("/login")
+  return session
 }
 
 /** Cliente con acceso a la app. Devuelve el clientId vinculado a su usuario. */

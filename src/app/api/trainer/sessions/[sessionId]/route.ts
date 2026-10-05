@@ -39,7 +39,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       attended: attendedProvided ? attended : undefined,
       completedAt: !attendedProvided ? undefined : willAttend ? new Date() : null,
       scheduledDate: scheduledDate !== undefined
-        ? (scheduledDate ? new Date(scheduledDate + "T12:00:00") : null)
+        ? (scheduledDate ? new Date(scheduledDate + "T12:00:00Z") : null)
         : undefined,
     },
   })

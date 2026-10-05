@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireCoach, jsonError, num, str } from "@/lib/coaching/auth"
+import { requireCoachOrTrainer, jsonError, num, str } from "@/lib/coaching/auth"
 import { programInclude, saveProgramDays } from "../shared"
 
 type Params = { params: Promise<{ id: string }> }
 
 export async function GET(_request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const { id } = await params
   const program = await prisma.program.findUnique({ where: { id }, include: programInclude })
@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function PUT(request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const { id } = await params
   const body = await request.json()
@@ -43,7 +43,7 @@ export async function PUT(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const { id } = await params
   await prisma.program.delete({ where: { id } })

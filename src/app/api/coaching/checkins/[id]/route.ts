@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireCoach, str } from "@/lib/coaching/auth"
+import { requireCoachOrTrainer, str } from "@/lib/coaching/auth"
 import { notifyClient } from "@/lib/coaching/notify"
 
 type Params = { params: Promise<{ id: string }> }
 
 /** El entrenador marca el check-in como revisado y (opcional) responde. */
 export async function PATCH(request: Request, { params }: Params) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const { id } = await params
   const body = await request.json()

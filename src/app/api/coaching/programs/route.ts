@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireCoach, jsonError, num, str } from "@/lib/coaching/auth"
+import { requireCoachOrTrainer, jsonError, num, str } from "@/lib/coaching/auth"
 import { notifyClient } from "@/lib/coaching/notify"
 import { copyProgram, programInclude, saveProgramDays } from "./shared"
 
 export async function GET(request: Request) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const clientId = new URL(request.url).searchParams.get("clientId")
   const programs = await prisma.program.findMany({
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
 /** Crea una rutina: plantilla (sin cliente) o asignada directamente a un cliente. Admite duplicar con `copyFrom`. */
 export async function POST(request: Request) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const body = await request.json()
   const clientId = str(body.clientId)

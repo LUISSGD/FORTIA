@@ -4,6 +4,14 @@ import type { NextAuthConfig } from "next-auth"
 const TRAINER_ALLOWED_PREFIXES = [
   "/trainer",
   "/api/trainer",
+  // APIs de coaching compartidas con el entrenador (cada ruta valida ADMIN|TRAINER)
+  "/api/coaching/programs",
+  "/api/coaching/exercises",
+  "/api/coaching/library",
+  "/api/coaching/checkins",
+  "/api/coaching/messages",
+  "/api/coaching/upload",
+  "/api/push",
   "/api/auth",
   "/login",
 ]

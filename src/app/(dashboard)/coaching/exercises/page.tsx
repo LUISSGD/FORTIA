@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import ExerciseLibrary from "./ExerciseLibrary"
+import ExerciseLibrary from "@/components/coaching/ExerciseLibrary"
 
 export const dynamic = "force-dynamic"
 

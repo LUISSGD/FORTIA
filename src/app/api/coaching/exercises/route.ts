@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireCoach, jsonError } from "@/lib/coaching/auth"
+import { requireCoachOrTrainer, jsonError } from "@/lib/coaching/auth"
 import { exerciseData } from "./shared"
 
 export async function GET() {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const exercises = await prisma.exercise.findMany({ where: { isActive: true }, orderBy: [{ muscleGroup: "asc" }, { name: "asc" }] })
   return NextResponse.json(exercises)
 }
 
 export async function POST(request: Request) {
-  const guard = await requireCoach()
+  const guard = await requireCoachOrTrainer()
   if ("error" in guard) return guard.error
   const data = exerciseData(await request.json())
   if (!data.name) return jsonError("Nombre obligatorio")
