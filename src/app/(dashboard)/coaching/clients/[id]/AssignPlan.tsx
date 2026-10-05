@@ -39,6 +39,22 @@ export default function AssignPlan({ kind, clientId, templates }: { kind: "progr
     }
   }
 
+  if (templates.length === 0) {
+    const libLink = kind === "program" ? "/coaching/programs" : "/coaching/nutrition"
+    const libLabel = kind === "program" ? "Rutinas" : "Nutrición"
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-gray-600">{kind === "program" ? "Asignar rutina" : "Asignar plan nutricional"}</p>
+        <p className="text-xs text-gray-400">
+          No hay plantillas aún.{" "}
+          <a href={libLink} className="text-orange-500 hover:underline">Ir a {libLabel} → crear una plantilla</a>
+          {" "}y luego vuelve aquí a asignarla.
+        </p>
+        <Btn variant="outline" size="sm" className="w-full" onClick={createEmpty} disabled={busy}>+ Crear desde cero</Btn>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2">
       <p className="text-xs font-medium text-gray-600">{kind === "program" ? "Asignar rutina" : "Asignar plan nutricional"}</p>

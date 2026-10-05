@@ -108,6 +108,11 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
   }
 
   function completeExercise(ex: Ex, idx: number) {
+    const doneSets = (state.sets[ex.id] ?? []).filter((s) => s.done)
+    if (doneSets.length === 0) {
+      toast.error("Registra al menos 1 serie antes de completar")
+      return
+    }
     setState((s) => ({ ...s, completed: { ...s.completed, [ex.id]: true } }))
     setOpen(exercises[idx + 1]?.id ?? null)
   }
