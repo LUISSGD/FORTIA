@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Dumbbell, Salad, TrendingUp, User } from "lucide-react"
+import { Home, CalendarDays, Dumbbell, Salad, TrendingUp, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const ITEMS = [
   { href: "/app", label: "Inicio", icon: Home },
+  { href: "/app/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/app/training", label: "Entreno", icon: Dumbbell },
   { href: "/app/nutrition", label: "Nutrición", icon: Salad },
   { href: "/app/progress", label: "Progreso", icon: TrendingUp },
