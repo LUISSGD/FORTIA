@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { addCalendarDays } from "@/lib/calendar"
 import { Card } from "./ui"
@@ -14,6 +14,9 @@ export type AgendaEvent = {
   time: string | null
   status: "pending" | "pending-past" | "done" | "missed" | "waitlist"
   detail?: string | null
+  /** Entrenos: día de la rutina (para empezarlo) y sus ejercicios. */
+  dayId?: string | null
+  exercises?: { name: string; sets: number; reps: string }[]
 }
 
 const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"]
@@ -54,6 +57,7 @@ export default function AgendaCalendar({ month, today, gridStart, gridEnd, event
 
   const defaultDay = initialDay && initialDay.startsWith(month) ? initialDay : today.startsWith(month) ? today : `${month}-01`
   const [selected, setSelected] = useState(defaultDay)
+  const [openWorkout, setOpenWorkout] = useState<string | null>(null)
 
   const days: string[] = []
   for (let d = gridStart; d <= gridEnd; d = addCalendarDays(d, 1)) days.push(d)
@@ -85,7 +89,7 @@ export default function AgendaCalendar({ month, today, gridStart, gridEnd, event
             const kinds = [...new Set(evs.map((e) => e.kind))]
             const isSel = d === selected
             return (
-              <button key={d} onClick={() => setSelected(d)} className="flex flex-col items-center py-1" aria-label={`${d}${evs.length ? `, ${evs.length} actividades` : ""}`}>
+              <button key={d} onClick={() => { setSelected(d); setOpenWorkout(null) }} className="flex flex-col items-center py-1" aria-label={`${d}${evs.length ? `, ${evs.length} actividades` : ""}`}>
                 <span
                   className={cn(
                     "h-10 w-10 flex items-center justify-center rounded-full text-[15px] font-bold transition",
@@ -119,6 +123,42 @@ export default function AgendaCalendar({ month, today, gridStart, gridEnd, event
           <ul className="space-y-2">
             {dayEvents.map((e, i) => {
               const st = STATUS[e.status]
+              if (e.kind === "workout" && e.exercises?.length) {
+                const key = `${e.date}-${i}`
+                // Si es el único entreno del día, se muestra abierto
+                const isOpen = openWorkout === key || (openWorkout === null && dayEvents.filter((x) => x.kind === "workout").length === 1)
+                return (
+                  <li key={i} className="rounded-xl bg-gray-50 overflow-hidden">
+                    <button onClick={() => setOpenWorkout(isOpen ? "" : key)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
+                      <span className={cn("h-9 w-1 rounded-full shrink-0", e.status === "done" ? "bg-emerald-500" : "bg-orange-500")} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">💪 {e.title}</p>
+                        <p className="text-xs text-gray-500">{e.exercises.length} ejercicios</p>
+                      </div>
+                      {st && <span className={cn("text-[11px] font-semibold rounded-full px-2 py-0.5 shrink-0", st.cls)}>{st.text}</span>}
+                      <ChevronDown className={cn("h-4 w-4 text-gray-400 shrink-0 transition", isOpen && "rotate-180")} />
+                    </button>
+                    {isOpen && (
+                      <div className="px-3 pb-3">
+                        <ol className="divide-y divide-gray-200/70 border-t border-gray-200/70">
+                          {e.exercises.map((x, k) => (
+                            <li key={k} className="flex items-baseline gap-2 py-2 text-sm">
+                              <span className="text-xs text-gray-400 w-5 shrink-0">{String(k + 1).padStart(2, "0")}</span>
+                              <span className="flex-1 min-w-0 text-gray-800">{x.name}</span>
+                              <span className="text-xs text-gray-500 text-right max-w-[45%]">{x.sets} × {x.reps}</span>
+                            </li>
+                          ))}
+                        </ol>
+                        {e.dayId && (
+                          <Link href={`/app/workout/${e.dayId}`} className="mt-2 flex items-center justify-center gap-2 h-12 rounded-xl bg-orange-500 text-white font-bold tracking-wide active:scale-[0.98] transition">
+                            <Play className="h-4 w-4 fill-white" /> {e.status === "done" ? "ENTRENAR DE NUEVO" : "EMPEZAR ENTRENAMIENTO"}
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                )
+              }
               return (
                 <li key={i} className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
                   <span className={cn("h-9 w-1 rounded-full shrink-0", KIND[e.kind].dot)} />
