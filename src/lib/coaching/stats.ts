@@ -45,7 +45,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
 
   const profiles = await prisma.coachingProfile.findMany({
     where: { status: { not: "ENDED" } },
-    include: { client: { select: { id: true, firstName: true, lastName: true, phone: true, email: true, membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } } } } },
+    include: { client: { select: { id: true, firstName: true, lastName: true, phone: true, email: true, membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } }, partnerOf: { select: { membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } } } } } } },
     orderBy: { client: { firstName: "asc" } },
   })
   const ids = profiles.map((p) => p.clientId)
@@ -120,7 +120,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
         if (wantsChange && Math.max(...ws) - Math.min(...ws) < 0.5) alerts.push({ level: "yellow", text: "Peso estancado 3 semanas" })
       }
     }
-    const membership = membershipInfo(p.client)
+    const membership = membershipInfo(p.client.partnerOf ?? p.client) // pareja: membresía compartida
     const tracked = p.status === "ACTIVE" || p.status === "PAUSED"
     if (tracked && membership.daysLeft !== null) {
       if (membership.daysLeft < 0) alerts.push({ level: "red", text: `Membresía vencida hace ${-membership.daysLeft} día${membership.daysLeft === -1 ? "" : "s"}` })

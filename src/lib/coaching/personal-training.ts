@@ -30,9 +30,18 @@ export function membershipInfo(c: { membershipStart: Date | null; membershipEnd:
   }
 }
 
+/**
+ * Ficha que tiene la membresía, el plan EP y los pagos. En las parejas separadas, la 2ª persona
+ * comparte los de su pareja (ficha principal); para el resto es la misma ficha.
+ */
+export async function sharedOwnerId(clientId: string) {
+  const c = await prisma.client.findUnique({ where: { id: clientId }, select: { partnerOfId: true } })
+  return c?.partnerOfId ?? clientId
+}
+
 export async function getMembership(clientId: string) {
   const c = await prisma.client.findUnique({
-    where: { id: clientId },
+    where: { id: await sharedOwnerId(clientId) },
     select: { membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } } },
   })
   return c ? membershipInfo(c) : null
@@ -81,7 +90,7 @@ const isAttended = (s: { attended: boolean | null; completedAt: Date | null }) =
 /** Paquete de entrenamiento personal vigente del cliente (o el último pausado). */
 export async function getPersonalTraining(clientId: string) {
   const plan = await prisma.clientTrainingPlan.findFirst({
-    where: { clientId, status: { in: ["ACTIVE", "PAUSED"] } },
+    where: { clientId: await sharedOwnerId(clientId), status: { in: ["ACTIVE", "PAUSED"] } },
     include: {
       sessions: { orderBy: [{ isRescheduled: "asc" }, { sessionNumber: "asc" }] },
       scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
@@ -126,9 +135,10 @@ class PTError extends Error {}
 /** El cliente marca desde la app que hoy fue a su clase personalizada. */
 export async function registerClientSession(clientId: string) {
   const today = todayYmd()
+  const ownerId = await sharedOwnerId(clientId)
   const result = await prisma.$transaction(async (tx) => {
     const plan = await tx.clientTrainingPlan.findFirst({
-      where: { clientId, status: "ACTIVE" },
+      where: { clientId: ownerId, status: "ACTIVE" },
       include: { sessions: true },
       orderBy: { createdAt: "desc" },
     })
@@ -204,9 +214,10 @@ export async function registerClientSession(clientId: string) {
 /** Deshace la clase que el propio cliente registró hoy (por si se equivocó). */
 export async function undoClientSession(clientId: string) {
   const today = todayYmd()
+  const ownerId = await sharedOwnerId(clientId)
   return prisma.$transaction(async (tx) => {
     const plan = await tx.clientTrainingPlan.findFirst({
-      where: { clientId, status: { in: ["ACTIVE", "COMPLETED"] }, sessions: { some: { notes: APP_SESSION_NOTE, attended: true } } },
+      where: { clientId: ownerId, status: { in: ["ACTIVE", "COMPLETED"] }, sessions: { some: { notes: APP_SESSION_NOTE, attended: true } } },
       include: { sessions: { where: { notes: APP_SESSION_NOTE, attended: true } } },
       orderBy: { updatedAt: "desc" },
     })
@@ -226,9 +237,12 @@ export async function undoClientSession(clientId: string) {
 export async function attendedPtDates(clientIds: string[], sinceYmd: string) {
   if (!clientIds.length) return new Map<string, string[]>()
   const since = ymdToDate(sinceYmd)
+  // Parejas separadas: la 2ª persona cuenta las clases del plan compartido de su pareja
+  const partners = await prisma.client.findMany({ where: { id: { in: clientIds }, partnerOfId: { not: null } }, select: { id: true, partnerOfId: true } })
+  const ownerIds = [...new Set([...clientIds, ...partners.map((p) => p.partnerOfId!)])]
   const sessions = await prisma.trainingSession.findMany({
     where: {
-      plan: { clientId: { in: clientIds } },
+      plan: { clientId: { in: ownerIds } },
       AND: [
         { OR: [{ attended: true }, { attended: null, completedAt: { not: null } }] },
         // La fecha de la clase es scheduledDate; las antiguas sin fecha usan el día en que se marcaron
@@ -244,6 +258,10 @@ export async function attendedPtDates(clientIds: string[], sinceYmd: string) {
     const list = map.get(s.plan.clientId) ?? []
     list.push(ymd)
     map.set(s.plan.clientId, list)
+  }
+  for (const p of partners) {
+    const shared = map.get(p.partnerOfId!)
+    if (shared) map.set(p.id, [...(map.get(p.id) ?? []), ...shared])
   }
   return map
 }

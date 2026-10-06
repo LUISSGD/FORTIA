@@ -97,6 +97,7 @@ export default async function ClientsPage({
   const clients = await prisma.client.findMany({
     where: {
       isActive: true,
+      partnerOfId: null, // la 2ª persona de una pareja se ve dentro de la ficha principal (membresía compartida)
       ...(search && {
         OR: [
           { firstName: { contains: search, mode: "insensitive" } },

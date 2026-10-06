@@ -55,6 +55,12 @@ model Client {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
+  // Parejas: la 2ª persona tiene su propia ficha (app, rutina, chat) y apunta a la ficha principal,
+  // que conserva la membresía, el plan EP y los pagos compartidos.
+  partnerOfId String? @unique
+  partnerOf   Client? @relation("CouplePartner", fields: [partnerOfId], references: [id], onDelete: SetNull)
+  partner     Client? @relation("CouplePartner")
+
   payments        Payment[]
   enrollments     Enrollment[]
   incomes         Income[]
