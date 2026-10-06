@@ -24,7 +24,13 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <SessionProvider>
           {children}
-          <Toaster richColors position="top-right" />
+          {/* En el celular el aviso baja del todo: respeta la barra de estado del iPhone (safe-area) y el header de la app */}
+          <Toaster
+            richColors
+            position="top-right"
+            offset={{ top: "calc(env(safe-area-inset-top) + 16px)" }}
+            mobileOffset={{ top: "calc(env(safe-area-inset-top) + 64px)", left: "12px", right: "12px" }}
+          />
         </SessionProvider>
       </body>
     </html>

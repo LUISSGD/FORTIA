@@ -91,11 +91,21 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
     setState((s) => ({ ...s, sets: { ...s.sets, [exId]: s.sets[exId].map((x, k) => (k === i ? { ...x, ...patch } : x)) } }))
   }, [])
 
+  /** Valores de una serie que el cliente no escribió: lo de la vez anterior o el objetivo de la rutina. */
+  function setDefaults(ex: Ex, i: number, set: SetState) {
+    const prev = ex.previous[i] ?? ex.previous.at(-1)
+    // "12 a 10 RPE@8-9" → 12 (se ignora el RPE)
+    const target = ex.reps.replace(/RPE.*$/i, "").match(/\d+/)?.[0] ?? ""
+    return {
+      reps: set.reps || (prev?.reps ? String(prev.reps) : "") || target,
+      weight: set.weight || (prev?.weight ? String(prev.weight) : ""),
+    }
+  }
+
   function toggleSet(ex: Ex, i: number) {
     const set = state.sets[ex.id][i]
     if (!set.done) {
-      const prev = ex.previous[i] ?? ex.previous.at(-1)
-      const reps = set.reps || (prev?.reps ? String(prev.reps) : "") || ex.reps.split(/[-–]/).pop()?.replace(/\D/g, "") || ""
+      const { reps } = setDefaults(ex, i, set)
       if (!reps) return toast.error("Indica las repeticiones")
       updateSet(ex.id, i, { done: true, reps })
       if (ex.restSec > 0) {
@@ -108,12 +118,14 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
   }
 
   function completeExercise(ex: Ex, idx: number) {
-    const doneSets = (state.sets[ex.id] ?? []).filter((s) => s.done)
-    if (doneSets.length === 0) {
-      toast.error("Registra al menos 1 serie antes de completar")
-      return
-    }
-    setState((s) => ({ ...s, completed: { ...s.completed, [ex.id]: true } }))
+    const sets = state.sets[ex.id] ?? []
+    // Si no marcó ninguna serie, se dan por hechas todas con los valores que ve en pantalla
+    const fillAll = !sets.some((s) => s.done)
+    setState((s) => ({
+      ...s,
+      sets: fillAll ? { ...s.sets, [ex.id]: sets.map((x, i) => ({ ...x, ...setDefaults(ex, i, x), done: true })) } : s.sets,
+      completed: { ...s.completed, [ex.id]: true },
+    }))
     setOpen(exercises[idx + 1]?.id ?? null)
   }
 
