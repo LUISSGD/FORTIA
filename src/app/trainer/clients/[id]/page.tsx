@@ -32,26 +32,30 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
   const { id } = await params
   const sp = await searchParams
 
+  const trainingPlans = {
+    where: { status: { in: ["ACTIVE", "PAUSED"] } },
+    include: {
+      sessions: { orderBy: [{ isRescheduled: "asc" as const }, { sessionNumber: "asc" as const }] },
+      scheduleSlots: { orderBy: [{ dayOfWeek: "asc" as const }, { startTime: "asc" as const }] },
+    },
+    orderBy: { currentPackStart: "desc" as const },
+    take: 1,
+  }
   const client = await prisma.client.findUnique({
     where: { id },
     select: {
       id: true, firstName: true, lastName: true, phone: true, birthDate: true,
       coachingProfile: true,
-      trainingPlans: {
-        where: { status: { in: ["ACTIVE", "PAUSED"] } },
-        include: {
-          sessions: { orderBy: [{ isRescheduled: "asc" }, { sessionNumber: "asc" }] },
-          scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
-        },
-        orderBy: { currentPackStart: "desc" },
-        take: 1,
-      },
+      trainingPlans,
+      // Pareja: las clases EP están en el plan compartido de la ficha principal
+      partnerOf: { select: { id: true, firstName: true, lastName: true, trainingPlans } },
       _count: { select: { coachMessages: { where: { channel: "COACHING", sender: "CLIENT", readAt: null } }, checkIns: { where: { reviewedAt: null } } } },
     },
   })
   if (!client) notFound()
 
-  const plan = client.trainingPlans[0] ?? null
+  const epOwner = client.partnerOf ?? client
+  const plan = epOwner.trainingPlans[0] ?? null
   const tabs = TABS.filter(([k]) => k !== "ep" || plan)
   const tab: Tab = (tabs.find(([k]) => k === sp.tab)?.[0] ?? "summary") as Tab
   const badge: Partial<Record<Tab, number>> = { chat: client._count.coachMessages, checkins: client._count.checkIns }
@@ -108,7 +112,7 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
             )}
           </div>
           <TrainerClientSessions
-            clientId={client.id}
+            clientId={epOwner.id}
             planId={plan.id}
             sessions={plan.sessions.map((s) => ({
               sessionId: s.id,

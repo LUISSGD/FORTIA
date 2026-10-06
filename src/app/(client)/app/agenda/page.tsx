@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getClientSession } from "@/lib/coaching/auth"
+import { sharedOwnerId } from "@/lib/coaching/personal-training"
 import { addCalendarDays, calendarDate, calendarYmd, fortiaWeekday } from "@/lib/calendar"
 import { limaDateTime, todayYmd, toYmd } from "@/lib/coaching/dates"
 import AgendaCalendar, { type AgendaEvent } from "@/components/coaching/app/AgendaCalendar"
@@ -27,7 +28,7 @@ export default async function ClientAgendaPage({ searchParams }: PageProps<"/app
 
   const [sessions, bookings, workouts, program] = await Promise.all([
     prisma.trainingSession.findMany({
-      where: { plan: { clientId }, scheduledDate: { gte: rangeStart, lte: rangeEnd } },
+      where: { plan: { clientId: await sharedOwnerId(clientId) }, scheduledDate: { gte: rangeStart, lte: rangeEnd } },
       include: { plan: { select: { status: true, scheduleSlots: { select: { dayOfWeek: true, startTime: true, endTime: true } } } } },
       orderBy: { scheduledDate: "asc" },
     }),

@@ -22,7 +22,7 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
             tipoEntrenador: true,
             modalidad: true,
             scheduleSlots: true,
-            client: { select: { id: true, firstName: true, lastName: true } },
+            client: { select: { id: true, firstName: true, lastName: true, partner: { select: { firstName: true } } } },
           },
         },
       },
@@ -51,7 +51,7 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
       sessionNumber: s.sessionNumber,
       scheduledDate: dateStr,
       clientId: s.plan.client.id,
-      clientName: `${s.plan.client.firstName} ${s.plan.client.lastName}`,
+      clientName: `${s.plan.client.firstName.trim()} ${s.plan.client.lastName.trim()}${s.plan.client.partner ? ` y ${s.plan.client.partner.firstName.trim()}` : ""}`,
       startTime: slot?.startTime ?? null,
       attended: s.attended ?? null,
     }

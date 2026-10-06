@@ -62,9 +62,16 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
 
   const client = await prisma.client.findUnique({
     where: { id },
-    include: { coachingProfile: true, user: { select: { email: true } } },
+    include: {
+      coachingProfile: true,
+      user: { select: { email: true } },
+      partnerOf: { select: { id: true, firstName: true, lastName: true, membershipEnd: true } },
+      partner: { select: { id: true, firstName: true, lastName: true } },
+    },
   })
   if (!client?.coachingProfile) notFound()
+  // Pareja: cada uno tiene su ficha; la membresía, el plan EP y los pagos están en la ficha principal
+  const couple = client.partnerOf ?? client.partner
   const profile = client.coachingProfile
   const overview = (await getClientsOverview()).find((c) => c.id === id)
   const age = client.birthDate ? differenceInYears(new Date(), client.birthDate) : null
@@ -82,10 +89,16 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
             <h1 className="text-xl font-bold flex items-center gap-2">
               {client.firstName} {client.lastName}
               {overview && <StatusDot level={profile.status !== "ACTIVE" ? "gray" : overview.level} />}
-              <RenewalBadge membershipEnd={client.membershipEnd} />
+              <RenewalBadge membershipEnd={(client.partnerOf ?? client).membershipEnd} />
             </h1>
             <p className="text-sm text-gray-500">
               {profile.goal ?? "Sin objetivo"} · {LEVELS[profile.level ?? ""] ?? "—"} · {PROFILE_STATUS[profile.status]}
+              {couple && (
+                <>
+                  {" · "}Pareja de{" "}
+                  <Link href={`/coaching/clients/${couple.id}?tab=${tab}`} className="text-orange-600 hover:underline">{couple.firstName.trim()} {couple.lastName.trim()}</Link>
+                </>
+              )}
               {!client.user && <span className="ml-2 text-amber-600">· Sin acceso a la app</span>}
             </p>
           </div>
@@ -136,7 +149,13 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
 
         <div className="flex-1 min-w-0 space-y-4 md:space-y-6">
           {tab === "summary" && <SummaryTab clientId={id} profile={profile} age={age} overview={overview} birthDate={client.birthDate} phone={client.phone} />}
-          {tab === "membership" && <MembershipTab clientId={id} />}
+          {tab === "membership" && client.partnerOf && (
+            <p className="mb-4 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
+              La membresía, las clases EP y los pagos son compartidos con su pareja,{" "}
+              <Link href={`/coaching/clients/${client.partnerOf.id}?tab=membership`} className="font-medium underline">{client.partnerOf.firstName.trim()} {client.partnerOf.lastName.trim()}</Link>. Lo que cambies aquí aplica a los dos.
+            </p>
+          )}
+          {tab === "membership" && <MembershipTab clientId={client.partnerOfId ?? id} />}
           {tab === "training" && <TrainingTab clientId={id} basePath="/coaching" />}
           {tab === "nutrition" && <NutritionTab clientId={id} profile={profile} />}
           {tab === "progress" && <ProgressTab clientId={id} />}
