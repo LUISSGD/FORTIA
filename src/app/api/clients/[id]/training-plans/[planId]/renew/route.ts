@@ -1,34 +1,14 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { addDays } from "date-fns"
+import { calendarDate, sessionDatesFrom } from "@/lib/calendar"
 import { recordTrainingPayment } from "@/lib/finance-sync"
 import { trainingDescription } from "@/lib/training-pricing"
 
 type Ctx = { params: Promise<{ id: string; planId: string }> }
 
-function generateSessionDates(
-  startDate: Date,
-  scheduleDays: { dayOfWeek: number }[],
-  total: number
-): (Date | null)[] {
-  if (!scheduleDays.length) return Array(total).fill(null)
-  const sorted = [...scheduleDays].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-  const dates: Date[] = []
-  let current = new Date(startDate)
-  let iterations = 0
-  while (dates.length < total && iterations < total * 14) {
-    const dow = current.getDay() === 0 ? 6 : current.getDay() - 1
-    if (sorted.some((d) => d.dayOfWeek === dow)) {
-      const d = new Date(current)
-      d.setUTCHours(12, 0, 0, 0)
-      dates.push(d)
-    }
-    current = addDays(current, 1)
-    iterations++
-  }
-  return dates.length ? dates : Array(total).fill(null)
-}
+// Fechas de clases: una sola regla para todo FORTIA (src/lib/calendar.ts)
+const generateSessionDates = sessionDatesFrom
 
 export async function POST(req: Request, { params }: Ctx) {
   const session = await auth()
@@ -49,7 +29,7 @@ export async function POST(req: Request, { params }: Ctx) {
   })
   if (!original) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 })
 
-  const planStart = new Date(startDate)
+  const planStart = calendarDate(startDate)
   const total = original.numPacks * original.clasesPerPack
   const sessionDates = generateSessionDates(planStart, original.scheduleSlots, total)
 

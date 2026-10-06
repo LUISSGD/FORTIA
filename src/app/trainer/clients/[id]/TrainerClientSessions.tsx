@@ -1,5 +1,6 @@
 "use client"
 
+import { fortiaWeekday } from "@/lib/calendar"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -82,7 +83,7 @@ function SessionRow({ s }: { s: Session }) {
             onClick={() => canEdit && setEditDate(true)}
             className={cn("text-xs", canEdit ? "text-sky-600 hover:underline" : "text-gray-400 cursor-default")}
           >
-            {s.scheduledDate ? s.scheduledDate.split("-").reverse().join("/") : "Sin fecha"}
+            {s.scheduledDate ? `${["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][fortiaWeekday(s.scheduledDate)]} ${s.scheduledDate.split("-").reverse().join("/")}` : "Sin fecha"}
           </button>
         )}
 

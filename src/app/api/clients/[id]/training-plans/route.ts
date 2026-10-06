@@ -1,35 +1,15 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { calendarDate, sessionDatesFrom } from "@/lib/calendar"
 import { getTrainingPrice, trainingDescription } from "@/lib/training-pricing"
 import { recordTrainingPayment } from "@/lib/finance-sync"
 import type { Entrenador, Modalidad, Tarifa, NumPacks, ClasesPerPack } from "@/lib/training-pricing"
-import { addDays } from "date-fns"
 
 type Ctx = { params: Promise<{ id: string }> }
 
-function generateSessionDates(
-  startDate: Date,
-  scheduleDays: { dayOfWeek: number }[],
-  total: number
-): (Date | null)[] {
-  if (!scheduleDays.length) return Array(total).fill(null)
-  const sorted = [...scheduleDays].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-  const dates: Date[] = []
-  let current = new Date(startDate)
-  let iterations = 0
-  while (dates.length < total && iterations < total * 14) {
-    const dow = current.getDay() === 0 ? 6 : current.getDay() - 1 // Mon=0 … Sun=6
-    if (sorted.some((d) => d.dayOfWeek === dow)) {
-      const d = new Date(current)
-      d.setUTCHours(12, 0, 0, 0) // noon UTC so any timezone shows the correct calendar day
-      dates.push(d)
-    }
-    current = addDays(current, 1)
-    iterations++
-  }
-  return dates.length ? dates : Array(total).fill(null)
-}
+// Fechas de clases: una sola regla para todo FORTIA (src/lib/calendar.ts)
+const generateSessionDates = sessionDatesFrom
 
 export async function GET(_req: Request, { params }: Ctx) {
   const session = await auth()
@@ -106,7 +86,7 @@ export async function POST(req: Request, { params }: Ctx) {
     return NextResponse.json({ error: "Combinación de plan no válida" }, { status: 400 })
   }
 
-  const planStart = startDate ? new Date(startDate) : new Date()
+  const planStart = calendarDate(startDate || new Date())
 
   const plan = await prisma.clientTrainingPlan.create({
     data: {

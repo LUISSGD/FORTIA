@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { calendarDate } from "@/lib/calendar"
 import { requireTrainer } from "@/lib/coaching/auth"
 
 type Ctx = { params: Promise<{ sessionId: string }> }
@@ -39,7 +40,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       attended: attendedProvided ? attended : undefined,
       completedAt: !attendedProvided ? undefined : willAttend ? new Date() : null,
       scheduledDate: scheduledDate !== undefined
-        ? (scheduledDate ? new Date(scheduledDate + "T12:00:00Z") : null)
+        ? (scheduledDate ? calendarDate(scheduledDate) : null)
         : undefined,
     },
   })

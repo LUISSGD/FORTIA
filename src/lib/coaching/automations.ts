@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { addDaysYmd, diffDaysYmd, formatYmd, timeLima, todayYmd, toYmd, weekdayYmd, weekStartYmd } from "./dates"
 import { fillTemplate, notifyClient, sendCoachMessage } from "./notify"
+import { calendarYmd } from "@/lib/calendar"
 
 export const AUTOMATION_DEFAULTS: Record<string, { label: string; description: string; days: number | null; channel: string; message: string }> = {
   INACTIVITY: {
@@ -140,7 +141,7 @@ export async function runAutomations() {
     }
 
     const birthday = byType.get("BIRTHDAY")
-    if (birthday && c.birthDate && toYmd(c.birthDate).slice(5) === today.slice(5)) {
+    if (birthday && c.birthDate && calendarYmd(c.birthDate).slice(5) === today.slice(5)) {
       if (await fire(birthday, c.id, `BIRTHDAY:${c.id}:${today.slice(0, 4)}`, vars, "¡Feliz cumpleaños! 🎂", "/app")) sent++
     }
 

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, limaDateTime, weekStartYmd, todayYmd } from "@/lib/coaching/dates"
 import TrainerAgendaClient from "./TrainerAgendaClient"
 
@@ -40,7 +41,7 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
   ])
 
   const trainingSlots = trainingSessions.map((s) => {
-    const dateStr = s.scheduledDate!.toISOString().slice(0, 10)
+    const dateStr = calendarYmd(s.scheduledDate!)
     const jsDay = new Date(dateStr + "T12:00:00Z").getUTCDay()
     const fortiaDay = jsDay === 0 ? 6 : jsDay - 1
     const slot = s.plan.scheduleSlots.find((sl) => sl.dayOfWeek === fortiaDay)

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { diffDaysYmd, todayYmd, toYmd, ymdToDate } from "./dates"
+import { addCalendarDays, calendarDate, calendarYmd, scheduleDates } from "@/lib/calendar"
 import { notifyClient, notifyCoach } from "./notify"
 
 // Membresía del gimnasio y entrenamiento personal (paquetes de clases) vistos
@@ -17,12 +18,12 @@ export type MembershipInfo = {
 }
 
 export function membershipInfo(c: { membershipStart: Date | null; membershipEnd: Date | null; membershipPlan?: { name: string } | null }): MembershipInfo {
-  const end = c.membershipEnd ? toYmd(c.membershipEnd) : null
+  const end = c.membershipEnd ? calendarYmd(c.membershipEnd) : null
   const daysLeft = end ? diffDaysYmd(end, todayYmd()) : null
   const state = daysLeft === null ? "none" : daysLeft < 0 ? "expired" : daysLeft <= 5 ? "urgent" : daysLeft <= 10 ? "warning" : "active"
   return {
     planName: c.membershipPlan?.name ?? null,
-    start: c.membershipStart ? toYmd(c.membershipStart) : null,
+    start: c.membershipStart ? calendarYmd(c.membershipStart) : null,
     end,
     daysLeft,
     state,
@@ -37,76 +38,41 @@ export async function getMembership(clientId: string) {
   return c ? membershipInfo(c) : null
 }
 
-// ── Schedule date auto-generation ────────────────────────────────────────────
-// dayOfWeek convention: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
-// This matches PersonalTrainingSection.tsx DAY_LABELS index.
+// ── Fechas de las clases ─────────────────────────────────────────────────────
+// Una sola regla para todo FORTIA (ver src/lib/calendar.ts):
+//  • La fecha de una clase es SIEMPRE su scheduledDate (día de calendario).
+//  • completedAt solo dice cuándo se marcó la asistencia; nunca se muestra como fecha de la clase.
 
-function generateSessionDates(slots: { dayOfWeek: number }[], startDate: Date, count: number): Date[] {
-  if (slots.length === 0 || count === 0) return []
-  const sorted = [...slots].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-  const dates: Date[] = []
-  let cursor = new Date(startDate)
+const addDaysDate = (d: Date, days: number) => new Date(d.getTime() + days * 86400000)
 
-  // Find first slot whose dayOfWeek >= startDate's fortia-day (0=Mon)
-  const cursorFortiaDay = cursor.getUTCDay() === 0 ? 6 : cursor.getUTCDay() - 1
-  let slotIdx = sorted.findIndex((s) => s.dayOfWeek >= cursorFortiaDay)
-  if (slotIdx === -1) slotIdx = 0
-
-  while (dates.length < count) {
-    const slot = sorted[slotIdx]
-    // Convert fortia dayOfWeek (0=Mon) to JS getUTCDay (0=Sun)
-    const targetJsDay = slot.dayOfWeek === 6 ? 0 : slot.dayOfWeek + 1
-    const cursorJsDay = cursor.getUTCDay()
-    let diff = targetJsDay - cursorJsDay
-    if (diff < 0) diff += 7
-    // If cursor is already on that day and it's not the very first session, skip to next week
-    if (diff === 0 && dates.length > 0) diff = 7
-
-    const d = new Date(cursor)
-    d.setUTCDate(d.getUTCDate() + diff)
-    dates.push(d)
-
-    // Advance cursor past this date so the next iteration picks the next occurrence
-    cursor = new Date(d)
-    cursor.setUTCDate(cursor.getUTCDate() + 1)
-    slotIdx = (slotIdx + 1) % sorted.length
-  }
-
-  return dates
+/** Fecha ("YYYY-MM-DD") de una clase: su día programado; si no tiene, el día en que se marcó. */
+export function sessionYmd(s: { scheduledDate: Date | null; completedAt: Date | null; createdAt: Date }): string {
+  return s.scheduledDate ? calendarYmd(s.scheduledDate) : toYmd(s.completedAt ?? s.createdAt)
 }
 
 /**
- * Reads the schedule slots for a plan and assigns scheduledDate to all
- * pending (not yet completed) sessions in sessionNumber order.
- * Completed sessions are left untouched.
+ * Asigna fechas a las clases PENDIENTES según el horario semanal, en orden de número de clase.
+ * Empieza en el inicio del paquete (o la fecha indicada), pero nunca antes del día siguiente
+ * a la última clase ya asistida, para no pisar el historial.
  */
-export async function assignPlanScheduleDates(planId: string, startDate?: Date) {
+export async function assignPlanScheduleDates(planId: string, startDate?: Date | string) {
   const [plan, slots] = await Promise.all([
-    prisma.clientTrainingPlan.findUnique({
-      where: { id: planId },
-      include: { sessions: { orderBy: { sessionNumber: "asc" } } },
-    }),
-    prisma.personalTrainingSlot.findMany({
-      where: { planId },
-      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-    }),
+    prisma.clientTrainingPlan.findUnique({ where: { id: planId }, include: { sessions: { orderBy: { sessionNumber: "asc" } } } }),
+    prisma.personalTrainingSlot.findMany({ where: { planId } }),
   ])
-
   if (!plan || slots.length === 0) return
 
-  const pendingSessions = plan.sessions.filter((s) => !s.completedAt)
-  if (pendingSessions.length === 0) return
+  const pending = plan.sessions.filter((s) => isAttended(s) === null && !s.isRescheduled)
+  if (!pending.length) return
 
-  const start = startDate ?? (plan.currentPackStart ? new Date(plan.currentPackStart) : new Date())
-  const dates = generateSessionDates(slots, start, pendingSessions.length)
+  let from = calendarYmd(startDate ?? plan.currentPackStart ?? plan.createdAt)
+  const done = plan.sessions.filter((s) => isAttended(s) !== null).map(sessionYmd).sort()
+  const lastDone = done.at(-1)
+  if (lastDone && lastDone >= from) from = addCalendarDays(lastDone, 1)
 
-  await Promise.all(
-    pendingSessions.map((session, idx) =>
-      prisma.trainingSession.update({
-        where: { id: session.id },
-        data: { scheduledDate: dates[idx] ?? null },
-      })
-    )
+  const dates = scheduleDates(slots.map((s) => s.dayOfWeek), from, pending.length)
+  await prisma.$transaction(
+    pending.map((session, i) => prisma.trainingSession.update({ where: { id: session.id }, data: { scheduledDate: dates[i] ? calendarDate(dates[i]) : null } }))
   )
 }
 
@@ -128,12 +94,12 @@ export async function getPersonalTraining(clientId: string) {
   const used = Math.min(plan.sessionsCompleted, total)
   const attended = plan.sessions
     .filter((s) => isAttended(s) === true)
-    .map((s) => ({ id: s.id, date: toYmd(s.completedAt ?? s.scheduledDate ?? s.createdAt), byClient: s.notes === APP_SESSION_NOTE }))
+    .map((s) => ({ id: s.id, date: sessionYmd(s), byClient: s.notes === APP_SESSION_NOTE }))
     .sort((a, b) => (a.date < b.date ? 1 : -1))
   const todaySession = attended.find((s) => s.date === today) ?? null
   const upcoming = plan.sessions
-    .filter((s) => isAttended(s) === null && s.scheduledDate && toYmd(s.scheduledDate) >= today)
-    .map((s) => toYmd(s.scheduledDate!))
+    .filter((s) => isAttended(s) === null && s.scheduledDate && calendarYmd(s.scheduledDate) >= today)
+    .map((s) => calendarYmd(s.scheduledDate!))
     .sort()
     .slice(0, 3)
   return {
@@ -144,7 +110,7 @@ export async function getPersonalTraining(clientId: string) {
     total,
     used,
     remaining: Math.max(0, total - used),
-    startedAt: plan.currentPackStart ? toYmd(plan.currentPackStart) : toYmd(plan.createdAt),
+    startedAt: plan.currentPackStart ? calendarYmd(plan.currentPackStart) : toYmd(plan.createdAt),
     schedule: plan.scheduleSlots.map((s) => ({ dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime })),
     attended,
     todaySession,
@@ -169,7 +135,7 @@ export async function registerClientSession(clientId: string) {
     if (!plan) throw new PTError("No tienes un paquete de entrenamiento personal activo. Habla con tu coach.")
     const total = plan.numPacks * plan.clasesPerPack
     if (plan.sessionsCompleted >= total) throw new PTError("Ya usaste todas las clases de tu paquete. Habla con tu coach para renovarlo.")
-    if (plan.sessions.some((s) => isAttended(s) === true && toYmd(s.completedAt ?? s.scheduledDate ?? s.createdAt) === today)) {
+    if (plan.sessions.some((s) => isAttended(s) === true && sessionYmd(s) === today)) {
       throw new PTError("Tu clase de hoy ya está registrada ✅")
     }
 
@@ -177,7 +143,7 @@ export async function registerClientSession(clientId: string) {
     const pending = plan.sessions
       .filter((s) => isAttended(s) === null)
       .sort((a, b) => Number(a.isRescheduled) - Number(b.isRescheduled) || a.sessionNumber - b.sessionNumber)
-    let target = pending.find((s) => s.scheduledDate && toYmd(s.scheduledDate) === today) ?? pending[0]
+    let target = pending.find((s) => s.scheduledDate && calendarYmd(s.scheduledDate) === today) ?? pending[0]
     if (!target) {
       // Planes antiguos sin sesiones generadas: se crea el registro que falta.
       const used = new Set(plan.sessions.filter((s) => !s.isRescheduled).map((s) => s.sessionNumber))
@@ -259,18 +225,24 @@ export async function undoClientSession(clientId: string) {
 /** Clases personalizadas asistidas por cliente desde una fecha (para adherencia y alertas). */
 export async function attendedPtDates(clientIds: string[], sinceYmd: string) {
   if (!clientIds.length) return new Map<string, string[]>()
+  const since = ymdToDate(sinceYmd)
   const sessions = await prisma.trainingSession.findMany({
     where: {
       plan: { clientId: { in: clientIds } },
-      OR: [{ attended: true }, { attended: null, completedAt: { not: null } }],
-      completedAt: { gte: ymdToDate(sinceYmd) },
+      AND: [
+        { OR: [{ attended: true }, { attended: null, completedAt: { not: null } }] },
+        // La fecha de la clase es scheduledDate; las antiguas sin fecha usan el día en que se marcaron
+        { OR: [{ scheduledDate: { gte: addDaysDate(since, -1) } }, { scheduledDate: null, completedAt: { gte: since } }] },
+      ],
     },
-    select: { completedAt: true, plan: { select: { clientId: true } } },
+    select: { scheduledDate: true, completedAt: true, createdAt: true, plan: { select: { clientId: true } } },
   })
   const map = new Map<string, string[]>()
   for (const s of sessions) {
+    const ymd = sessionYmd(s)
+    if (ymd < sinceYmd) continue
     const list = map.get(s.plan.clientId) ?? []
-    list.push(toYmd(s.completedAt!))
+    list.push(ymd)
     map.set(s.plan.clientId, list)
   }
   return map

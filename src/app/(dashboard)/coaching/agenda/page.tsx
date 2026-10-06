@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, limaDateTime, todayYmd, weekStartYmd } from "@/lib/coaching/dates"
 import AgendaClient from "./AgendaClient"
 
@@ -48,7 +49,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
       }))}
       clients={clients.map((c) => ({ id: c.client.id, name: `${c.client.firstName} ${c.client.lastName}` }))}
       trainingSlots={trainingSessions.map((s) => {
-        const dateStr = s.scheduledDate!.toISOString().slice(0, 10)
+        const dateStr = calendarYmd(s.scheduledDate!)
         const jsDay = new Date(dateStr + "T12:00:00Z").getUTCDay()
         const fortiaDay = jsDay === 0 ? 6 : jsDay - 1
         const slot = s.plan.scheduleSlots.find((sl) => sl.dayOfWeek === fortiaDay)
