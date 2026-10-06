@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { addCalendarDays, calendarDate, calendarYmd, scheduleDates } from "@/lib/calendar"
 import { auth } from "@/lib/auth"
 
 type Ctx = { params: Promise<{ id: string; planId: string }> }
@@ -22,24 +23,12 @@ export async function POST(req: Request, { params }: Ctx) {
   const totalNormal = plan.numPacks * plan.clasesPerPack
 
   // Auto-assign next recurring date if no date provided
-  let scheduledDate: Date | null = body.scheduledDate ? new Date(body.scheduledDate + "T12:00:00") : null
+  // Sin fecha: el siguiente día de su horario después de la última clase con fecha
+  let scheduledDate: Date | null = body.scheduledDate ? calendarDate(body.scheduledDate) : null
   if (!scheduledDate && plan.scheduleSlots.length > 0) {
-    const lastWithDate = plan.sessions
-      .filter((s) => s.scheduledDate)
-      .sort((a, b) => new Date(b.scheduledDate!).getTime() - new Date(a.scheduledDate!).getTime())[0]
-    const cursor = lastWithDate?.scheduledDate ? new Date(lastWithDate.scheduledDate) : new Date()
-    cursor.setUTCDate(cursor.getUTCDate() + 1)
-    const sorted = [...plan.scheduleSlots].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-    for (let i = 0; i < 14; i++) {
-      const jsDay = cursor.getUTCDay()
-      const fortiaDay = jsDay === 0 ? 6 : jsDay - 1
-      if (sorted.some((s) => s.dayOfWeek === fortiaDay)) {
-        scheduledDate = new Date(cursor)
-        scheduledDate.setUTCHours(12, 0, 0, 0)
-        break
-      }
-      cursor.setUTCDate(cursor.getUTCDate() + 1)
-    }
+    const last = plan.sessions.filter((s) => s.scheduledDate).map((s) => calendarYmd(s.scheduledDate!)).sort().at(-1)
+    const [next] = scheduleDates(plan.scheduleSlots.map((s) => s.dayOfWeek), addCalendarDays(last ?? calendarYmd(new Date()), 1), 1)
+    scheduledDate = next ? calendarDate(next) : null
   }
 
   await prisma.trainingSession.create({

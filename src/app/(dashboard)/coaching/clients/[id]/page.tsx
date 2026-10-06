@@ -36,6 +36,7 @@ import DocumentsManager from "@/components/coaching/DocumentsManager"
 import RenewalBadge from "@/components/clients/RenewalBadge"
 import MembershipTab from "./MembershipTab"
 import { getMembership, getPersonalTraining } from "@/lib/coaching/personal-training"
+import { calendarYmd } from "@/lib/calendar"
 
 export const dynamic = "force-dynamic"
 
@@ -153,7 +154,7 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
                 startDate: toYmd(profile.startDate),
                 phone: client.phone ?? "",
                 email: client.email ?? "",
-                birthDate: client.birthDate ? toYmd(client.birthDate) : "",
+                birthDate: client.birthDate ? calendarYmd(client.birthDate) : "",
               }}
             />
           )}
@@ -193,7 +194,7 @@ async function SummaryTab({ clientId, profile, age, overview, birthDate, phone }
             <dt className="text-gray-500">Altura</dt><dd>{profile.heightCm ? `${profile.heightCm} cm` : "—"}</dd>
             <dt className="text-gray-500">Nivel</dt><dd>{LEVELS[profile.level ?? ""] ?? "—"}</dd>
             <dt className="text-gray-500">Inicio</dt><dd>{formatYmd(toYmd(profile.startDate), true)}</dd>
-            <dt className="text-gray-500">Cumpleaños</dt><dd>{birthDate ? formatYmd(toYmd(birthDate)) : "—"}</dd>
+            <dt className="text-gray-500">Cumpleaños</dt><dd>{birthDate ? formatYmd(calendarYmd(birthDate)) : "—"}</dd>
             <dt className="text-gray-500">Teléfono</dt><dd>{phone ?? "—"}</dd>
             <dt className="text-gray-500">Días/semana</dt><dd>{profile.trainingDays}</dd>
           </dl>

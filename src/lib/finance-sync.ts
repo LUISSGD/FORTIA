@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma"
-import type { Prisma } from "@/generated/prisma/client"
+import type { Tx } from "@/lib/prisma"
 
 // Mantiene conectados pagos del cliente, membresía e ingresos de Finanzas:
 // borrar desde cualquier lado deja todo coherente.
 
-type Tx = Prisma.TransactionClient
+
 
 /** Foto de la membresía del cliente, para guardarla en el pago antes de cambiarla. */
 export async function membershipSnapshot(tx: Tx, clientId: string) {

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { GOALS } from "./constants"
 import { todayYmd, toYmd } from "./dates"
+import { calendarYmd } from "@/lib/calendar"
 
 // Trae al módulo de coaching los datos que ya existen en FORTIA:
 // clientes del gimnasio, seguimiento físico y consultas de nutrición.
@@ -45,8 +46,8 @@ export async function syncCandidates() {
       measurements: c._count.physicalRecords,
       personalTraining: c.trainingPlans.length > 0,
       consultations: nut?._count.consultations ?? 0,
-      membershipEnd: c.membershipEnd ? toYmd(c.membershipEnd) : null,
-      membershipActive: !!c.membershipEnd && toYmd(c.membershipEnd) >= today,
+      membershipEnd: c.membershipEnd ? calendarYmd(c.membershipEnd) : null,
+      membershipActive: !!c.membershipEnd && calendarYmd(c.membershipEnd) >= today,
     }
   })
 }

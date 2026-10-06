@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { calendarDate } from "@/lib/calendar"
 import { requireTrainer } from "@/lib/coaching/auth"
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +26,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       planId,
       sessionNumber: lastNumber + 1,
       packNumber: plan.numPacks,
-      scheduledDate: new Date(scheduledDate + "T12:00:00Z"),
+      scheduledDate: calendarDate(scheduledDate),
       isRescheduled: true,
     },
   })
