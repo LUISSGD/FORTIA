@@ -1,12 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Check, ChevronDown, Play, Plus, Timer, X, Loader2 } from "lucide-react"
+import { Check, ChevronDown, Play, Plus, Timer, X, Loader2, Repeat } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { estimate1RM, fmtKg } from "@/lib/coaching/workout"
+import { parseExerciseNotes, splitReps, timedSeconds } from "@/lib/coaching/exercise-format"
 import { request } from "./request"
 
 type Prev = { weight: number | null; reps: number | null }
@@ -51,7 +52,67 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
   const [finalNotes, setFinalNotes] = useState("")
   const [saving, setSaving] = useState(false)
   const [summary, setSummary] = useState<{ duration: number; exercises: number; volume: number; sets: number; prs: string[] } | null>(null)
+  // Serie por tiempo en curso ("30 seg", "Mantener 45 segundos")
+  const [work, setWork] = useState<{ idx: number; set: number; until: number; total: number } | null>(null)
+  const [workLeft, setWorkLeft] = useState(0)
   const loaded = useRef(false)
+  const audio = useRef<AudioContext | null>(null)
+  const lastTick = useRef(-1)
+  // Evita procesar dos veces el final de un mismo temporizador
+  const handled = useRef(0)
+
+  // Prescripción legible: bloque, superserie, indicación, RPE y series por tiempo
+  const meta = useMemo(() => exercises.map((e) => ({ ...parseExerciseNotes(e.notes), ...splitReps(e.reps), timed: timedSeconds(e.reps) })), [exercises])
+  // Superseries: ejercicios seguidos con la misma etiqueta dentro del mismo bloque
+  const groups = useMemo(() => exercises.map((_, i) => {
+    const same = (k: number) => !!meta[i].superset && meta[k]?.superset === meta[i].superset && meta[k]?.section === meta[i].section
+    let a = i
+    while (a > 0 && same(a - 1)) a--
+    let b = i
+    while (b < exercises.length - 1 && same(b + 1)) b++
+    return Array.from({ length: b - a + 1 }, (_, k) => a + k)
+  }), [exercises, meta])
+
+  /** Sonido de aviso (en iPhone no hay vibración). El audio se habilita con el primer toque del cliente. */
+  function unlockAudio() {
+    try {
+      const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!audio.current && Ctx) audio.current = new Ctx()
+      if (audio.current?.state === "suspended") void audio.current.resume()
+    } catch {}
+  }
+  function beep(times = 1, freq = 880) {
+    const ctx = audio.current
+    if (!ctx) return
+    for (let k = 0; k < times; k++) {
+      const o = ctx.createOscillator()
+      const g = ctx.createGain()
+      o.frequency.value = freq
+      o.connect(g)
+      g.connect(ctx.destination)
+      const t = ctx.currentTime + k * 0.25
+      g.gain.setValueAtTime(0.0001, t)
+      g.gain.exponentialRampToValueAtTime(0.5, t + 0.02)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18)
+      o.start(t)
+      o.stop(t + 0.2)
+    }
+  }
+
+  // Pantalla siempre encendida mientras entrena
+  useEffect(() => {
+    if (summary || !("wakeLock" in navigator)) return
+    let lock: WakeLockSentinel | null = null
+    const req = () => {
+      if (document.visibilityState === "visible") navigator.wakeLock.request("screen").then((l) => { lock = l }).catch(() => {})
+    }
+    req()
+    document.addEventListener("visibilitychange", req)
+    return () => {
+      document.removeEventListener("visibilitychange", req)
+      lock?.release().catch(() => {})
+    }
+  }, [summary])
 
   useEffect(() => {
     try {
@@ -75,17 +136,37 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
   useEffect(() => {
     const t = setInterval(() => {
       setElapsed(Math.floor((Date.now() - new Date(state.startedAt).getTime()) / 1000))
-      if (rest) {
-        const left = Math.max(0, Math.round((rest.until - Date.now()) / 1000))
+      const tick = (until: number) => {
+        const left = Math.max(0, Math.round((until - Date.now()) / 1000))
+        if (left > 0 && left <= 3 && lastTick.current !== left) {
+          lastTick.current = left
+          beep(1, 660)
+        }
+        return left
+      }
+      if (work) {
+        const left = tick(work.until)
+        setWorkLeft(left)
+        if (left === 0 && handled.current !== work.until) {
+          handled.current = work.until
+          setWork(null)
+          beep(3)
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+          markDone(work.idx, work.set, String(work.total))
+        }
+      } else if (rest) {
+        const left = tick(rest.until)
         setRestLeft(left)
-        if (left === 0) {
+        if (left === 0 && handled.current !== rest.until) {
+          handled.current = rest.until
           setRest(null)
+          beep(3)
           if (navigator.vibrate) navigator.vibrate([200, 100, 200])
         }
       }
-    }, 500)
+    }, 250)
     return () => clearInterval(t)
-  }, [state.startedAt, rest])
+  }, [state.startedAt, rest, work])
 
   const updateSet = useCallback((exId: string, i: number, patch: Partial<SetState>) => {
     setState((s) => ({ ...s, sets: { ...s.sets, [exId]: s.sets[exId].map((x, k) => (k === i ? { ...x, ...patch } : x)) } }))
@@ -102,22 +183,53 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
     }
   }
 
-  function toggleSet(ex: Ex, i: number) {
-    const set = state.sets[ex.id][i]
-    if (!set.done) {
-      const { reps } = setDefaults(ex, i, set)
-      if (!reps) return toast.error("Indica las repeticiones")
-      updateSet(ex.id, i, { done: true, reps })
-      if (ex.restSec > 0) {
-        setRest({ until: Date.now() + ex.restSec * 1000, total: ex.restSec })
-        setRestLeft(ex.restSec)
-      }
-    } else {
-      updateSet(ex.id, i, { done: false })
+  /** Marca la serie hecha y decide qué sigue: en superserie pasa al siguiente ejercicio sin descanso. */
+  function markDone(idx: number, i: number, reps: string) {
+    const ex = exercises[idx]
+    updateSet(ex.id, i, { done: true, reps })
+    const g = groups[idx]
+    const pos = g.indexOf(idx)
+    if (g.length > 1 && pos < g.length - 1) {
+      setOpen(exercises[g[pos + 1]].id)
+      return
+    }
+    if (g.length > 1) {
+      // Fin de la vuelta: descanso y, si quedan vueltas, de nuevo al primero de la superserie
+      const first = exercises[g[0]]
+      setOpen(i + 1 < Math.max(first.sets, 1) ? first.id : exercises[g[g.length - 1] + 1]?.id ?? null)
+    }
+    const restSec = g.length > 1 ? Math.max(...g.map((k) => exercises[k].restSec)) : ex.restSec
+    if (restSec > 0) {
+      lastTick.current = -1
+      setRest({ until: Date.now() + restSec * 1000, total: restSec })
+      setRestLeft(restSec)
     }
   }
 
+  function toggleSet(ex: Ex, idx: number, i: number) {
+    unlockAudio()
+    const set = state.sets[ex.id][i]
+    if (set.done) return updateSet(ex.id, i, { done: false })
+    // Serie por tiempo en curso: tocar de nuevo la termina antes
+    if (work && work.idx === idx && work.set === i) {
+      setWork(null)
+      return markDone(idx, i, String(Math.max(1, work.total - workLeft)))
+    }
+    const timed = meta[idx].timed
+    if (timed && !set.reps) {
+      lastTick.current = -1
+      setRest(null)
+      setWork({ idx, set: i, until: Date.now() + timed * 1000, total: timed })
+      setWorkLeft(timed)
+      return
+    }
+    const { reps } = setDefaults(ex, i, set)
+    if (!reps) return toast.error("Indica las repeticiones")
+    markDone(idx, i, reps)
+  }
+
   function completeExercise(ex: Ex, idx: number) {
+    if (work?.idx === idx) setWork(null)
     const sets = state.sets[ex.id] ?? []
     // Si no marcó ninguna serie, se dan por hechas todas con los valores que ve en pantalla
     const fillAll = !sets.some((s) => s.done)
@@ -223,13 +335,20 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
         const isOpen = open === ex.id
         const sets = state.sets[ex.id]
         const prevTop = Math.max(0, ...ex.previous.map((p) => p.weight ?? 0))
+        const m = meta[idx]
+        const g = groups[idx]
+        const inSuperset = g.length > 1
+        const newSection = m.section && (idx === 0 || m.section !== meta[idx - 1].section)
         return (
-          <div key={ex.id} className={cn("rounded-2xl border overflow-hidden min-w-0", state.completed[ex.id] ? "border-emerald-200 bg-emerald-50" : isOpen ? "border-orange-200 bg-white" : "border-gray-200 bg-white")}>
+          <Fragment key={ex.id}>
+          {newSection && <p className="pt-2 text-[11px] font-black uppercase tracking-widest text-gray-500">{m.section}</p>}
+          <div className={cn("rounded-2xl border overflow-hidden min-w-0", inSuperset && "border-l-4 border-l-violet-400", state.completed[ex.id] ? "border-emerald-200 bg-emerald-50" : isOpen ? "border-orange-200 bg-white" : "border-gray-200 bg-white")}>
             <button className="w-full flex items-center gap-3 p-4 text-left" onClick={() => setOpen(isOpen ? null : ex.id)}>
               <span className={cn("text-xs font-black w-7", state.completed[ex.id] ? "text-emerald-600" : "text-gray-400")}>{state.completed[ex.id] ? "✓" : pad(idx + 1)}</span>
               <div className="flex-1 min-w-0">
+                {inSuperset && <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600">{m.superset} · {g.indexOf(idx) + 1}/{g.length}</p>}
                 <p className="font-bold text-gray-900 truncate">{ex.name}</p>
-                <p className="text-xs text-gray-400">{ex.sets} × {ex.reps}{ex.rir ? ` · RIR ${ex.rir}` : ""}{ex.load ? ` · ${ex.load}` : ""}</p>
+                <p className="text-xs text-gray-400">{ex.sets} × {m.reps}{m.rpe ? ` · RPE ${m.rpe}` : ""}{ex.rir ? ` · RIR ${ex.rir}` : ""}{ex.load ? ` · ${ex.load}` : ""}</p>
               </div>
               <ChevronDown className={cn("h-4 w-4 text-gray-400 transition", isOpen && "rotate-180")} />
             </button>
@@ -238,24 +357,33 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
                 <div className="flex flex-wrap gap-2 text-[11px]">
                   <button onClick={() => setVideo(ex)} className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1.5 font-semibold text-gray-700"><Play className="h-3 w-3" /> Video</button>
                   {prevTop > 0 && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">Peso anterior: <b>{fmtKg(prevTop)} kg</b></span>}
+                  {m.rpe && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700" title="Esfuerzo percibido de 1 a 10">RPE {m.rpe} · esfuerzo {m.rpe}/10</span>}
+                  {m.timed && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">⏱ {m.timed}s por serie</span>}
                   {ex.tempo && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">Tempo {ex.tempo}</span>}
-                  {ex.restSec > 0 && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">Descanso {ex.restSec}s</span>}
+                  {ex.restSec > 0 && !inSuperset && <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-700">Descanso {ex.restSec}s</span>}
                 </div>
-                {ex.notes && <p className="text-xs text-orange-500">💡 {ex.notes}</p>}
+                {inSuperset && (
+                  <p className="text-xs text-violet-700 bg-violet-50 rounded-xl px-3 py-2 flex gap-2">
+                    <Repeat className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>{m.superset}: haz una serie de cada ejercicio seguido ({g.map((k) => exercises[k].name).join(" + ")}) y descansa al terminar la vuelta.</span>
+                  </p>
+                )}
+                {m.tip && <p className="text-xs text-orange-500">💡 {m.tip}</p>}
 
                 <div className="space-y-2">
                   <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 text-[10px] uppercase tracking-wider text-gray-400 px-1">
-                    <span>Set</span><span>Kg</span><span>Reps</span><span />
+                    <span>Set</span><span>Kg</span><span>{m.timed ? "Seg" : "Reps"}</span><span />
                   </div>
                   {sets.map((s, i) => {
                     const p = ex.previous[i]
+                    const running = work?.idx === idx && work.set === i
                     return (
                       <div key={i} className={cn("grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center", s.done && "opacity-80")}>
                         <span className="text-sm font-bold text-gray-400 text-center">{i + 1}</span>
                         <input inputMode="decimal" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.weight ? fmtKg(p.weight) : "kg"} value={s.weight} onChange={(e) => updateSet(ex.id, i, { weight: e.target.value.replace(",", ".") })} />
-                        <input inputMode="numeric" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.reps ? String(p.reps) : ex.reps} value={s.reps} onChange={(e) => updateSet(ex.id, i, { reps: e.target.value.replace(/\D/g, "") })} />
-                        <button onClick={() => toggleSet(ex, i)} className={cn("h-11 rounded-xl flex items-center justify-center", s.done ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-400")} aria-label="Serie completada">
-                          <Check className="h-5 w-5" />
+                        <input inputMode="numeric" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.reps ? String(p.reps) : m.timed ? String(m.timed) : m.reps} value={s.reps} onChange={(e) => updateSet(ex.id, i, { reps: e.target.value.replace(/\D/g, "") })} />
+                        <button onClick={() => toggleSet(ex, idx, i)} className={cn("h-11 rounded-xl flex items-center justify-center font-mono font-bold text-sm", s.done ? "bg-emerald-500 text-white" : running ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-400")} aria-label={m.timed && !s.done ? "Iniciar serie por tiempo" : "Serie completada"}>
+                          {running ? workLeft : m.timed && !s.done && !s.reps ? <Timer className="h-5 w-5" /> : <Check className="h-5 w-5" />}
                         </button>
                       </div>
                     )
@@ -278,6 +406,7 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
               </div>
             )}
           </div>
+          </Fragment>
         )
       })}
 
@@ -295,7 +424,19 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
         Descartar y salir
       </button>
 
-      {rest && (
+      {work && (
+        <div className="fixed bottom-4 inset-x-4 z-50 max-w-md mx-auto rounded-2xl bg-orange-500 text-white p-3 flex items-center gap-3 shadow-xl" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+          <Timer className="h-5 w-5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold truncate">{exercises[work.idx].name} · serie {work.set + 1}</p>
+            <div className="h-1.5 bg-white/30 rounded-full mt-1 overflow-hidden"><div className="h-full bg-white" style={{ width: `${(workLeft / work.total) * 100}%` }} /></div>
+          </div>
+          <p className="font-mono font-black text-2xl">{clock(workLeft)}</p>
+          <button onClick={() => toggleSet(exercises[work.idx], work.idx, work.set)} className="text-xs font-bold bg-white/20 rounded-lg px-2 py-1">Listo</button>
+        </div>
+      )}
+
+      {rest && !work && (
         <div className="fixed bottom-4 inset-x-4 z-50 max-w-md mx-auto rounded-2xl bg-white border border-gray-200 p-3 flex items-center gap-3 shadow-xl" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
           <Timer className="h-5 w-5 text-orange-500" />
           <div className="flex-1">
