@@ -35,8 +35,11 @@ export default async function ClientAgendaPage({ searchParams }: PageProps<"/app
       where: { clientId, status: { in: ["BOOKED", "WAITLIST", "ATTENDED", "NO_SHOW"] }, slot: { startsAt: { gte: limaDateTime(gridStart, "00:00"), lt: limaDateTime(addCalendarDays(gridEnd, 1), "00:00") } } },
       include: { slot: true },
     }),
-    prisma.workoutLog.findMany({ where: { clientId, completedAt: { not: null }, date: { gte: gridStart, lte: gridEnd } }, select: { date: true, dayName: true } }),
-    prisma.program.findFirst({ where: { clientId, isActive: true, isTemplate: false }, select: { days: { where: { dayOfWeek: { not: null } }, select: { name: true, dayOfWeek: true } } } }),
+    prisma.workoutLog.findMany({ where: { clientId, completedAt: { not: null }, date: { gte: gridStart, lte: gridEnd } }, select: { date: true, dayName: true, programDayId: true } }),
+    prisma.program.findFirst({
+      where: { clientId, isActive: true, isTemplate: false },
+      select: { days: { orderBy: { order: "asc" }, select: { id: true, name: true, dayOfWeek: true, exercises: { orderBy: { order: "asc" }, select: { sets: true, reps: true, exercise: { select: { name: true } } } } } } },
+    }),
   ])
 
   const events: AgendaEvent[] = []
@@ -69,14 +72,19 @@ export default async function ClientAgendaPage({ searchParams }: PageProps<"/app
   }
 
   // Entrenamientos: hechos (registrados en la app) y planificados según los días de su rutina
+  const days = program?.days ?? []
+  const exercisesOf = (day?: (typeof days)[number]) => day?.exercises.map((e) => ({ name: e.exercise.name, sets: e.sets, reps: e.reps })) ?? []
   const doneDates = new Set(workouts.map((w) => w.date))
-  for (const w of workouts) events.push({ date: w.date, kind: "workout", title: w.dayName, time: null, status: "done" })
-  const planned = program?.days ?? []
+  for (const w of workouts) {
+    const day = days.find((d) => d.id === w.programDayId)
+    events.push({ date: w.date, kind: "workout", title: w.dayName, time: null, status: "done", dayId: day?.id ?? null, exercises: exercisesOf(day) })
+  }
+  const planned = days.filter((d) => d.dayOfWeek !== null)
   if (planned.length) {
     for (let d = today > gridStart ? today : gridStart; d <= gridEnd; d = addCalendarDays(d, 1)) {
       if (doneDates.has(d)) continue
       for (const day of planned.filter((p) => p.dayOfWeek === fortiaWeekday(d))) {
-        events.push({ date: d, kind: "workout", title: day.name, time: null, status: "pending" })
+        events.push({ date: d, kind: "workout", title: day.name, time: null, status: "pending", dayId: day.id, exercises: exercisesOf(day) })
       }
     }
   }
