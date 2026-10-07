@@ -133,7 +133,7 @@ type Profile = Awaited<ReturnType<typeof prisma.coachingProfile.findUnique>>
 /** Resumen para el entrenador: datos de entrenamiento, sin pagos ni membresía. */
 async function SummaryTab({ clientId, profile, birthDate }: { clientId: string; profile: Profile; birthDate: Date | null }) {
   const [program, lastWorkout, workouts7, { streak, totalWorkouts }, pt] = await Promise.all([
-    prisma.program.findFirst({ where: { clientId, isActive: true, isTemplate: false }, include: { days: { orderBy: { order: "asc" }, select: { id: true, name: true } } } }),
+    prisma.program.findFirst({ where: { clientId, isActive: true, isTemplate: false }, include: { days: { orderBy: { order: "asc" }, select: { name: true } } } }),
     prisma.workoutLog.findFirst({ where: { clientId, completedAt: { not: null } }, orderBy: { startedAt: "desc" }, select: { date: true, dayName: true, rating: true, notes: true } }),
     prisma.workoutLog.count({ where: { clientId, completedAt: { not: null }, startedAt: { gte: new Date(Date.now() - 7 * 86400000) } } }),
     clientAchievements(clientId),
@@ -167,15 +167,7 @@ async function SummaryTab({ clientId, profile, birthDate }: { clientId: string; 
             {program ? (
               <>
                 <p className="text-sm font-medium">{program.name}</p>
-                <p className="text-xs text-gray-400 mt-1 mb-1">Registra la sesión de hoy en su historial:</p>
-                <ul className="divide-y divide-gray-100">
-                  {program.days.map((d) => (
-                    <li key={d.id} className="flex items-center justify-between gap-2 py-1.5">
-                      <span className="text-sm text-gray-700 truncate">{d.name}</span>
-                      <Link href={`/trainer/clients/${clientId}/workout/${d.id}`} className="shrink-0 rounded-lg bg-orange-500 text-white text-xs font-bold px-2.5 py-1">▶ Registrar</Link>
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-xs text-gray-500 mt-1">{program.days.map((d) => d.name).join(" · ")}</p>
               </>
             ) : (
               <p className="text-sm text-amber-600">Sin rutina asignada. Asígnale una en Entrenamiento.</p>

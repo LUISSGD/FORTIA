@@ -1,10 +1,11 @@
 import Link from "next/link"
-import { AlertTriangle, CheckSquare, MessageSquare, Play, Video, MapPin } from "lucide-react"
+import { AlertTriangle, CheckSquare, ChevronDown, History, MessageSquare, Video, MapPin } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { cn } from "@/lib/utils"
 import { requireTrainerPage } from "@/lib/coaching/auth"
 import { calendarDate, fortiaWeekday } from "@/lib/calendar"
-import { limaDateTime, todayYmd, addDaysYmd } from "@/lib/coaching/dates"
+import { formatYmd, limaDateTime, todayYmd, addDaysYmd } from "@/lib/coaching/dates"
+import { splitReps } from "@/lib/coaching/exercise-format"
 import { getTrainingState } from "@/lib/coaching/client-data"
 import { withCoachErrors } from "@/components/coaching/withCoachErrors"
 import AttendanceButtons from "./AttendanceButtons"
@@ -55,6 +56,11 @@ async function TrainerTodayPage() {
   }
   for (const sl of slots) for (const b of sl.bookings) people.set(b.client.id, b.client)
   const states = new Map(await Promise.all([...people.keys()].map(async (id) => [id, await getTrainingState(id)] as const)))
+  const lastWorkouts = new Map(
+    (await Promise.all([...people.keys()].map((clientId) => prisma.workoutLog.findFirst({ where: { clientId, completedAt: { not: null } }, orderBy: { startedAt: "desc" }, select: { clientId: true, date: true, dayName: true } }))))
+      .filter((w) => w !== null)
+      .map((w) => [w.clientId, w]),
+  )
 
   const classes = sessions
     .map((s) => {
@@ -81,24 +87,45 @@ async function TrainerTodayPage() {
   const [, m, d] = today.split("-").map(Number)
   const pending = classes.filter((c) => c.attended === null).length
 
-  const routine = (p: Person, highlight: boolean) => {
+  // Lo que le toca (desplegable con los ejercicios) y acceso a sus registros. El entrenador solo consulta.
+  const routine = (p: Person) => {
     const st = states.get(p.id)
     const day = st?.nextDay
+    const last = lastWorkouts.get(p.id)
     return (
-      <div key={p.id} className="flex items-center gap-3 py-2">
-        <div className="flex-1 min-w-0">
-          <Link href={`/trainer/clients/${p.id}`} className="font-semibold text-gray-900 hover:underline">{fullName(p)}</Link>
-          {p.coachingProfile?.injuries && (
-            <p className="text-xs text-red-600 flex gap-1 items-start"><AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /><span className="line-clamp-2">{p.coachingProfile.injuries}</span></p>
-          )}
-          <p className="text-xs text-gray-500 truncate">
-            {st?.doneToday ? `✅ Ya registró hoy: ${st.doneToday.dayName}` : day ? `Le toca: ${day.name} · ${day.exercises.length} ejercicios` : "Sin rutina asignada"}
-          </p>
-        </div>
-        {day && !st?.doneToday && (
-          <Link href={`/trainer/clients/${p.id}/workout/${day.id}`} className={cn("shrink-0 flex items-center gap-1.5 rounded-lg px-3 h-9 text-xs font-bold", highlight ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700")}>
-            <Play className="h-3.5 w-3.5" /> Registrar
+      <div key={p.id} className="py-2">
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <Link href={`/trainer/clients/${p.id}`} className="font-semibold text-gray-900 hover:underline">{fullName(p)}</Link>
+            {p.coachingProfile?.injuries && (
+              <p className="text-xs text-red-600 flex gap-1 items-start"><AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /><span className="line-clamp-2">{p.coachingProfile.injuries}</span></p>
+            )}
+            <p className="text-xs text-gray-400">
+              {st?.doneToday ? `✅ Ya entrenó hoy: ${st.doneToday.dayName}` : last ? `Último registro: ${last.dayName} · ${formatYmd(last.date)}` : "Aún sin registros en la app"}
+            </p>
+          </div>
+          <Link href={`/trainer/clients/${p.id}?tab=training`} className="shrink-0 flex items-center gap-1 rounded-lg bg-gray-100 text-gray-700 px-2.5 h-8 text-xs font-semibold">
+            <History className="h-3.5 w-3.5" /> Registros
           </Link>
+        </div>
+        {day ? (
+          <details className="group mt-1.5 rounded-xl bg-gray-50">
+            <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer list-none text-sm">
+              <span className="flex-1 min-w-0 truncate"><span className="text-gray-500">Le toca:</span> <b className="text-gray-900">{day.name}</b> · {day.exercises.length} ejercicios</span>
+              <ChevronDown className="h-4 w-4 text-gray-400 transition group-open:rotate-180" />
+            </summary>
+            <ol className="px-3 pb-2 divide-y divide-gray-200/70">
+              {day.exercises.map((e, i) => (
+                <li key={e.id} className="flex items-baseline gap-2 py-1.5 text-xs">
+                  <span className="text-gray-400 w-4">{i + 1}</span>
+                  <span className="flex-1 text-gray-800">{e.exercise.name}</span>
+                  <span className="text-gray-500">{e.sets} × {splitReps(e.reps).reps}</span>
+                </li>
+              ))}
+            </ol>
+          </details>
+        ) : (
+          <p className="mt-1 text-xs text-amber-600">Sin rutina asignada</p>
         )}
       </div>
     )
@@ -129,7 +156,7 @@ async function TrainerTodayPage() {
                   )}
                 </div>
               </div>
-              <div className="divide-y divide-gray-100">{c.persons.map((p, i) => routine(p, i === 0 && c.attended !== false))}</div>
+              <div className="divide-y divide-gray-100">{c.persons.map((p) => routine(p))}</div>
               <AttendanceButtons sessionId={c.id} attended={c.attended} />
             </div>
           ))}
@@ -145,7 +172,7 @@ async function TrainerTodayPage() {
                 {hhmm(s.startsAt)} · {s.title}
                 {s.mode === "ONLINE" ? <Video className="h-3.5 w-3.5 text-gray-400" /> : s.location ? <MapPin className="h-3.5 w-3.5 text-gray-400" /> : null}
               </p>
-              {s.bookings.length ? <div className="divide-y divide-gray-100">{s.bookings.map((b) => routine(b.client, false))}</div> : <p className="text-xs text-gray-400 mt-1">Sin reservas</p>}
+              {s.bookings.length ? <div className="divide-y divide-gray-100">{s.bookings.map((b) => routine(b.client))}</div> : <p className="text-xs text-gray-400 mt-1">Sin reservas</p>}
             </div>
           ))}
         </section>
