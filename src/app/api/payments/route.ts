@@ -55,8 +55,9 @@ export async function POST(request: Request) {
         amount: Number(amount),
         method: method ?? "CASH",
         concept: description,
-        periodStart: now,
-        periodEnd: now,
+        // Paquete de clases: no cubre un período; se guarda el día del pago
+        periodStart: incomeDate,
+        periodEnd: incomeDate,
         incomeId: income.id,
         receiptUrl: receiptUrl ?? null,
       },
