@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ImageIcon, Pencil, Trash2, X } from "lucide-react"
 import { formatDate, formatCurrency, PAYMENT_METHODS } from "@/lib/utils"
+import { calendarYmd } from "@/lib/calendar"
+
+const dmy = (d: Date | string) => calendarYmd(d).split("-").reverse().join("/")
 
 interface Payment {
   id: string
@@ -107,7 +110,12 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
                   <p className="text-sm font-medium">{formatCurrency(p.amount, p.income?.currency ?? "PEN")}</p>
                 )}
                 {!isExtension && <p className="text-xs text-gray-500">{PAYMENT_METHODS[p.method] ?? p.method}</p>}
-                <p className="text-xs text-gray-400">{formatDate(p.periodStart)} → {formatDate(p.periodEnd)}</p>
+                {/* Membresía: período que cubre. Clases EP / nutrición: un solo día, el del pago */}
+                {calendarYmd(p.periodStart) === calendarYmd(p.periodEnd) ? (
+                  <p className="text-xs text-gray-400">{isExtension ? "Desde" : "Pagado el"} {dmy(p.periodStart)}</p>
+                ) : (
+                  <p className="text-xs text-gray-400">{isExtension ? "Extiende" : "Cubre"} del {dmy(p.periodStart)} al {dmy(p.periodEnd)}</p>
+                )}
               </div>
               <div className="flex items-center gap-1.5">
                 {p.receiptUrl && (
@@ -130,7 +138,7 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
                 <button onClick={() => handleDelete(p.id)} title="Eliminar pago" className="text-gray-300 hover:text-red-500">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-                <p className="text-xs text-gray-400 ml-1">{formatDate(p.paidAt)}</p>
+                <p className="text-xs text-gray-400 ml-1" title="Día en que se registró en el sistema">Reg. {formatDate(p.paidAt)}</p>
               </div>
             </div>
             {p.concept && <p className="text-xs text-gray-500 mt-1">{p.concept}</p>}

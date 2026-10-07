@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Fechas de CALENDARIO (un día, sin hora): fecha de una clase, inicio de paquete,
-// inicio/fin de membresía, cumpleaños.
+// inicio/fin de membresía, cumpleaños, período de un pago.
 //
 // Regla única de FORTIA:
 //   • Se GUARDAN siempre al mediodía UTC (YYYY-MM-DDT12:00:00Z). Así el día es el
@@ -15,7 +15,11 @@ const LIMA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: 
 const YMD = /^\d{4}-\d{2}-\d{2}$/
 
 /** Campos de la base de datos que son fechas de calendario (se normalizan al guardar). */
-export const CALENDAR_FIELDS = new Set(["scheduledDate", "currentPackStart", "membershipStart", "membershipEnd", "birthDate"])
+export const CALENDAR_FIELDS = new Set([
+  "scheduledDate", "currentPackStart", "membershipStart", "membershipEnd", "birthDate",
+  // Payment: período que cubre (membresía) o día del pago (clases EP, nutrición) y la membresía previa
+  "periodStart", "periodEnd", "prevMembershipStart", "prevMembershipEnd",
+])
 
 /**
  * Día de calendario ("YYYY-MM-DD") de un valor guardado o recibido.
