@@ -5,6 +5,7 @@ import { addDays } from "date-fns"
 import { membershipSnapshot } from "@/lib/finance-sync"
 import { getTrainingPrice, ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS, type Entrenador, type Modalidad, type Tarifa, type NumPacks, type ClasesPerPack } from "@/lib/training-pricing"
 import { assignPlanScheduleDates } from "@/lib/coaching/personal-training"
+import { calendarDate } from "@/lib/calendar"
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
   if (!client) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 })
 
   const now = new Date()
+  // Fecha del pago: la elige el coach (p. ej. un pago de fin de mes registrado días después).
+  // Define el mes en que se cuenta el ingreso en Finanzas.
+  const payDay = (ymd?: string) => calendarDate(ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? ymd : now)
 
   // Evita registrar dos veces el mismo pago (doble clic o reintento).
   const duplicate = await prisma.payment.findFirst({
@@ -35,7 +39,7 @@ export async function POST(request: Request) {
     const price = getTrainingPrice(entrenador, modalidad, tarifa, numPacks, clasesPerPack)
     if (!price) return NextResponse.json({ error: "Combinación no válida" }, { status: 400 })
 
-    const incomeDate = paymentDate ? new Date(paymentDate + "T00:00:00") : now
+    const incomeDate = payDay(paymentDate)
 
     const description = concept ?? [
       ENTRENADOR_LABELS[entrenador],
@@ -56,6 +60,7 @@ export async function POST(request: Request) {
         method: method ?? "CASH",
         concept: description,
         // Paquete de clases: no cubre un período; se guarda el día del pago
+        paidAt: incomeDate,
         periodStart: incomeDate,
         periodEnd: incomeDate,
         incomeId: income.id,
@@ -104,7 +109,7 @@ export async function POST(request: Request) {
   // ── Nutrición ───────────────────────────────────────────────────────────
   if (paymentType === "nutrition") {
     const { paymentDate, concept } = body as { paymentDate?: string; concept?: string }
-    const incomeDate = paymentDate ? new Date(paymentDate + "T00:00:00") : now
+    const incomeDate = payDay(paymentDate)
     const description = concept ?? `Consulta de nutrición — ${client.firstName} ${client.lastName}`
 
     const income = await prisma.income.create({
@@ -116,6 +121,7 @@ export async function POST(request: Request) {
         amount: Number(amount),
         method: method ?? "CASH",
         concept: description,
+        paidAt: incomeDate,
         periodStart: incomeDate,
         periodEnd: incomeDate,
         incomeId: income.id,
@@ -126,14 +132,15 @@ export async function POST(request: Request) {
   }
 
   // ── Membresía ───────────────────────────────────────────────────────────
-  const { planId, startDate } = body
+  const { planId, startDate, paymentDate } = body as { planId?: string; startDate?: string; paymentDate?: string }
+  const paidAt = payDay(paymentDate)
   const plan = planId
     ? await prisma.membershipPlan.findUnique({ where: { id: planId } })
     : await prisma.membershipPlan.findUnique({ where: { id: client.membershipPlanId ?? "" } })
 
   if (!plan) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 })
 
-  const periodStart = startDate ? new Date(startDate + "T00:00:00") : now
+  const periodStart = startDate ? calendarDate(startDate) : calendarDate(now)
   const periodEnd = addDays(periodStart, plan.durationDays)
 
   const { payment, income } = await prisma.$transaction(async (tx) => {
@@ -145,7 +152,7 @@ export async function POST(request: Request) {
         category: "MEMBERSHIP",
         description: concept ?? `Renovación ${plan.name} - ${client.firstName} ${client.lastName}`,
         clientId,
-        date: periodStart,
+        date: paidAt,
       },
     })
     const payment = await tx.payment.create({
@@ -154,6 +161,7 @@ export async function POST(request: Request) {
         amount: Number(amount),
         method: method ?? "CASH",
         concept: concept ?? `Renovación ${plan.name}`,
+        paidAt,
         periodStart,
         periodEnd,
         incomeId: income.id,

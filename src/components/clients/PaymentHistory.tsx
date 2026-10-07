@@ -35,6 +35,7 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
   const [editAmount, setEditAmount] = useState("")
   const [editMethod, setEditMethod] = useState("")
   const [editConcept, setEditConcept] = useState("")
+  const [editDate, setEditDate] = useState("")
   const [saving, setSaving] = useState(false)
 
   function openEdit(p: Payment) {
@@ -42,6 +43,7 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
     setEditAmount(String(p.amount))
     setEditMethod(p.method)
     setEditConcept(p.concept ?? "")
+    setEditDate(calendarYmd(p.paidAt))
   }
 
   async function handleSaveEdit() {
@@ -50,7 +52,7 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
     const res = await fetch(`/api/payments/${editing.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: editAmount, method: editMethod, concept: editConcept }),
+      body: JSON.stringify({ amount: editAmount, method: editMethod, concept: editConcept, ...(editing.method === "EXTENSION" ? {} : { paidAt: editDate }) }),
     })
     setSaving(false)
     if (res.ok) {
@@ -110,9 +112,9 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
                   <p className="text-sm font-medium">{formatCurrency(p.amount, p.income?.currency ?? "PEN")}</p>
                 )}
                 {!isExtension && <p className="text-xs text-gray-500">{PAYMENT_METHODS[p.method] ?? p.method}</p>}
-                {/* Membresía: período que cubre. Clases EP / nutrición: un solo día, el del pago */}
+                {/* Membresía: período que cubre. Clases EP / nutrición: un solo día, el del pago (ya se ve a la derecha) */}
                 {calendarYmd(p.periodStart) === calendarYmd(p.periodEnd) ? (
-                  <p className="text-xs text-gray-400">{isExtension ? "Desde" : "Pagado el"} {dmy(p.periodStart)}</p>
+                  calendarYmd(p.periodStart) !== calendarYmd(p.paidAt) && <p className="text-xs text-gray-400">{isExtension ? "Desde" : "Del"} {dmy(p.periodStart)}</p>
                 ) : (
                   <p className="text-xs text-gray-400">{isExtension ? "Extiende" : "Cubre"} del {dmy(p.periodStart)} al {dmy(p.periodEnd)}</p>
                 )}
@@ -138,7 +140,7 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
                 <button onClick={() => handleDelete(p.id)} title="Eliminar pago" className="text-gray-300 hover:text-red-500">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-                <p className="text-xs text-gray-400 ml-1" title="Día en que se registró en el sistema">Reg. {formatDate(p.paidAt)}</p>
+                <p className="text-xs text-gray-400 ml-1" title={isExtension ? "Día de la extensión" : "Fecha del pago (mes en que se cuenta en Finanzas)"}>{dmy(p.paidAt)}</p>
               </div>
             </div>
             {p.concept && <p className="text-xs text-gray-500 mt-1">{p.concept}</p>}
@@ -168,6 +170,13 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
                 </SelectContent>
               </Select>
             </div>
+            {editing?.method !== "EXTENSION" && (
+              <div>
+                <Label>Fecha del pago</Label>
+                <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+                <p className="text-xs text-gray-400 mt-1">Cambia también el mes en que se cuenta en Finanzas.</p>
+              </div>
+            )}
             <div>
               <Label>Concepto</Label>
               <Input value={editConcept} onChange={e => setEditConcept(e.target.value)} placeholder="Descripción..." />
