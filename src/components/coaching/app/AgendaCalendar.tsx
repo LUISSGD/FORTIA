@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ChevronDown, ChevronLeft, ChevronRight, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { addCalendarDays } from "@/lib/calendar"
+import { splitReps } from "@/lib/coaching/exercise-format"
 import { Card } from "./ui"
 
 export type AgendaEvent = {
@@ -145,7 +146,7 @@ export default function AgendaCalendar({ month, today, gridStart, gridEnd, event
                             <li key={k} className="flex items-baseline gap-2 py-2 text-sm">
                               <span className="text-xs text-gray-400 w-5 shrink-0">{String(k + 1).padStart(2, "0")}</span>
                               <span className="flex-1 min-w-0 text-gray-800">{x.name}</span>
-                              <span className="text-xs text-gray-500 text-right max-w-[45%]">{x.sets} × {x.reps}</span>
+                              <span className="text-xs text-gray-500 text-right max-w-[45%]">{x.sets} × {splitReps(x.reps).reps}</span>
                             </li>
                           ))}
                         </ol>
