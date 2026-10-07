@@ -112,7 +112,7 @@ export async function recordTrainingPayment(
     data: { amount: p.amount, currency: p.currency ?? "PEN", category: "PERSONAL_TRAINING", description: p.description, clientId: p.clientId, date },
   })
   const payment = await tx.payment.create({
-    data: { clientId: p.clientId, amount: p.amount, method: p.method ?? "CASH", concept: p.description, periodStart: date, periodEnd: date, incomeId: income.id, receiptUrl: p.receiptUrl ?? null },
+    data: { clientId: p.clientId, amount: p.amount, method: p.method ?? "CASH", concept: p.description, paidAt: date, periodStart: date, periodEnd: date, incomeId: income.id, receiptUrl: p.receiptUrl ?? null },
   })
   await tx.clientTrainingPlan.update({ where: { id: p.planId }, data: { incomeId: income.id } })
   return { income, payment }

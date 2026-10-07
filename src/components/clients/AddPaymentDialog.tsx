@@ -1,6 +1,10 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { calendarYmd } from "@/lib/calendar"
+
+/** Hoy en Lima ("YYYY-MM-DD"); toISOString() daría el día siguiente después de las 7 p. m. */
+const todayLima = () => calendarYmd(new Date())
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -79,7 +83,8 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
 
   // Membership fields
   const [planId, setPlanId] = useState(currentPlanId ?? "")
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [startDate, setStartDate] = useState(() => todayLima())
+  const [membershipPayDate, setMembershipPayDate] = useState(() => todayLima())
 
   // Training fields
   const [entrenador, setEntrenador] = useState<Entrenador>("HEAD_COACH")
@@ -87,11 +92,11 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
   const [tarifa, setTarifa] = useState<Tarifa>("REGULAR")
   const [numPacks, setNumPacks] = useState<NumPacks>(1)
   const [clasesPerPack, setClasesPerPack] = useState<ClasesPerPack>(8)
-  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [paymentDate, setPaymentDate] = useState(() => todayLima())
 
   // Nutrition fields
   const [nutritionConcept, setNutritionConcept] = useState("")
-  const [nutritionDate, setNutritionDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [nutritionDate, setNutritionDate] = useState(() => todayLima())
 
   // Shared
   const [amount, setAmount] = useState("")
@@ -216,7 +221,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
 
       let body: object
       if (paymentType === "membership") {
-        body = { clientId, planId, amount, currency, method, receiptUrl, startDate }
+        body = { clientId, planId, amount, currency, method, receiptUrl, startDate, paymentDate: membershipPayDate }
       } else if (paymentType === "training") {
         body = {
           clientId, amount, currency, method, receiptUrl,
@@ -343,6 +348,16 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   />
                   <p className="text-xs text-gray-400 mt-1">El vencimiento se calculará desde esta fecha.</p>
                 </div>
+                <div>
+                  <Label>Fecha del pago</Label>
+                  <Input
+                    type="date"
+                    value={membershipPayDate}
+                    onChange={(e) => setMembershipPayDate(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Define en qué mes se cuenta el ingreso en Finanzas.</p>
+                </div>
               </>
             )}
 
@@ -455,6 +470,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                     onChange={(e) => setNutritionDate(e.target.value)}
                     required
                   />
+                  <p className="text-xs text-gray-400 mt-1">Define en qué mes se cuenta el ingreso en Finanzas.</p>
                 </div>
                 <div>
                   <Label>Concepto <span className="text-gray-400 font-normal text-xs">(opcional)</span></Label>
