@@ -72,7 +72,7 @@ export const authConfig: NextAuthConfig = {
 
       if (isLoggedIn && isLoginPage) {
         const role = (auth?.user as { role?: string })?.role ?? "ADMIN"
-        const dest = role === "CLIENT" ? "/app" : role === "USER" ? "/clients" : role === "NUTRITIONIST" ? "/nutrition" : role === "TRAINER" ? "/trainer/agenda" : "/dashboard"
+        const dest = role === "CLIENT" ? "/app" : role === "USER" ? "/clients" : role === "NUTRITIONIST" ? "/nutrition" : role === "TRAINER" ? "/trainer/hoy" : "/dashboard"
         return Response.redirect(new URL(dest, nextUrl))
       }
 
@@ -83,7 +83,7 @@ export const authConfig: NextAuthConfig = {
         const allowed = TRAINER_ALLOWED_PREFIXES.some(r => path === r || path.startsWith(r + "/"))
         if (allowed) return true
         if (path.startsWith("/api/")) return Response.json({ error: "Sin permisos" }, { status: 403 })
-        return Response.redirect(new URL("/trainer/agenda", nextUrl))
+        return Response.redirect(new URL("/trainer/hoy", nextUrl))
       }
 
       if (role === "NUTRITIONIST") {

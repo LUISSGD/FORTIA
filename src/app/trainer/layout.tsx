@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Users, LogOut, Dumbbell, ListChecks } from "lucide-react"
+import { Calendar, Users, LogOut, Dumbbell, ListChecks, Sun } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import PushToggle from "@/components/coaching/PushToggle"
 
 const NAV = [
+  { href: "/trainer/hoy", icon: Sun, label: "Hoy" },
   { href: "/trainer/agenda", icon: Calendar, label: "Agenda" },
   { href: "/trainer/clients", icon: Users, label: "Clientes" },
   { href: "/trainer/programs", icon: ListChecks, label: "Rutinas" },
