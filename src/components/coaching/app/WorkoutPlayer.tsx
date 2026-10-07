@@ -41,9 +41,18 @@ function initialState(exercises: Ex[]): State {
   }
 }
 
-export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises }: { dayId: string; title: string; subtitle: string; notes: string | null; exercises: Ex[] }) {
+/**
+ * Reproductor de entrenamiento. Lo usa el cliente en su app y el entrenador para registrar la sesión
+ * de un cliente en su clase (`trainer`: guarda en su historial y vuelve a su ficha).
+ */
+export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises, trainer }: {
+  dayId: string; title: string; subtitle: string; notes: string | null; exercises: Ex[]
+  trainer?: { clientId: string; clientName: string }
+}) {
   const router = useRouter()
-  const storageKey = `fortia-workout-${dayId}`
+  const storageKey = trainer ? `fortia-trainer-workout-${trainer.clientId}-${dayId}` : `fortia-workout-${dayId}`
+  const saveUrl = trainer ? `/api/trainer/clients/${trainer.clientId}/workouts` : "/api/app/workouts"
+  const exitHref = trainer ? `/trainer/clients/${trainer.clientId}?tab=training` : "/app/training"
   const [state, setState] = useState<State>(() => initialState(exercises))
   const [open, setOpen] = useState<string | null>(exercises[0]?.id ?? null)
   const [elapsed, setElapsed] = useState(0)
@@ -265,7 +274,7 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
     }
     let data: { durationMin: number; volumeKg: number }
     try {
-      data = await request("/api/app/workouts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, 30_000)
+      data = await request(saveUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, 30_000)
     } catch (e) {
       toast.error(`${(e as Error).message} Tu entrenamiento sigue guardado en este celular.`, { duration: 8000 })
       return
@@ -306,8 +315,17 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
             <p className="text-sm text-gray-600">{summary.prs.join(", ")}</p>
           </div>
         )}
-        <Link href="/app" className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold flex items-center justify-center">VOLVER AL INICIO</Link>
-        <Link href="/app/chat" className="text-sm text-gray-400">Contarle a tu coach cómo te fue →</Link>
+        {trainer ? (
+          <>
+            <Link href={exitHref} className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold flex items-center justify-center">VER FICHA DE {trainer.clientName.split(" ")[0].toUpperCase()}</Link>
+            <Link href="/trainer/hoy" className="text-sm text-gray-400">Volver a Hoy →</Link>
+          </>
+        ) : (
+          <>
+            <Link href="/app" className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold flex items-center justify-center">VOLVER AL INICIO</Link>
+            <Link href="/app/chat" className="text-sm text-gray-400">Contarle a tu coach cómo te fue →</Link>
+          </>
+        )}
       </div>
     )
   }
@@ -316,10 +334,10 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
 
   return (
     <div className="space-y-3 -mt-2">
-      <div className="sticky top-14 z-30 -mx-4 px-4 py-3 bg-white/95 backdrop-blur border-b border-gray-100">
+      <div className={cn("sticky z-30 -mx-4 px-4 py-3 bg-white/95 backdrop-blur border-b border-gray-100", trainer ? "top-12" : "top-14")}>
         <div className="flex items-center justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-widest text-orange-500 font-bold">🔥 Entrenamiento de hoy</p>
+            <p className="text-[11px] uppercase tracking-widest text-orange-500 font-bold truncate">{trainer ? `🏋️ Entrenando a ${trainer.clientName}` : "🔥 Entrenamiento de hoy"}</p>
             <p className="font-black truncate text-gray-900">{title} <span className="text-gray-400 font-medium text-sm">· {subtitle}</span></p>
           </div>
           <div className="text-right shrink-0">
@@ -405,7 +423,7 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
 
                 <textarea
                   rows={1}
-                  placeholder="¿Alguna molestia o comentario para tu coach?"
+                  placeholder={trainer ? "Nota sobre este ejercicio (técnica, molestias…)" : "¿Alguna molestia o comentario para tu coach?"}
                   value={state.notes[ex.exerciseId] ?? ""}
                   onChange={(e) => setState((s) => ({ ...s, notes: { ...s.notes, [ex.exerciseId]: e.target.value } }))}
                   className="w-full rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-orange-400 resize-none"
@@ -427,7 +445,7 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
         onClick={() => {
           if (!confirm("¿Descartar este entrenamiento? Se perderá lo registrado.")) return
           try { localStorage.removeItem(storageKey) } catch {}
-          router.push("/app/training")
+          router.push(exitHref)
         }}
         className="w-full text-xs text-gray-400 py-2"
       >
@@ -480,13 +498,13 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
       {finishing && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setFinishing(false)}>
           <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <p className="text-lg font-black text-gray-900">¿Cómo te sentiste hoy?</p>
+            <p className="text-lg font-black text-gray-900">{trainer ? `¿Cómo viste hoy a ${trainer.clientName.split(" ")[0]}?` : "¿Cómo te sentiste hoy?"}</p>
             <div className="flex justify-between">
               {["😫", "😕", "😐", "🙂", "🔥"].map((e, i) => (
                 <button key={e} onClick={() => setRating(i + 1)} className={cn("h-14 w-14 rounded-2xl text-2xl", rating === i + 1 ? "bg-orange-500" : "bg-gray-100")}>{e}</button>
               ))}
             </div>
-            <textarea rows={3} value={finalNotes} onChange={(e) => setFinalNotes(e.target.value)} placeholder="Comentarios para tu coach (opcional)" className="w-full rounded-xl bg-gray-50 border border-gray-200 p-3 text-sm text-gray-900 outline-none placeholder:text-gray-400" />
+            <textarea rows={3} value={finalNotes} onChange={(e) => setFinalNotes(e.target.value)} placeholder={trainer ? "Notas de la sesión (las verá en su historial)" : "Comentarios para tu coach (opcional)"} className="w-full rounded-xl bg-gray-50 border border-gray-200 p-3 text-sm text-gray-900 outline-none placeholder:text-gray-400" />
             <p className="text-xs text-gray-400">{stats.sets} series · {stats.volume.toLocaleString("es-PE")} kg · {clock(elapsed)}</p>
             <button onClick={finish} disabled={saving} className="w-full h-12 rounded-xl bg-orange-500 text-white font-bold flex items-center justify-center gap-2">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />} GUARDAR ENTRENAMIENTO

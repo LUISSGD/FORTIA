@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
 
 export default function TrainerHome() {
-  redirect("/trainer/agenda")
+  redirect("/trainer/hoy")
 }
