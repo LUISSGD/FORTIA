@@ -47,3 +47,24 @@ export function timedSeconds(reps: string): number | null {
   const n = Number(m[1]) * (/^min/i.test(m[2]) ? 60 : 1)
   return n > 0 && n <= 600 ? n : null
 }
+
+/** Rango de repeticiones objetivo: "12 a 10" → [10, 12]; "8" → [8, 8]; por tiempo o sin números → null. */
+export function repRange(reps: string): [number, number] | null {
+  if (timedSeconds(reps)) return null
+  const nums = (splitReps(reps).reps.split("(")[0].match(/\d+/g) ?? []).map(Number).filter((n) => n > 0 && n < 100)
+  return nums.length ? [Math.min(...nums), Math.max(...nums)] : null
+}
+
+/**
+ * Doble progresión: si la última vez hizo el máximo del rango en todas las series con el mismo peso,
+ * toca subir el peso (+2,5 kg, o +1 kg en pesos ligeros). Si no llegó al mínimo, mantener.
+ */
+export function progression(reps: string, previous: { weight: number | null; reps: number | null }[]): { up: boolean; weight: number } | null {
+  const range = repRange(reps)
+  const sets = previous.filter((p) => (p.weight ?? 0) > 0 && (p.reps ?? 0) > 0)
+  if (!range || !sets.length) return null
+  const top = Math.max(...sets.map((p) => p.weight!))
+  const atTop = sets.filter((p) => p.weight === top)
+  if (atTop.every((p) => p.reps! >= range[1])) return { up: true, weight: top + (top < 20 ? 1 : 2.5) }
+  return { up: false, weight: top }
+}
