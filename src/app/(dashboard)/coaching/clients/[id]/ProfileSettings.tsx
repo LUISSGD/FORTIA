@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { GOALS, LEVELS, PROFILE_STATUS } from "@/lib/coaching/constants"
 import { estimateTdee } from "@/lib/coaching/nutrition"
 import { Btn, Field, Input, Panel, Select, Textarea, api } from "@/components/coaching/kit"
+import { whatsappUrl } from "@/lib/utils"
 
 type P = {
   status: string; goal: string | null; level: string | null; sex: string | null; heightCm: number | null; startWeight: number | null; targetWeight: number | null
@@ -16,11 +17,31 @@ type P = {
 
 const toStr = (v: unknown) => (v === null || v === undefined ? "" : String(v))
 
-export default function ProfileSettings({ clientId, profile, accessEmail, defaultEmail }: { clientId: string; profile: P; accessEmail: string | null; defaultEmail: string | null }) {
+/** Contraseña fácil de dictar y escribir en el celular: "fortia" + 4 números. */
+function easyPassword() {
+  const n = crypto.getRandomValues(new Uint32Array(1))[0] % 9000 + 1000
+  return `fortia${n}`
+}
+
+function welcomeMessage(firstName: string, email: string, password: string) {
+  return [
+    `¡Hola ${firstName}! 💪 Ya tienes tu acceso a la app de FORTIA: ahí verás tu rutina con videos, tu agenda de clases y podrás escribirme.`,
+    "",
+    `👉 Entra aquí: ${window.location.origin}/login`,
+    `📧 Usuario: ${email}`,
+    `🔑 Contraseña: ${password}`,
+    "",
+    "📲 Tip: ábrela en el celular y elige \"Agregar a pantalla de inicio\" (en iPhone, desde el botón Compartir de Safari) para tenerla como una app más.",
+  ].join("\n")
+}
+
+export default function ProfileSettings({ clientId, firstName, profile, accessEmail, defaultEmail }: { clientId: string; firstName: string; profile: P; accessEmail: string | null; defaultEmail: string | null }) {
   const router = useRouter()
   const [f, setF] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(profile).map(([k, v]) => [k, toStr(v)])))
   const [saving, setSaving] = useState(false)
   const [access, setAccess] = useState({ email: accessEmail ?? defaultEmail ?? "", password: "" })
+  // Datos recién creados para enviarlos al cliente (solo en pantalla; la contraseña no se vuelve a mostrar)
+  const [invite, setInvite] = useState<{ email: string; password: string } | null>(null)
   const set = (k: string, v: string) => setF((x) => ({ ...x, [k]: v }))
 
   const age = f.birthDate ? Math.floor((Date.now() - new Date(f.birthDate).getTime()) / 31_557_600_000) : null
@@ -53,7 +74,8 @@ export default function ProfileSettings({ clientId, profile, accessEmail, defaul
   async function saveAccess() {
     try {
       await api(`/api/coaching/clients/${clientId}/access`, "POST", access)
-      toast.success(accessEmail ? "Acceso actualizado" : "Acceso creado. Comparte el email y la contraseña con tu cliente.")
+      toast.success(accessEmail ? "Acceso actualizado" : "Acceso creado. Envíaselo a tu cliente por WhatsApp.")
+      if (access.password) setInvite({ email: access.email.trim().toLowerCase(), password: access.password })
       setAccess((a) => ({ ...a, password: "" }))
       router.refresh()
     } catch (e) {
@@ -144,12 +166,35 @@ export default function ProfileSettings({ clientId, profile, accessEmail, defaul
           <div className="space-y-2">
             <Field label="Email"><Input type="email" value={access.email} onChange={(e) => setAccess((a) => ({ ...a, email: e.target.value }))} /></Field>
             <Field label={accessEmail ? "Nueva contraseña (opcional)" : "Contraseña (mín. 6)"}>
-              <Input value={access.password} onChange={(e) => setAccess((a) => ({ ...a, password: e.target.value }))} />
+              <div className="flex gap-2">
+                <Input value={access.password} onChange={(e) => setAccess((a) => ({ ...a, password: e.target.value }))} />
+                <Btn variant="outline" size="sm" onClick={() => setAccess((a) => ({ ...a, password: easyPassword() }))}>Generar</Btn>
+              </div>
             </Field>
             <div className="flex gap-2">
               <Btn onClick={saveAccess} className="flex-1">{accessEmail ? "Actualizar acceso" : "Crear acceso"}</Btn>
               {accessEmail && <Btn variant="danger" onClick={revoke}>Revocar</Btn>}
             </div>
+            {invite && (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 space-y-2 text-sm">
+                <p className="text-emerald-800">✅ Listo. Envíale sus datos de acceso con el mensaje de bienvenida:</p>
+                <a
+                  href={whatsappUrl(f.phone, welcomeMessage(firstName, invite.email, invite.password))}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold h-9"
+                >
+                  Enviar por WhatsApp
+                </a>
+                <button
+                  onClick={() => navigator.clipboard.writeText(welcomeMessage(firstName, invite.email, invite.password)).then(() => toast.success("Mensaje copiado"))}
+                  className="w-full text-xs text-emerald-700 underline"
+                >
+                  Copiar mensaje
+                </button>
+                {!f.phone && <p className="text-xs text-amber-700">No tiene teléfono registrado: WhatsApp te pedirá elegir el contacto.</p>}
+              </div>
+            )}
           </div>
         </Panel>
         <Panel title="Zona de peligro">

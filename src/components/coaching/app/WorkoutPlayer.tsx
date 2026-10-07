@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { Check, ChevronDown, Play, Plus, Timer, X, Loader2, Repeat } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { estimate1RM, fmtKg } from "@/lib/coaching/workout"
-import { parseExerciseNotes, splitReps, timedSeconds } from "@/lib/coaching/exercise-format"
+import { parseExerciseNotes, progression, repRange, splitReps, timedSeconds } from "@/lib/coaching/exercise-format"
 import { request } from "./request"
 
 type Prev = { weight: number | null; reps: number | null }
@@ -29,7 +29,10 @@ function initialState(exercises: Ex[]): State {
         e.id,
         Array.from({ length: Math.max(e.sets, 1) }, (_, i) => {
           const p = e.previous[i] ?? e.previous.at(-1)
-          return { weight: p?.weight ? String(p.weight) : "", reps: "", done: false }
+          // Si le toca subir de peso, se propone el nuevo peso en todas las series
+          const next = progression(e.reps, e.previous)
+          const weight = next?.up ? next.weight : p?.weight
+          return { weight: weight ? String(weight) : "", reps: "", done: false }
         }),
       ])
     ),
@@ -62,7 +65,7 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
   const handled = useRef(0)
 
   // Prescripción legible: bloque, superserie, indicación, RPE y series por tiempo
-  const meta = useMemo(() => exercises.map((e) => ({ ...parseExerciseNotes(e.notes), ...splitReps(e.reps), timed: timedSeconds(e.reps) })), [exercises])
+  const meta = useMemo(() => exercises.map((e) => ({ ...parseExerciseNotes(e.notes), ...splitReps(e.reps), timed: timedSeconds(e.reps), range: repRange(e.reps), next: progression(e.reps, e.previous) })), [exercises])
   // Superseries: ejercicios seguidos con la misma etiqueta dentro del mismo bloque
   const groups = useMemo(() => exercises.map((_, i) => {
     const same = (k: number) => !!meta[i].superset && meta[k]?.superset === meta[i].superset && meta[k]?.section === meta[i].section
@@ -369,6 +372,13 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
                   </p>
                 )}
                 {m.tip && <p className="text-xs text-orange-500">💡 {m.tip}</p>}
+                {m.next && m.range && (
+                  <p className={cn("text-xs rounded-xl px-3 py-2", m.next.up ? "bg-emerald-50 text-emerald-700" : "bg-gray-50 text-gray-600")}>
+                    {m.next.up
+                      ? <>📈 La última vez hiciste {m.range[1]} reps en todas las series: <b>sube a {fmtKg(m.next.weight)} kg</b> y busca de nuevo {m.range[0]}–{m.range[1]} reps.</>
+                      : <>🎯 Mantén {fmtKg(m.next.weight)} kg hasta completar {m.range[1]} reps en todas las series; después sube el peso.</>}
+                  </p>
+                )}
 
                 <div className="space-y-2">
                   <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 text-[10px] uppercase tracking-wider text-gray-400 px-1">

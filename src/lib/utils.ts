@@ -34,6 +34,13 @@ export function getRenewalStatus(days: number | null): "active" | "warning" | "u
   return "active"
 }
 
+/** Enlace de WhatsApp con un mensaje ya escrito (teléfonos de Perú sin código de país → +51). */
+export function whatsappUrl(phone: string | null | undefined, message: string): string {
+  const clean = phone?.replace(/D/g, "") ?? ""
+  const full = !clean ? "" : clean.length === 9 ? `51${clean}` : clean
+  return `https://wa.me/${full}?text=${encodeURIComponent(message)}`
+}
+
 export function whatsappRenewalUrl(
   phone: string | null | undefined,
   name: string,

@@ -166,6 +166,7 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
           {tab === "settings" && (
             <ProfileSettings
               clientId={id}
+              firstName={client.firstName.trim()}
               accessEmail={client.user?.email ?? null}
               defaultEmail={client.email}
               profile={{
