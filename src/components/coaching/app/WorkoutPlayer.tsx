@@ -186,12 +186,18 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
     }
   }
 
+  /** Un ejercicio está completo cuando todas sus series están marcadas (y deja de estarlo si se desmarca una). */
+  const isComplete = (exId: string) => (state.sets[exId]?.length ?? 0) > 0 && state.sets[exId].every((s) => s.done)
+
   /** Marca la serie hecha y decide qué sigue: en superserie pasa al siguiente ejercicio sin descanso. */
   function markDone(idx: number, i: number, reps: string) {
     const ex = exercises[idx]
     updateSet(ex.id, i, { done: true, reps })
     const g = groups[idx]
     const pos = g.indexOf(idx)
+    // Última serie pendiente de un ejercicio normal: queda completo y se abre el siguiente
+    const allDone = (state.sets[ex.id] ?? []).every((s, k) => k === i || s.done)
+    if (g.length === 1 && allDone) setOpen(exercises[idx + 1]?.id ?? null)
     if (g.length > 1 && pos < g.length - 1) {
       setOpen(exercises[g[pos + 1]].id)
       return
@@ -233,13 +239,10 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
 
   function completeExercise(ex: Ex, idx: number) {
     if (work?.idx === idx) setWork(null)
-    const sets = state.sets[ex.id] ?? []
-    // Si no marcó ninguna serie, se dan por hechas todas con los valores que ve en pantalla
-    const fillAll = !sets.some((s) => s.done)
+    // Las series que faltan se dan por hechas con los valores que ve en pantalla
     setState((s) => ({
       ...s,
-      sets: fillAll ? { ...s.sets, [ex.id]: sets.map((x, i) => ({ ...x, ...setDefaults(ex, i, x), done: true })) } : s.sets,
-      completed: { ...s.completed, [ex.id]: true },
+      sets: { ...s.sets, [ex.id]: (s.sets[ex.id] ?? []).map((x, i) => (x.done ? x : { ...x, ...setDefaults(ex, i, x), done: true })) },
     }))
     setOpen(exercises[idx + 1]?.id ?? null)
   }
@@ -312,7 +315,7 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
     )
   }
 
-  const doneCount = exercises.filter((e) => state.completed[e.id]).length
+  const doneCount = exercises.filter((e) => isComplete(e.id)).length
 
   return (
     <div className="space-y-3 -mt-2">
@@ -345,9 +348,9 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
         return (
           <Fragment key={ex.id}>
           {newSection && <p className="pt-2 text-[11px] font-black uppercase tracking-widest text-gray-500">{m.section}</p>}
-          <div className={cn("rounded-2xl border overflow-hidden min-w-0", inSuperset && "border-l-4 border-l-violet-400", state.completed[ex.id] ? "border-emerald-200 bg-emerald-50" : isOpen ? "border-orange-200 bg-white" : "border-gray-200 bg-white")}>
+          <div className={cn("rounded-2xl border overflow-hidden min-w-0", inSuperset && "border-l-4 border-l-violet-400", isComplete(ex.id) ? "border-emerald-200 bg-emerald-50" : isOpen ? "border-orange-200 bg-white" : "border-gray-200 bg-white")}>
             <button className="w-full flex items-center gap-3 p-4 text-left" onClick={() => setOpen(isOpen ? null : ex.id)}>
-              <span className={cn("text-xs font-black w-7", state.completed[ex.id] ? "text-emerald-600" : "text-gray-400")}>{state.completed[ex.id] ? "✓" : pad(idx + 1)}</span>
+              <span className={cn("text-xs font-black w-7", isComplete(ex.id) ? "text-emerald-600" : "text-gray-400")}>{isComplete(ex.id) ? "✓" : pad(idx + 1)}</span>
               <div className="flex-1 min-w-0">
                 {inSuperset && <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600">{m.superset} · {g.indexOf(idx) + 1}/{g.length}</p>}
                 <p className="font-bold text-gray-900 truncate">{ex.name}</p>
