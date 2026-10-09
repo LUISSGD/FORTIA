@@ -215,19 +215,51 @@ export default function ClientsTable({ rows }: { rows: Row[] }) {
     }
   }
 
-  function exportCsv() {
+  /** Descarga la vista actual (o los seleccionados) como Excel .xlsx: columnas, fechas y números reales. */
+  async function exportExcel() {
     const list = selected.size ? visible.filter((r) => selected.has(r.id)) : visible
-    const header = ["Cliente", "Teléfono", "Estado", "Objetivo", "Plan", "Vencimiento", "Membresía", "Pago", "Último entreno", "Semana", "Entreno 7d %", "Nutrición 7d %", "Último check-in", "Peso kg", "App"]
-    const lines = list.map((r) => [
-      r.name, r.phone ?? "", STATE_LABEL(r).replace(/^\S+\s/, ""), r.goal ?? "", r.membership.planName ?? "", r.membership.end ?? "",
-      MEMBERSHIP_LABEL[r.membership.state], PAY[r.payState].text, r.lastWorkout ?? "", `${r.workoutsThisWeek}/${r.trainingDays}`,
-      r.trainingAdherence ?? "", r.nutritionCompliance ?? "", r.lastCheckIn ?? "", r.lastWeight ?? "", r.hasApp ? "Sí" : "No",
-    ])
-    const csv = [header, ...lines].map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n")
-    const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }))
+    const { default: ExcelJS } = await import("exceljs")
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet("Clientes", { views: [{ state: "frozen", ySplit: 1 }] })
+    const date = (ymd: string | null | undefined) => (ymd && /^\d{4}-\d{2}-\d{2}/.test(ymd) ? new Date(`${ymd.slice(0, 10)}T12:00:00Z`) : null)
+    const pct = (v: number | null | undefined) => (v === null || v === undefined ? null : v / 100)
+    ws.columns = [
+      { header: "Cliente", key: "name", width: 28 },
+      { header: "Teléfono", key: "phone", width: 14 },
+      { header: "Estado", key: "state", width: 18 },
+      { header: "Objetivo", key: "goal", width: 22 },
+      { header: "Plan", key: "plan", width: 44 },
+      { header: "Vencimiento", key: "end", width: 13, style: { numFmt: "dd/mm/yyyy" } },
+      { header: "Membresía", key: "membership", width: 24 },
+      { header: "Pago", key: "pay", width: 12 },
+      { header: "Último entreno", key: "lastWorkout", width: 15, style: { numFmt: "dd/mm/yyyy" } },
+      { header: "Semana", key: "week", width: 9 },
+      { header: "Entreno 7d", key: "training", width: 11, style: { numFmt: "0%" } },
+      { header: "Nutrición 7d", key: "nutrition", width: 12, style: { numFmt: "0%" } },
+      { header: "Último check-in", key: "checkIn", width: 15, style: { numFmt: "dd/mm/yyyy" } },
+      { header: "Peso kg", key: "weight", width: 9, style: { numFmt: "0.0" } },
+      { header: "App", key: "app", width: 7 },
+    ]
+    for (const r of list) {
+      ws.addRow({
+        name: r.name.replace(/\s+/g, " ").trim(), phone: r.phone ?? "", state: STATE_LABEL(r).replace(/^\S+\s/, ""), goal: r.goal ?? "",
+        plan: r.membership.planName ?? "", end: date(r.membership.end), membership: MEMBERSHIP_LABEL[r.membership.state], pay: PAY[r.payState].text,
+        lastWorkout: date(r.lastWorkout), week: `${r.workoutsThisWeek}/${r.trainingDays}`, training: pct(r.trainingAdherence), nutrition: pct(r.nutritionCompliance),
+        checkIn: date(r.lastCheckIn), weight: r.lastWeight ?? null, app: r.hasApp ? "Sí" : "No",
+      })
+    }
+    const head = ws.getRow(1)
+    head.font = { bold: true, color: { argb: "FFFFFFFF" } }
+    head.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF97316" } }
+    head.alignment = { vertical: "middle" }
+    head.height = 20
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columns.length } }
+
+    const buf = await wb.xlsx.writeBuffer()
+    const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }))
     const a = document.createElement("a")
     a.href = url
-    a.download = `clientes-coaching-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `clientes-coaching-${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date())}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -256,7 +288,7 @@ export default function ClientsTable({ rows }: { rows: Row[] }) {
               <X className="h-3.5 w-3.5" /> Quitar filtros{activeFilters ? ` (${activeFilters})` : ""}
             </Btn>
           )}
-          <Btn variant="outline" size="sm" onClick={exportCsv} title="Descargar la vista actual para abrir en Excel">
+          <Btn variant="outline" size="sm" onClick={() => exportExcel().catch(() => toast.error("No se pudo generar el Excel"))} title="Descargar la vista actual para abrir en Excel">
             <Download className="h-3.5 w-3.5" /> Excel
           </Btn>
         </div>
