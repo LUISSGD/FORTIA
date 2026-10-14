@@ -21,19 +21,21 @@ type State = { startedAt: string; sets: Record<string, SetState[]>; notes: Recor
 const pad = (n: number) => String(n).padStart(2, "0")
 const clock = (s: number) => `${Math.floor(s / 60)}:${pad(s % 60)}`
 
+/** Peso que se propone para una serie: el nuevo si le toca subir (doble progresión), si no el de la vez anterior. */
+function suggestedWeight(e: Ex, i: number): number | null {
+  const next = progression(e.reps, e.previous)
+  if (next?.up) return next.weight
+  return (e.previous[i] ?? e.previous.at(-1))?.weight ?? null
+}
+
+// Las casillas empiezan vacías: lo sugerido se ve en gris (placeholder) y se usa solo si no escribe nada.
 function initialState(exercises: Ex[]): State {
   return {
     startedAt: new Date().toISOString(),
     sets: Object.fromEntries(
       exercises.map((e) => [
         e.id,
-        Array.from({ length: Math.max(e.sets, 1) }, (_, i) => {
-          const p = e.previous[i] ?? e.previous.at(-1)
-          // Si le toca subir de peso, se propone el nuevo peso en todas las series
-          const next = progression(e.reps, e.previous)
-          const weight = next?.up ? next.weight : p?.weight
-          return { weight: weight ? String(weight) : "", reps: "", done: false }
-        }),
+        Array.from({ length: Math.max(e.sets, 1) }, () => ({ weight: "", reps: "", done: false })),
       ])
     ),
     notes: {},
@@ -182,7 +184,7 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
     const target = ex.reps.replace(/RPE.*$/i, "").match(/\d+/)?.[0] ?? ""
     return {
       reps: set.reps || (prev?.reps ? String(prev.reps) : "") || target,
-      weight: set.weight || (prev?.weight ? String(prev.weight) : ""),
+      weight: set.weight || (suggestedWeight(ex, i) ? String(suggestedWeight(ex, i)) : ""),
     }
   }
 
@@ -393,15 +395,15 @@ export default function WorkoutPlayer({ dayId, title, subtitle, notes, exercises
                     return (
                       <div key={i} className={cn("grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center", s.done && "opacity-80")}>
                         <span className="text-sm font-bold text-gray-400 text-center">{i + 1}</span>
-                        <input inputMode="decimal" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.weight ? fmtKg(p.weight) : "kg"} value={s.weight} onChange={(e) => updateSet(ex.id, i, { weight: e.target.value.replace(",", ".") })} />
-                        <input inputMode="numeric" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none focus:ring-2 focus:ring-orange-500" placeholder={p?.reps ? String(p.reps) : m.timed ? String(m.timed) : m.reps} value={s.reps} onChange={(e) => updateSet(ex.id, i, { reps: e.target.value.replace(/\D/g, "") })} />
+                        <input inputMode="decimal" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none placeholder:font-medium placeholder:text-gray-400 focus:ring-2 focus:ring-orange-500" placeholder={suggestedWeight(ex, i) ? fmtKg(suggestedWeight(ex, i)!) : "kg"} value={s.weight} onChange={(e) => updateSet(ex.id, i, { weight: e.target.value.replace(",", ".") })} />
+                        <input inputMode="numeric" className="h-11 w-full min-w-0 rounded-xl bg-gray-100 text-center font-bold text-gray-900 outline-none placeholder:font-medium placeholder:text-gray-400 focus:ring-2 focus:ring-orange-500" placeholder={p?.reps ? String(p.reps) : m.timed ? String(m.timed) : m.reps} value={s.reps} onChange={(e) => updateSet(ex.id, i, { reps: e.target.value.replace(/\D/g, "") })} />
                         <button onClick={() => toggleSet(ex, idx, i)} className={cn("h-11 rounded-xl flex items-center justify-center font-mono font-bold text-sm", s.done ? "bg-emerald-500 text-white" : running ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-400")} aria-label={m.timed && !s.done ? "Iniciar serie por tiempo" : "Serie completada"}>
                           {running ? workLeft : m.timed && !s.done && !s.reps ? <Timer className="h-5 w-5" /> : <Check className="h-5 w-5" />}
                         </button>
                       </div>
                     )
                   })}
-                  <button onClick={() => setState((st) => ({ ...st, sets: { ...st.sets, [ex.id]: [...st.sets[ex.id], { weight: st.sets[ex.id].at(-1)?.weight ?? "", reps: "", done: false }] } }))} className="w-full text-xs text-gray-400 py-1 flex items-center justify-center gap-1">
+                  <button onClick={() => setState((st) => ({ ...st, sets: { ...st.sets, [ex.id]: [...st.sets[ex.id], { weight: "", reps: "", done: false }] } }))} className="w-full text-xs text-gray-400 py-1 flex items-center justify-center gap-1">
                     <Plus className="h-3 w-3" /> Añadir serie
                   </button>
                 </div>
