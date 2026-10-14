@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 import { auth } from "@/lib/auth"
 import { calendarDate, sessionDatesFrom } from "@/lib/calendar"
 import { getTrainingPrice, trainingDescription } from "@/lib/training-pricing"
@@ -147,6 +148,9 @@ export async function POST(req: Request, { params }: Ctx) {
       }),
     )
   }
+
+  // La membresía vence con la última clase del paquete
+  await syncMembershipWithTraining(plan.id, { reactivate: true })
 
   const finalPlan = await prisma.clientTrainingPlan.findUnique({
     where: { id: plan.id },

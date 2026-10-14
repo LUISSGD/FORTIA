@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { diffDaysYmd, todayYmd, toYmd, ymdToDate } from "./dates"
 import { addCalendarDays, calendarDate, calendarYmd, scheduleDates } from "@/lib/calendar"
 import { notifyClient, notifyCoach } from "./notify"
+import { setCoachingStatus } from "./lifecycle"
 
 // Membresía del gimnasio y entrenamiento personal (paquetes de clases) vistos
 // desde el coaching y desde la app del cliente. Usa las mismas tablas que el
@@ -86,6 +87,28 @@ export async function assignPlanScheduleDates(planId: string, startDate?: Date |
 }
 
 const isAttended = (s: { attended: boolean | null; completedAt: Date | null }) => s.attended ?? (s.completedAt ? true : null)
+
+/**
+ * Con entrenamiento personalizado, la membresía vence el día de la última clase del paquete activo
+ * (incluye reprogramaciones). Se llama al crear o renovar un paquete y al mover fechas de clases.
+ * `reactivate`: un paquete nuevo pagado vuelve a activar al cliente que estaba en stand-by.
+ */
+export async function syncMembershipWithTraining(planId: string, opts: { reactivate?: boolean } = {}) {
+  const plan = await prisma.clientTrainingPlan.findUnique({
+    where: { id: planId },
+    select: {
+      clientId: true, status: true, currentPackStart: true, createdAt: true,
+      sessions: { where: { scheduledDate: { not: null } }, select: { scheduledDate: true }, orderBy: { scheduledDate: "desc" }, take: 1 },
+      client: { select: { isActive: true } },
+    },
+  })
+  if (!plan || plan.status !== "ACTIVE") return
+  const last = plan.sessions[0]?.scheduledDate
+  if (last) {
+    await prisma.client.update({ where: { id: plan.clientId }, data: { membershipStart: plan.currentPackStart ?? plan.createdAt, membershipEnd: last } })
+  }
+  if (opts.reactivate && !plan.client.isActive) await setCoachingStatus([plan.clientId], "ACTIVE")
+}
 
 /** Paquete de entrenamiento personal vigente del cliente (o el último pausado). */
 export async function getPersonalTraining(clientId: string) {

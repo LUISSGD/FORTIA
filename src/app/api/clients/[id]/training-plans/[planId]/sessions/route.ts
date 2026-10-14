@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 import { addCalendarDays, calendarDate, calendarYmd, scheduleDates } from "@/lib/calendar"
 import { auth } from "@/lib/auth"
 
@@ -43,6 +44,8 @@ export async function POST(req: Request, { params }: Ctx) {
       notes: body.notes || null,
     },
   })
+  // La clase de reprogramación puede correr el vencimiento de la membresía
+  await syncMembershipWithTraining(planId)
 
   const updatedPlan = await prisma.clientTrainingPlan.findUnique({
     where: { id: planId },
