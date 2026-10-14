@@ -26,7 +26,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
             tipoEntrenador: true,
             modalidad: true,
             scheduleSlots: true,
-            client: { select: { id: true, firstName: true, lastName: true } },
+            client: { select: { id: true, firstName: true, lastName: true, trainer: true } },
           },
         },
       },
@@ -64,6 +64,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
           attended: s.attended ?? null,
           tipoEntrenador: s.plan.tipoEntrenador,
           modalidad: s.plan.modalidad,
+          trainer: s.plan.client.trainer,
         }
       })}
     />
