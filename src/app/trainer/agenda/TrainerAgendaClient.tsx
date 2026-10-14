@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ChevronLeft, ChevronRight, Dumbbell, Video, MapPin, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TRAINERS, UNASSIGNED_TRAINER, trainerStyle } from "@/lib/trainers"
 
 const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
@@ -18,6 +19,7 @@ type TrainingSlot = {
   clientName: string
   startTime: string | null
   attended: boolean | null
+  trainer: string | null
 }
 
 type CoachingSlot = {
@@ -114,6 +116,15 @@ export default function TrainerAgendaClient({
         </div>
       </div>
 
+      {/* Leyenda: color de las clases personalizadas según su entrenador */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+        <span className="font-medium text-gray-600">Clases EP:</span>
+        {[...TRAINERS, UNASSIGNED_TRAINER].map((t) => (
+          <span key={t.name} className="flex items-center gap-1.5"><span className={cn("h-2.5 w-2.5 rounded-full", t.dot)} />{t.name}</span>
+        ))}
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-orange-300" />Citas de coaching</span>
+      </div>
+
       <div className="grid md:grid-cols-7 gap-3">
         {days.map((d, i) => {
           const dayTraining = trainingSlots.filter((s) => s.scheduledDate === d)
@@ -167,21 +178,23 @@ export default function TrainerAgendaClient({
                   }
 
                   const s = item.session
+                  const t = trainerStyle(s.trainer)
                   return (
                     <button
                       key={item.key}
                       onClick={() => { setSelected(s); setNewDate(s.scheduledDate) }}
-                      className="w-full text-left rounded-lg px-2 py-1.5 text-xs border bg-sky-50 border-sky-200 hover:border-sky-400 block transition-colors"
+                      title={`Entrenador: ${s.trainer ?? "sin asignar"}`}
+                      className={cn("w-full text-left rounded-lg px-2 py-1.5 text-xs border block transition-colors", t.card)}
                     >
-                      <div className="flex items-center gap-1 font-semibold text-sky-700">
+                      <div className={cn("flex items-center gap-1 font-semibold", t.text)}>
                         <Dumbbell className="h-3 w-3 shrink-0" />
                         {item.time !== "00:00" ? item.time : "EP"}
                       </div>
-                      <p className="truncate text-sky-900">
+                      <p className="truncate text-gray-900">
                         {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}
                         {s.clientName.trim().split(" ")[0]}
                       </p>
-                      <p className="text-[10px] text-sky-400">S{s.sessionNumber}</p>
+                      <p className={cn("text-[10px]", t.sub)}>S{s.sessionNumber}{s.trainer ? ` · ${s.trainer}` : ""}</p>
                     </button>
                   )
                 })}
@@ -198,7 +211,7 @@ export default function TrainerAgendaClient({
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-semibold text-gray-900">{selected.clientName.trim()}</p>
-                <p className="text-xs text-sky-600">S{selected.sessionNumber} · {selected.startTime?.slice(0, 5) ?? "EP"}</p>
+                <p className={cn("text-xs", trainerStyle(selected.trainer).text)}>S{selected.sessionNumber} · {selected.startTime?.slice(0, 5) ?? "EP"} · {selected.trainer ?? "Sin entrenador"}</p>
               </div>
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
