@@ -9,6 +9,7 @@ import { splitReps } from "@/lib/coaching/exercise-format"
 import { getTrainingState } from "@/lib/coaching/client-data"
 import { withCoachErrors } from "@/components/coaching/withCoachErrors"
 import AttendanceButtons from "./AttendanceButtons"
+import { TRAINERS, UNASSIGNED_TRAINER, trainerStyle } from "@/lib/trainers"
 
 export const dynamic = "force-dynamic"
 
@@ -34,7 +35,7 @@ async function TrainerTodayPage() {
           select: {
             numPacks: true, clasesPerPack: true, sessionsCompleted: true,
             scheduleSlots: { select: { dayOfWeek: true, startTime: true } },
-            client: { select: { ...person, partner: { select: person } } },
+            client: { select: { ...person, trainer: true, partner: { select: person } } },
           },
         },
       },
@@ -73,6 +74,7 @@ async function TrainerTodayPage() {
         attended: s.attended ?? (s.completedAt ? true : null),
         time: s.plan.scheduleSlots.find((x) => x.dayOfWeek === weekday)?.startTime.slice(0, 5) ?? null,
         persons: [s.plan.client, ...(s.plan.client.partner ? [s.plan.client.partner] : [])],
+        trainer: s.plan.client.trainer,
       }
     })
     .sort((a, b) => (a.time ?? "99").localeCompare(b.time ?? "99"))
@@ -144,12 +146,22 @@ async function TrainerTodayPage() {
 
       {classes.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Clases personalizadas</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Clases personalizadas</h2>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500">
+              {[...TRAINERS, UNASSIGNED_TRAINER].map((t) => (
+                <span key={t.name} className="flex items-center gap-1"><span className={cn("h-2 w-2 rounded-full", t.dot)} />{t.name}</span>
+              ))}
+            </div>
+          </div>
           {classes.map((c) => (
-            <div key={c.id} className={cn("rounded-2xl border p-4", c.attended === true ? "border-emerald-200 bg-emerald-50/40" : c.attended === false ? "border-red-200 bg-red-50/40" : "border-gray-200 bg-white")}>
+            <div key={c.id} className={cn("rounded-2xl border border-l-4 p-4", trainerStyle(c.trainer).bar, c.attended === true ? "border-emerald-200 bg-emerald-50/40" : c.attended === false ? "border-red-200 bg-red-50/40" : "border-gray-200 bg-white")}>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-lg font-black text-gray-900">{c.time ?? "Sin hora"}</p>
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                  <span className={cn("rounded-full px-2 py-0.5 flex items-center gap-1", trainerStyle(c.trainer).pill)}>
+                    <span className={cn("h-1.5 w-1.5 rounded-full", trainerStyle(c.trainer).dot)} />{c.trainer ?? "Sin entrenador"}
+                  </span>
                   <span className="rounded-full bg-gray-100 text-gray-600 px-2 py-0.5">Clase {c.number}/{c.total}</span>
                   {c.remaining <= 1 && c.attended === null && (
                     <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.5">{c.remaining === 1 ? "Última del paquete" : "Paquete agotado"}</span>
