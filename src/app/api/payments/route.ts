@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { addDays } from "date-fns"
 import { membershipSnapshot } from "@/lib/finance-sync"
 import { getTrainingPrice, ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS, type Entrenador, type Modalidad, type Tarifa, type NumPacks, type ClasesPerPack } from "@/lib/training-pricing"
-import { assignPlanScheduleDates } from "@/lib/coaching/personal-training"
+import { assignPlanScheduleDates, syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 import { calendarDate } from "@/lib/calendar"
 
 export async function POST(request: Request) {
@@ -89,19 +89,8 @@ export async function POST(request: Request) {
         })
         await assignPlanScheduleDates(plan.id, incomeDate)
       }
-      // Actualizar período de membresía para que refleje el plan de entrenamiento
-      const lastSession = await prisma.trainingSession.findFirst({
-        where: { planId: plan.id, scheduledDate: { not: null } },
-        orderBy: { scheduledDate: "desc" },
-        select: { scheduledDate: true },
-      })
-      await prisma.client.update({
-        where: { id: clientId },
-        data: {
-          membershipStart: incomeDate,
-          membershipEnd: lastSession?.scheduledDate ?? incomeDate,
-        },
-      })
+      // La membresía vence con la última clase del paquete
+      await syncMembershipWithTraining(plan.id, { reactivate: true })
     }
     return NextResponse.json({ payment, income }, { status: 201 })
   }

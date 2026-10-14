@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 import { calendarDate } from "@/lib/calendar"
 import { requireTrainer } from "@/lib/coaching/auth"
 
@@ -58,6 +59,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
       scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
     },
   })
+
+  // Si se movió la fecha de una clase, el vencimiento de la membresía sigue a la última clase
+  if (scheduledDate !== undefined) await syncMembershipWithTraining(plan.id)
 
   return NextResponse.json(updatedPlan)
 }

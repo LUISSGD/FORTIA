@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { calendarDate, sessionDatesFrom } from "@/lib/calendar"
 import { recordTrainingPayment } from "@/lib/finance-sync"
 import { trainingDescription } from "@/lib/training-pricing"
+import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 
 type Ctx = { params: Promise<{ id: string; planId: string }> }
 
@@ -88,6 +89,7 @@ export async function POST(req: Request, { params }: Ctx) {
     where: { id: planId },
     data: { status: "COMPLETED" },
   })
+  await syncMembershipWithTraining(newPlan.id, { reactivate: true })
 
   const finalPlan = await prisma.clientTrainingPlan.findUnique({
     where: { id: newPlan.id },
