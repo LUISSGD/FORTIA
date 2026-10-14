@@ -1,5 +1,6 @@
 "use client"
 
+import { TRAINERS } from "@/lib/trainers"
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -179,9 +180,8 @@ export default function EditClientPage() {
                   <SelectValue placeholder="Sin entrenador asignado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Piero">Piero</SelectItem>
-                  <SelectItem value="Leonardo">Leonardo</SelectItem>
-                  <SelectItem value="Juliuz">Juliuz</SelectItem>
+                  {TRAINERS.map((t) => <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem>)}
+                  {form.trainer && !TRAINERS.some((t) => t.name === form.trainer) && <SelectItem value={form.trainer}>{form.trainer} (anterior)</SelectItem>}
                 </SelectContent>
               </Select>
             </div>

@@ -10,6 +10,7 @@ import ExtendPlanDialog from "@/components/clients/ExtendPlanDialog"
 import PaymentHistory from "@/components/clients/PaymentHistory"
 import ClientSchedulePanel from "@/components/clients/ClientSchedulePanel"
 import PersonalTrainingSection from "@/components/clients/PersonalTrainingSection"
+import TrainerPicker from "@/components/clients/TrainerPicker"
 
 // Membresía, pagos, horarios y entrenamiento personal del cliente: los mismos
 // datos y acciones que la ficha de "Clientes", dentro del coaching.
@@ -69,7 +70,7 @@ export default async function MembershipTab({ clientId }: { clientId: string }) 
             <dt className="text-gray-500">Vencimiento</dt><dd>{formatDate(client.membershipEnd)}</dd>
             <dt className="text-gray-500">DNI</dt><dd>{client.dni ?? "—"}</dd>
             <dt className="text-gray-500">Teléfono</dt><dd>{client.phone ?? "—"}</dd>
-            <dt className="text-gray-500">Entrenador</dt><dd>{client.trainer ?? "—"}</dd>
+            <dt className="text-gray-500">Entrenador EP</dt><dd><TrainerPicker clientId={client.id} trainer={client.trainer} /></dd>
           </dl>
           {client.firstName2 && (
             <p className="mt-3 text-xs bg-blue-50 text-blue-700 rounded-lg p-2">

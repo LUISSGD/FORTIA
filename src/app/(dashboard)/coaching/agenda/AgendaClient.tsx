@@ -9,10 +9,11 @@ import { BOOKING_STATUS } from "@/lib/coaching/constants"
 import { DAYS_OF_WEEK } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import { Btn, Field, Input, Modal, Panel, Select, api } from "@/components/coaching/kit"
+import { TRAINERS, UNASSIGNED_TRAINER, trainerStyle } from "@/lib/trainers"
 
 type Booking = { id: string; status: string; clientId: string; name: string }
 type Slot = { id: string; startsAt: string; endsAt: string; title: string; mode: string; capacity: number; location: string | null; bookings: Booking[] }
-type TrainingSlot = { sessionId: string; sessionNumber: number; scheduledDate: string; clientId: string; clientName: string; startTime: string | null; endTime: string | null; attended: boolean | null; tipoEntrenador: string; modalidad: string }
+type TrainingSlot = { sessionId: string; sessionNumber: number; scheduledDate: string; clientId: string; clientName: string; startTime: string | null; endTime: string | null; attended: boolean | null; tipoEntrenador: string; modalidad: string; trainer: string | null }
 
 const ymd = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(d)
 const hhmm = (iso: string) => new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso))
@@ -61,6 +62,15 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
         <Btn onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Crear horarios</Btn>
       </div>
 
+      {/* Leyenda: color de las clases personalizadas según su entrenador */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+        <span className="font-medium text-gray-600">Clases EP:</span>
+        {[...TRAINERS, UNASSIGNED_TRAINER].map((t) => (
+          <span key={t.name} className="flex items-center gap-1.5"><span className={cn("h-2.5 w-2.5 rounded-full", t.dot)} />{t.name}</span>
+        ))}
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-orange-300" />Citas de coaching</span>
+      </div>
+
       <div className="grid md:grid-cols-7 gap-3">
         {days.map((d, i) => {
           const daySlots = slots.filter((s) => ymd(new Date(s.startsAt)) === d)
@@ -95,20 +105,22 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
                     )
                   }
                   const s = item.session
+                  const t = trainerStyle(s.trainer)
                   return (
                     <Link
                       key={item.key}
-                      href={`/coaching/clients/${s.clientId}?tab=training`}
-                      className="w-full text-left rounded-lg px-2 py-1.5 text-xs border bg-sky-50 border-sky-200 hover:border-sky-400 block"
+                      href={`/coaching/clients/${s.clientId}?tab=membership`}
+                      title={`Entrenador: ${s.trainer ?? "sin asignar"}`}
+                      className={cn("w-full text-left rounded-lg px-2 py-1.5 text-xs border block", t.card)}
                     >
-                      <div className="flex items-center gap-1 font-semibold text-sky-700">
+                      <div className={cn("flex items-center gap-1 font-semibold", t.text)}>
                         <Dumbbell className="h-3 w-3 shrink-0" />
                         {item.time !== "00:00" ? item.time : "EP"}
                       </div>
-                      <p className="truncate text-sky-900">
+                      <p className="truncate text-gray-900">
                         {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}{s.clientName.trim().split(" ")[0]}
                       </p>
-                      <p className="text-[10px] text-sky-400">S{s.sessionNumber}</p>
+                      <p className={cn("text-[10px]", t.sub)}>S{s.sessionNumber}{s.trainer ? ` · ${s.trainer}` : ""}</p>
                     </Link>
                   )
                 })}
