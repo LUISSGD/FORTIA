@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 import { addCalendarDays, calendarDate, calendarYmd, scheduleDates } from "@/lib/calendar"
 import { auth } from "@/lib/auth"
+import { parseStartTime } from "@/lib/session-time"
 
 type Ctx = { params: Promise<{ id: string; planId: string }> }
 
@@ -39,6 +40,7 @@ export async function POST(req: Request, { params }: Ctx) {
       packNumber: plan.numPacks,
       isRescheduled: true,
       scheduledDate,
+      startTime: parseStartTime(body.startTime) ?? null,
       attended: null,
       completedAt: null,
       notes: body.notes || null,

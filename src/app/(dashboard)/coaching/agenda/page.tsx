@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, limaDateTime, todayYmd, weekStartYmd } from "@/lib/coaching/dates"
 import AgendaClient from "./AgendaClient"
+import { sessionTime } from "@/lib/session-time"
 import { trialsBetween } from "@/lib/coaching/trials"
 
 export const dynamic = "force-dynamic"
@@ -62,8 +63,9 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
           scheduledDate: dateStr,
           clientId: s.plan.client.id,
           clientName: `${s.plan.client.firstName} ${s.plan.client.lastName}`,
-          startTime: slot?.startTime ?? null,
-          endTime: slot?.endTime ?? null,
+          // Hora propia de la clase (movida o ajustada) o la de su horario semanal
+          startTime: sessionTime({ startTime: s.startTime, scheduledYmd: dateStr }, s.plan.scheduleSlots),
+          endTime: !s.startTime && slot ? slot.endTime : null,
           attended: s.attended ?? null,
           tipoEntrenador: s.plan.tipoEntrenador,
           modalidad: s.plan.modalidad,

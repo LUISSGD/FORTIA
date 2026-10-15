@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, limaDateTime, weekStartYmd, todayYmd } from "@/lib/coaching/dates"
 import TrainerAgendaClient from "./TrainerAgendaClient"
+import { sessionTime } from "@/lib/session-time"
 import { trialsBetween } from "@/lib/coaching/trials"
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
@@ -53,7 +54,8 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
       scheduledDate: dateStr,
       clientId: s.plan.client.id,
       clientName: `${s.plan.client.firstName.trim()} ${s.plan.client.lastName.trim()}${s.plan.client.partner ? ` y ${s.plan.client.partner.firstName.trim()}` : ""}`,
-      startTime: slot?.startTime ?? null,
+      startTime: slot && !s.startTime ? slot.startTime : sessionTime({ startTime: s.startTime, scheduledYmd: dateStr }, s.plan.scheduleSlots),
+      customTime: s.startTime,
       attended: s.attended ?? null,
       trainer: s.plan.client.trainer,
     }

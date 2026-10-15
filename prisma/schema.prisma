@@ -248,6 +248,8 @@ model TrainingSession {
   sessionNumber Int
   packNumber    Int
   scheduledDate DateTime?
+  // Hora de la clase ("HH:MM"). Si es null se usa la del horario semanal del plan para ese día.
+  startTime     String?
   completedAt   DateTime?
   attended      Boolean?
   isRescheduled Boolean            @default(false)

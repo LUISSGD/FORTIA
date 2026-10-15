@@ -15,6 +15,7 @@ import TrainingTab from "@/components/coaching/client-tabs/TrainingTab"
 import CheckInsTab from "@/components/coaching/client-tabs/CheckInsTab"
 import ChatTab from "@/components/coaching/client-tabs/ChatTab"
 import TrainerClientSessions from "./TrainerClientSessions"
+import { defaultPlanTime, sessionTime } from "@/lib/session-time"
 
 export const dynamic = "force-dynamic"
 
@@ -114,10 +115,12 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
           <TrainerClientSessions
             clientId={epOwner.id}
             planId={plan.id}
+            defaultTime={defaultPlanTime(plan.scheduleSlots)}
             sessions={plan.sessions.map((s) => ({
               sessionId: s.id,
               sessionNumber: s.sessionNumber,
               scheduledDate: s.scheduledDate ? s.scheduledDate.toISOString().slice(0, 10) : null,
+              time: sessionTime({ startTime: s.startTime, scheduledYmd: s.scheduledDate ? s.scheduledDate.toISOString().slice(0, 10) : null }, plan.scheduleSlots),
               attended: s.attended,
               isRescheduled: s.isRescheduled,
             }))}

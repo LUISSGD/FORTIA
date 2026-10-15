@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getClientSession } from "@/lib/coaching/auth"
 import { sharedOwnerId } from "@/lib/coaching/personal-training"
+import { defaultPlanTime } from "@/lib/session-time"
 import { addCalendarDays, calendarDate, calendarYmd, fortiaWeekday } from "@/lib/calendar"
 import { limaDateTime, todayYmd, toYmd } from "@/lib/coaching/dates"
 import AgendaCalendar, { type AgendaEvent } from "@/components/coaching/app/AgendaCalendar"
@@ -54,7 +55,7 @@ export default async function ClientAgendaPage({ searchParams }: PageProps<"/app
       date,
       kind: "ep",
       title: `Clase personalizada ${s.isRescheduled ? "(reprogramada)" : `${s.sessionNumber}`}`,
-      time: slot ? `${slot.startTime.slice(0, 5)} – ${slot.endTime.slice(0, 5)}` : null,
+      time: s.startTime ?? (slot ? `${slot.startTime.slice(0, 5)} – ${slot.endTime.slice(0, 5)}` : defaultPlanTime(s.plan.scheduleSlots)),
       status: s.attended === true || (s.attended === null && s.completedAt) ? "done" : s.attended === false ? "missed" : date < today ? "pending-past" : "pending",
     })
   }

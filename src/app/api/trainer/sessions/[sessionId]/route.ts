@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 import { calendarDate } from "@/lib/calendar"
+import { parseStartTime } from "@/lib/session-time"
 import { requireTrainer } from "@/lib/coaching/auth"
 
 type Ctx = { params: Promise<{ sessionId: string }> }
@@ -13,6 +14,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { sessionId } = await params
   const body = await req.json()
   const { attended, scheduledDate } = body
+  const startTime = parseStartTime(body.startTime)
+  if (body.startTime !== undefined && startTime === undefined) return NextResponse.json({ error: "Hora no válida" }, { status: 400 })
 
   const trainingSession = await prisma.trainingSession.findUnique({ where: { id: sessionId } })
   if (!trainingSession) return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 })
@@ -43,6 +46,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       scheduledDate: scheduledDate !== undefined
         ? (scheduledDate ? calendarDate(scheduledDate) : null)
         : undefined,
+      startTime,
     },
   })
 

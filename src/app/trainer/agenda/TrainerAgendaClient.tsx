@@ -20,6 +20,8 @@ type TrainingSlot = {
   clientId: string
   clientName: string
   startTime: string | null
+  /** Hora propia de la clase (si se movió o ajustó); null = la del horario semanal */
+  customTime: string | null
   attended: boolean | null
   trainer: string | null
 }
@@ -72,6 +74,7 @@ export default function TrainerAgendaClient({
   const router = useRouter()
   const [selected, setSelected] = useState<TrainingSlot | null>(null)
   const [newDate, setNewDate] = useState("")
+  const [newTime, setNewTime] = useState("")
   const [saving, setSaving] = useState(false)
   const [trialForm, setTrialForm] = useState<{ date?: string; trial?: Trial } | null>(null)
   const [trialDetail, setTrialDetail] = useState<Trial | null>(null)
@@ -92,12 +95,12 @@ export default function TrainerAgendaClient({
     }
   }
 
-  async function changeDate(sessionId: string, date: string) {
+  async function changeDate(sessionId: string, date: string, time: string) {
     if (!date) return
     setSaving(true)
     try {
-      await patchSession(sessionId, { scheduledDate: date })
-      toast.success("Fecha actualizada")
+      await patchSession(sessionId, { scheduledDate: date, startTime: time })
+      toast.success("Fecha y hora actualizadas")
       setSelected(null)
       router.refresh()
     } catch (e) {
@@ -147,7 +150,7 @@ export default function TrainerAgendaClient({
 
           const merged: Item[] = [
             ...dayCoaching.map((s) => ({ key: s.id, kind: "coaching" as const, slot: s, time: hhmm(s.startsAt) })),
-            ...dayTraining.map((s) => ({ key: s.sessionId, kind: "training" as const, session: s, time: s.startTime?.slice(0, 5) ?? "00:00" })),
+            ...dayTraining.map((s) => ({ key: s.sessionId, kind: "training" as const, session: s, time: s.startTime?.slice(0, 5) ?? "99:99" })),
             ...trials.filter((t) => t.date === d).map((t) => ({ key: t.id, kind: "trial" as const, trial: t, time: t.startTime })),
           ].sort((a, b) => a.time.localeCompare(b.time))
 
@@ -195,13 +198,13 @@ export default function TrainerAgendaClient({
                   return (
                     <button
                       key={item.key}
-                      onClick={() => { setSelected(s); setNewDate(s.scheduledDate) }}
+                      onClick={() => { setSelected(s); setNewDate(s.scheduledDate); setNewTime(s.startTime?.slice(0, 5) ?? "") }}
                       title={`Entrenador: ${s.trainer ?? "sin asignar"}`}
                       className={cn("w-full text-left rounded-lg px-2 py-1.5 text-xs border block transition-colors", t.card)}
                     >
                       <div className={cn("flex items-center gap-1 font-semibold", t.text)}>
                         <Dumbbell className="h-3 w-3 shrink-0" />
-                        {item.time !== "00:00" ? item.time : "EP"}
+                        {item.time !== "99:99" ? item.time : "Sin hora"}
                       </div>
                       <p className="truncate text-gray-900">
                         {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}
@@ -233,7 +236,7 @@ export default function TrainerAgendaClient({
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-semibold text-gray-900">{selected.clientName.trim()}</p>
-                <p className={cn("text-xs", trainerStyle(selected.trainer).text)}>S{selected.sessionNumber} · {selected.startTime?.slice(0, 5) ?? "EP"} · {selected.trainer ?? "Sin entrenador"}</p>
+                <p className={cn("text-xs", trainerStyle(selected.trainer).text)}>S{selected.sessionNumber} · {selected.startTime?.slice(0, 5) ?? "Sin hora"} · {selected.trainer ?? "Sin entrenador"}</p>
               </div>
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -249,17 +252,23 @@ export default function TrainerAgendaClient({
             </Link>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-600">Fecha de la sesión</label>
+              <label className="text-xs font-medium text-gray-600">Fecha y hora de la sesión</label>
               <div className="flex gap-2">
                 <input
                   type="date"
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+                <input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm"
                 />
                 <button
-                  disabled={saving || newDate === selected.scheduledDate}
-                  onClick={() => changeDate(selected.sessionId, newDate)}
+                  disabled={saving || (newDate === selected.scheduledDate && newTime === (selected.startTime?.slice(0, 5) ?? ""))}
+                  onClick={() => changeDate(selected.sessionId, newDate, newTime)}
                   className="px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium disabled:opacity-40"
                 >
                   Guardar
