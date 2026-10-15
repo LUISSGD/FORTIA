@@ -88,7 +88,7 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [],
           type Item = { key: string; time: string } & ({ kind: "coaching"; slot: typeof daySlots[0] } | { kind: "training"; session: typeof dayTraining[0] } | { kind: "trial"; trial: Trial })
           const merged: Item[] = [
             ...daySlots.map((s) => ({ key: s.id, kind: "coaching" as const, slot: s, time: hhmm(s.startsAt) })),
-            ...dayTraining.map((s) => ({ key: s.sessionId, kind: "training" as const, session: s, time: s.startTime?.slice(0, 5) ?? "00:00" })),
+            ...dayTraining.map((s) => ({ key: s.sessionId, kind: "training" as const, session: s, time: s.startTime?.slice(0, 5) ?? "99:99" })),
             ...dayTrials.map((t) => ({ key: t.id, kind: "trial" as const, trial: t, time: t.startTime })),
           ].sort((a, b) => a.time.localeCompare(b.time))
           const isEmpty = merged.length === 0
@@ -126,7 +126,7 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [],
                     >
                       <div className={cn("flex items-center gap-1 font-semibold", t.text)}>
                         <Dumbbell className="h-3 w-3 shrink-0" />
-                        {item.time !== "00:00" ? item.time : "EP"}
+                        {item.time !== "99:99" ? item.time : "Sin hora"}
                       </div>
                       <p className="truncate text-gray-900">
                         {s.attended === true ? "✅ " : s.attended === false ? "❌ " : ""}{s.clientName.trim().split(" ")[0]}

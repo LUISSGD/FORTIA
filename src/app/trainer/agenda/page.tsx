@@ -53,7 +53,8 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
       scheduledDate: dateStr,
       clientId: s.plan.client.id,
       clientName: `${s.plan.client.firstName.trim()} ${s.plan.client.lastName.trim()}${s.plan.client.partner ? ` y ${s.plan.client.partner.firstName.trim()}` : ""}`,
-      startTime: slot?.startTime ?? null,
+      startTime: s.startTime ?? slot?.startTime ?? null,
+      customTime: s.startTime,
       attended: s.attended ?? null,
       trainer: s.plan.client.trainer,
     }

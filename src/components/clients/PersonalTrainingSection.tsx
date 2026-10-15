@@ -14,6 +14,7 @@ import AssignTrainingPlanDialog from "./AssignTrainingPlanDialog"
 import { PAYMENT_METHODS } from "@/lib/utils"
 import { ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS } from "@/lib/training-pricing"
 import type { Entrenador, Modalidad, Tarifa } from "@/lib/training-pricing"
+import { sessionTime } from "@/lib/session-time"
 
 const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 const MONTH_NAMES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -23,6 +24,8 @@ interface TrainingSession {
   sessionNumber: number
   packNumber: number
   scheduledDate?: string | null
+  /** Hora propia de la clase; null = la del horario semanal */
+  startTime?: string | null
   completedAt?: string | null
   attended?: boolean | null
   isRescheduled?: boolean
@@ -363,6 +366,7 @@ interface AddRescheduleProps {
 function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) {
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState("")
+  const [time, setTime] = useState("")
   const [saving, setSaving] = useState(false)
 
   async function handleAdd() {
@@ -370,7 +374,7 @@ function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) 
     const res = await fetch(`/api/clients/${clientId}/training-plans/${planId}/sessions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduledDate: date || null }),
+      body: JSON.stringify({ scheduledDate: date || null, startTime: time }),
     })
     setSaving(false)
     if (res.ok) {
@@ -378,6 +382,7 @@ function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) 
       onAdded(updated)
       toast.success("Sesión de reprogramación agregada")
       setDate("")
+      setTime("")
       setOpen(false)
     } else {
       toast.error("Error al agregar")
@@ -403,6 +408,11 @@ function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) 
             <div>
               <Label className="text-xs">Fecha (opcional)</Label>
               <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Hora (opcional)</Label>
+              <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="h-8 text-sm" />
+              <p className="text-[11px] text-gray-400 mt-1">Si la dejas vacía, se usa la de su horario para ese día.</p>
             </div>
             <div className="flex gap-2">
               <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 h-8 text-xs" onClick={handleAdd} disabled={saving}>
@@ -532,16 +542,19 @@ function RenewPlanDialog({ plan, clientId, onRenewed }: RenewPlanDialogProps) {
 /* ── Session Row ───────────────────────────────────────────────── */
 interface SessionRowProps {
   session: TrainingSession
+  slots: { dayOfWeek: number; startTime: string }[]
   label: string
   planId: string
   clientId: string
   onUpdated: (updated: Plan) => void
 }
 
-function SessionRow({ session, label, planId, clientId, onUpdated }: SessionRowProps) {
+function SessionRow({ session, slots, label, planId, clientId, onUpdated }: SessionRowProps) {
   const [busy, setBusy] = useState(false)
   const [editingDate, setEditingDate] = useState(false)
   const [dateVal, setDateVal] = useState(toInputValue(session.scheduledDate))
+  const time = sessionTime({ startTime: session.startTime, scheduledYmd: toInputValue(session.scheduledDate) || null }, slots)
+  const [timeVal, setTimeVal] = useState(time ?? "")
 
   // Retrocompat: if attended null but completedAt set, treat as attended
   const effectiveAttended = session.attended ?? (session.completedAt ? true : null)
@@ -563,7 +576,7 @@ function SessionRow({ session, label, planId, clientId, onUpdated }: SessionRowP
   }
 
   async function saveDate() {
-    await patch({ scheduledDate: dateVal || null })
+    await patch({ scheduledDate: dateVal || null, startTime: timeVal })
     setEditingDate(false)
   }
 
@@ -587,7 +600,7 @@ function SessionRow({ session, label, planId, clientId, onUpdated }: SessionRowP
       {/* Date */}
       <div className="flex-1 min-w-0">
         {effectiveAttended !== null ? (
-          <span className="text-xs text-gray-500">{fmtDate(displayDate) || "—"}</span>
+          <span className="text-xs text-gray-500">{fmtDate(displayDate) || "—"}{time ? ` · ${time}` : ""}</span>
         ) : editingDate ? (
           <div className="flex items-center gap-1">
             <Input
@@ -596,6 +609,13 @@ function SessionRow({ session, label, planId, clientId, onUpdated }: SessionRowP
               onChange={e => setDateVal(e.target.value)}
               className="h-6 text-xs px-1.5 py-0"
               autoFocus
+              onKeyDown={e => { if (e.key === "Enter") saveDate(); if (e.key === "Escape") setEditingDate(false) }}
+            />
+            <Input
+              type="time"
+              value={timeVal}
+              onChange={e => setTimeVal(e.target.value)}
+              className="h-6 w-20 text-xs px-1 py-0"
               onKeyDown={e => { if (e.key === "Enter") saveDate(); if (e.key === "Escape") setEditingDate(false) }}
             />
             <button onClick={saveDate} className="text-orange-500 hover:text-orange-600 text-[11px] font-medium">ok</button>
@@ -607,6 +627,7 @@ function SessionRow({ session, label, planId, clientId, onUpdated }: SessionRowP
             className="text-xs text-gray-400 hover:text-gray-700 text-left"
           >
             {fmtDate(session.scheduledDate) || <span className="italic text-gray-300">sin fecha</span>}
+            {session.scheduledDate && <span className={session.startTime ? "text-gray-600" : ""}> · {time ?? "sin hora"}</span>}
           </button>
         )}
       </div>
@@ -815,6 +836,7 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                   ) : (
                     normalSessions.map((session) => (
                       <SessionRow
+                        slots={plan.scheduleSlots ?? []}
                         key={session.id}
                         session={session}
                         label={`S${session.sessionNumber}`}
@@ -831,6 +853,7 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                   <div className="px-2 border-t border-blue-100">
                     {rescheduledSessions.map((session, idx) => (
                       <SessionRow
+                        slots={plan.scheduleSlots ?? []}
                         key={session.id}
                         session={session}
                         label={`R${idx + 1}`}
@@ -909,6 +932,7 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                       <div className="mt-2 border rounded px-2 bg-white">
                         {plan.sessions.filter(s => !s.isRescheduled).map(s => (
                           <SessionRow
+                            slots={plan.scheduleSlots ?? []}
                             key={s.id}
                             session={s}
                             label={`S${s.sessionNumber}`}
@@ -919,6 +943,7 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                         ))}
                         {plan.sessions.filter(s => s.isRescheduled).map((s, idx) => (
                           <SessionRow
+                            slots={plan.scheduleSlots ?? []}
                             key={s.id}
                             session={s}
                             label={`R${idx + 1}`}

@@ -11,6 +11,8 @@ type Session = {
   sessionId: string
   sessionNumber: number
   scheduledDate: string | null
+  /** Hora de la clase (propia o la del horario semanal) */
+  time: string | null
   attended: boolean | null
   isRescheduled: boolean
 }
@@ -32,6 +34,7 @@ function SessionRow({ s }: { s: Session }) {
   const router = useRouter()
   const [editDate, setEditDate] = useState(false)
   const [dateVal, setDateVal] = useState(s.scheduledDate ?? "")
+  const [timeVal, setTimeVal] = useState(s.time ?? "")
   const [saving, setSaving] = useState(false)
 
   const canEdit = s.attended === null
@@ -68,9 +71,15 @@ function SessionRow({ s }: { s: Session }) {
               onChange={(e) => setDateVal(e.target.value)}
               className="border border-gray-200 rounded px-2 py-0.5 text-xs"
             />
+            <input
+              type="time"
+              value={timeVal}
+              onChange={(e) => setTimeVal(e.target.value)}
+              className="w-20 border border-gray-200 rounded px-1 py-0.5 text-xs"
+            />
             <button
               disabled={saving || !dateVal}
-              onClick={() => act({ scheduledDate: dateVal })}
+              onClick={() => act({ scheduledDate: dateVal, startTime: timeVal })}
               className="text-xs px-2 py-0.5 bg-gray-900 text-white rounded disabled:opacity-40"
             >
               OK
@@ -83,7 +92,7 @@ function SessionRow({ s }: { s: Session }) {
             onClick={() => canEdit && setEditDate(true)}
             className={cn("text-xs", canEdit ? "text-sky-600 hover:underline" : "text-gray-400 cursor-default")}
           >
-            {s.scheduledDate ? `${["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][fortiaWeekday(s.scheduledDate)]} ${s.scheduledDate.split("-").reverse().join("/")}` : "Sin fecha"}
+            {s.scheduledDate ? `${["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][fortiaWeekday(s.scheduledDate)]} ${s.scheduledDate.split("-").reverse().join("/")} · ${s.time ?? "sin hora"}` : "Sin fecha"}
           </button>
         )}
 
@@ -134,6 +143,7 @@ export default function TrainerClientSessions({
   const router = useRouter()
   const [adding, setAdding] = useState(false)
   const [newDate, setNewDate] = useState("")
+  const [newTime, setNewTime] = useState("")
   const [saving, setSaving] = useState(false)
 
   async function addRescheduled() {
@@ -143,7 +153,7 @@ export default function TrainerClientSessions({
       const res = await fetch(`/api/trainer/clients/${clientId}/sessions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, scheduledDate: newDate }),
+        body: JSON.stringify({ planId, scheduledDate: newDate, startTime: newTime }),
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
@@ -152,6 +162,7 @@ export default function TrainerClientSessions({
       toast.success("Clase de reprogramación agregada")
       setAdding(false)
       setNewDate("")
+      setNewTime("")
       router.refresh()
     } catch (e) {
       toast.error((e as Error).message)
@@ -182,7 +193,14 @@ export default function TrainerClientSessions({
               type="date"
               value={newDate}
               onChange={(e) => setNewDate(e.target.value)}
-              className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs bg-white"
+              className="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1 text-xs bg-white"
+            />
+            <input
+              type="time"
+              value={newTime}
+              onChange={(e) => setNewTime(e.target.value)}
+              className="w-20 border border-gray-200 rounded px-1 py-1 text-xs bg-white"
+              title="Hora (si la dejas vacía, se usa la de su horario)"
             />
             <button
               disabled={saving || !newDate}

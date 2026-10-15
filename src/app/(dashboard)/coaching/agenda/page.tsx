@@ -62,8 +62,9 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
           scheduledDate: dateStr,
           clientId: s.plan.client.id,
           clientName: `${s.plan.client.firstName} ${s.plan.client.lastName}`,
-          startTime: slot?.startTime ?? null,
-          endTime: slot?.endTime ?? null,
+          // Hora propia de la clase (movida o ajustada) o la de su horario semanal
+          startTime: s.startTime ?? slot?.startTime ?? null,
+          endTime: s.startTime ? null : slot?.endTime ?? null,
           attended: s.attended ?? null,
           tipoEntrenador: s.plan.tipoEntrenador,
           modalidad: s.plan.modalidad,

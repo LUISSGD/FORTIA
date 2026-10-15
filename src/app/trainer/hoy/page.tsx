@@ -75,7 +75,7 @@ async function TrainerTodayPage() {
         total,
         remaining: total - s.plan.sessionsCompleted,
         attended: s.attended ?? (s.completedAt ? true : null),
-        time: s.plan.scheduleSlots.find((x) => x.dayOfWeek === weekday)?.startTime.slice(0, 5) ?? null,
+        time: s.startTime ?? s.plan.scheduleSlots.find((x) => x.dayOfWeek === weekday)?.startTime.slice(0, 5) ?? null,
         persons: [s.plan.client, ...(s.plan.client.partner ? [s.plan.client.partner] : [])],
         trainer: s.plan.client.trainer,
       }

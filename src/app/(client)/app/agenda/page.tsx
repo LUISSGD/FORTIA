@@ -54,7 +54,7 @@ export default async function ClientAgendaPage({ searchParams }: PageProps<"/app
       date,
       kind: "ep",
       title: `Clase personalizada ${s.isRescheduled ? "(reprogramada)" : `${s.sessionNumber}`}`,
-      time: slot ? `${slot.startTime.slice(0, 5)} – ${slot.endTime.slice(0, 5)}` : null,
+      time: s.startTime ?? (slot ? `${slot.startTime.slice(0, 5)} – ${slot.endTime.slice(0, 5)}` : null),
       status: s.attended === true || (s.attended === null && s.completedAt) ? "done" : s.attended === false ? "missed" : date < today ? "pending-past" : "pending",
     })
   }
