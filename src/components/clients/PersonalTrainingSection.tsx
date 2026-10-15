@@ -14,7 +14,7 @@ import AssignTrainingPlanDialog from "./AssignTrainingPlanDialog"
 import { PAYMENT_METHODS } from "@/lib/utils"
 import { ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS } from "@/lib/training-pricing"
 import type { Entrenador, Modalidad, Tarifa } from "@/lib/training-pricing"
-import { sessionTime } from "@/lib/session-time"
+import { defaultPlanTime, sessionTime } from "@/lib/session-time"
 
 const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 const MONTH_NAMES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -360,13 +360,15 @@ function EditPlanDialog({ plan, clientId, onSaved, onDeleted }: EditDialogProps)
 interface AddRescheduleProps {
   planId: string
   clientId: string
+  defaultTime: string | null
   onAdded: (updated: Plan) => void
 }
 
-function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) {
+function AddRescheduleDialog({ planId, clientId, defaultTime, onAdded }: AddRescheduleProps) {
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState("")
-  const [time, setTime] = useState("")
+  // Por defecto, la hora estándar del plan; se puede cambiar
+  const [time, setTime] = useState(defaultTime ?? "")
   const [saving, setSaving] = useState(false)
 
   async function handleAdd() {
@@ -382,7 +384,7 @@ function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) 
       onAdded(updated)
       toast.success("Sesión de reprogramación agregada")
       setDate("")
-      setTime("")
+      setTime(defaultTime ?? "")
       setOpen(false)
     } else {
       toast.error("Error al agregar")
@@ -410,9 +412,9 @@ function AddRescheduleDialog({ planId, clientId, onAdded }: AddRescheduleProps) 
               <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-8 text-sm" />
             </div>
             <div>
-              <Label className="text-xs">Hora (opcional)</Label>
+              <Label className="text-xs">Hora</Label>
               <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="h-8 text-sm" />
-              <p className="text-[11px] text-gray-400 mt-1">Si la dejas vacía, se usa la de su horario para ese día.</p>
+              <p className="text-[11px] text-gray-400 mt-1">Viene con la hora de su horario; cámbiala solo si esta clase es a otra hora.</p>
             </div>
             <div className="flex gap-2">
               <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 h-8 text-xs" onClick={handleAdd} disabled={saving}>
@@ -870,6 +872,7 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                   <AddRescheduleDialog
                     planId={plan.id}
                     clientId={clientId}
+                    defaultTime={defaultPlanTime(plan.scheduleSlots ?? [])}
                     onAdded={updatePlan}
                   />
                 </div>

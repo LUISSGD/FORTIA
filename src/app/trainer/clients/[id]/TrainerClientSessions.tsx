@@ -134,16 +134,18 @@ function SessionRow({ s }: { s: Session }) {
 export default function TrainerClientSessions({
   sessions,
   clientId,
-  planId,
+  planId, defaultTime,
 }: {
   sessions: Session[]
   clientId: string
   planId: string
+  defaultTime: string | null
 }) {
   const router = useRouter()
   const [adding, setAdding] = useState(false)
   const [newDate, setNewDate] = useState("")
-  const [newTime, setNewTime] = useState("")
+  // Por defecto, la hora estándar del plan; se puede cambiar
+  const [newTime, setNewTime] = useState(defaultTime ?? "")
   const [saving, setSaving] = useState(false)
 
   async function addRescheduled() {
@@ -162,7 +164,7 @@ export default function TrainerClientSessions({
       toast.success("Clase de reprogramación agregada")
       setAdding(false)
       setNewDate("")
-      setNewTime("")
+      setNewTime(defaultTime ?? "")
       router.refresh()
     } catch (e) {
       toast.error((e as Error).message)
@@ -176,7 +178,7 @@ export default function TrainerClientSessions({
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-gray-500 uppercase">Sesiones</p>
         <button
-          onClick={() => { setAdding(!adding); setNewDate("") }}
+          onClick={() => { setAdding(!adding); setNewDate(""); setNewTime(defaultTime ?? "") }}
           className="flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700"
         >
           <Plus className="h-3 w-3" />
@@ -200,7 +202,7 @@ export default function TrainerClientSessions({
               value={newTime}
               onChange={(e) => setNewTime(e.target.value)}
               className="w-20 border border-gray-200 rounded px-1 py-1 text-xs bg-white"
-              title="Hora (si la dejas vacía, se usa la de su horario)"
+              title="Hora (viene la de su horario; cámbiala si es otra)"
             />
             <button
               disabled={saving || !newDate}

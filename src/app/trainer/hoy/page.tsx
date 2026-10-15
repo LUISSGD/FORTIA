@@ -10,6 +10,7 @@ import { getTrainingState } from "@/lib/coaching/client-data"
 import { withCoachErrors } from "@/components/coaching/withCoachErrors"
 import AttendanceButtons from "./AttendanceButtons"
 import TrialsToday from "./TrialsToday"
+import { sessionTime } from "@/lib/session-time"
 import { trialsBetween } from "@/lib/coaching/trials"
 import { TRAINERS, UNASSIGNED_TRAINER, trainerStyle } from "@/lib/trainers"
 
@@ -75,7 +76,7 @@ async function TrainerTodayPage() {
         total,
         remaining: total - s.plan.sessionsCompleted,
         attended: s.attended ?? (s.completedAt ? true : null),
-        time: s.startTime ?? s.plan.scheduleSlots.find((x) => x.dayOfWeek === weekday)?.startTime.slice(0, 5) ?? null,
+        time: sessionTime({ startTime: s.startTime, scheduledYmd: today }, s.plan.scheduleSlots),
         persons: [s.plan.client, ...(s.plan.client.partner ? [s.plan.client.partner] : [])],
         trainer: s.plan.client.trainer,
       }
