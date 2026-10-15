@@ -9,6 +9,8 @@ import { splitReps } from "@/lib/coaching/exercise-format"
 import { getTrainingState } from "@/lib/coaching/client-data"
 import { withCoachErrors } from "@/components/coaching/withCoachErrors"
 import AttendanceButtons from "./AttendanceButtons"
+import TrialsToday from "./TrialsToday"
+import { trialsBetween } from "@/lib/coaching/trials"
 import { TRAINERS, UNASSIGNED_TRAINER, trainerStyle } from "@/lib/trainers"
 
 export const dynamic = "force-dynamic"
@@ -27,7 +29,7 @@ async function TrainerTodayPage() {
   const weekday = fortiaWeekday(today)
   const person = { id: true, firstName: true, lastName: true, coachingProfile: { select: { injuries: true } } } as const
 
-  const [sessions, slots, unread, checkIns] = await Promise.all([
+  const [sessions, slots, unread, checkIns, trials] = await Promise.all([
     prisma.trainingSession.findMany({
       where: { scheduledDate: calendarDate(today), plan: { status: { in: ["ACTIVE", "PAUSED"] } } },
       include: {
@@ -47,6 +49,7 @@ async function TrainerTodayPage() {
     }),
     prisma.coachMessage.groupBy({ by: ["clientId"], where: { channel: "COACHING", sender: "CLIENT", readAt: null }, _count: { _all: true } }),
     prisma.checkIn.groupBy({ by: ["clientId"], where: { reviewedAt: null }, _count: { _all: true } }),
+    trialsBetween(today, today),
   ])
 
   // Rutina que le toca a cada persona (en parejas, cada uno la suya)
@@ -141,6 +144,7 @@ async function TrainerTodayPage() {
         <p className="text-sm text-gray-500">
           {classes.length ? `${classes.length} clase${classes.length === 1 ? "" : "s"} personalizada${classes.length === 1 ? "" : "s"}${pending ? ` · ${pending} por marcar` : " · todas marcadas"}` : "Sin clases personalizadas hoy"}
           {slots.length ? ` · ${slots.length} cita${slots.length === 1 ? "" : "s"}` : ""}
+          {trials.length ? ` · ${trials.length} clase${trials.length === 1 ? "" : "s"} de prueba` : ""}
         </p>
       </div>
 
@@ -189,6 +193,8 @@ async function TrainerTodayPage() {
           ))}
         </section>
       )}
+
+      <TrialsToday trials={trials} today={today} />
 
       <section className="space-y-2">
         <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Requieren tu atención</h2>

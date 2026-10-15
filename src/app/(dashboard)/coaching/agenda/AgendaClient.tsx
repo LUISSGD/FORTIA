@@ -10,6 +10,8 @@ import { DAYS_OF_WEEK } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import { Btn, Field, Input, Modal, Panel, Select, api } from "@/components/coaching/kit"
 import { TRAINERS, UNASSIGNED_TRAINER, trainerStyle } from "@/lib/trainers"
+import { TrialChip, TrialModals } from "@/components/coaching/trials/TrialModals"
+import type { Trial } from "@/lib/coaching/trials"
 
 type Booking = { id: string; status: string; clientId: string; name: string }
 type Slot = { id: string; startsAt: string; endsAt: string; title: string; mode: string; capacity: number; location: string | null; bookings: Booking[] }
@@ -19,12 +21,14 @@ const ymd = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/L
 const hhmm = (iso: string) => new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso))
 const addDays = (s: string, n: number) => { const d = new Date(`${s}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
 
-export default function AgendaClient({ week, slots, clients, trainingSlots = [] }: { week: string; slots: Slot[]; clients: { id: string; name: string }[]; trainingSlots?: TrainingSlot[] }) {
+export default function AgendaClient({ week, slots, clients, trainingSlots = [], trials = [] }: { week: string; slots: Slot[]; clients: { id: string; name: string }[]; trainingSlots?: TrainingSlot[]; trials?: Trial[] }) {
   const router = useRouter()
   const [creating, setCreating] = useState(false)
   const [detail, setDetail] = useState<Slot | null>(null)
   const [form, setForm] = useState({ date: week, times: "09:00, 10:00, 11:00", durationMin: "60", repeatWeeks: "1", weekdays: [] as number[], capacity: "1", mode: "PRESENCIAL", title: "Sesión de entrenamiento", location: "" })
   const [bookClient, setBookClient] = useState("")
+  const [trialForm, setTrialForm] = useState<{ date?: string; trial?: Trial } | null>(null)
+  const [trialDetail, setTrialDetail] = useState<Trial | null>(null)
   const today = ymd(new Date())
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i))
 
@@ -59,7 +63,10 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
           <Link href={`?week=${addDays(week, 7)}`} className="p-2 rounded-lg hover:bg-gray-100"><ChevronRight className="h-4 w-4" /></Link>
           <Link href="/coaching/agenda" className="text-xs text-orange-600 ml-1">Hoy</Link>
         </div>
-        <Btn onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Crear horarios</Btn>
+        <div className="flex gap-2">
+          <Btn variant="outline" onClick={() => setTrialForm({ date: today >= week && today <= addDays(week, 6) ? today : week })}><Plus className="h-4 w-4" /> Clase de prueba</Btn>
+          <Btn onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Crear horarios</Btn>
+        </div>
       </div>
 
       {/* Leyenda: color de las clases personalizadas según su entrenador */}
@@ -69,6 +76,7 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
           <span key={t.name} className="flex items-center gap-1.5"><span className={cn("h-2.5 w-2.5 rounded-full", t.dot)} />{t.name}</span>
         ))}
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-orange-300" />Citas de coaching</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border border-dashed border-amber-500 bg-amber-100" />Clases de prueba</span>
       </div>
 
       <div className="grid md:grid-cols-7 gap-3">
@@ -76,10 +84,12 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
           const daySlots = slots.filter((s) => ymd(new Date(s.startsAt)) === d)
           const dayTraining = trainingSlots.filter((s) => s.scheduledDate === d)
           // Merge coaching slots + EP sessions sorted chronologically
-          type Item = { key: string; time: string } & ({ kind: "coaching"; slot: typeof daySlots[0] } | { kind: "training"; session: typeof dayTraining[0] })
+          const dayTrials = trials.filter((t) => t.date === d)
+          type Item = { key: string; time: string } & ({ kind: "coaching"; slot: typeof daySlots[0] } | { kind: "training"; session: typeof dayTraining[0] } | { kind: "trial"; trial: Trial })
           const merged: Item[] = [
             ...daySlots.map((s) => ({ key: s.id, kind: "coaching" as const, slot: s, time: hhmm(s.startsAt) })),
             ...dayTraining.map((s) => ({ key: s.sessionId, kind: "training" as const, session: s, time: s.startTime?.slice(0, 5) ?? "00:00" })),
+            ...dayTrials.map((t) => ({ key: t.id, kind: "trial" as const, trial: t, time: t.startTime })),
           ].sort((a, b) => a.time.localeCompare(b.time))
           const isEmpty = merged.length === 0
           return (
@@ -88,6 +98,7 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
               <div className="mt-2 space-y-1.5">
                 {isEmpty && <p className="text-[11px] text-gray-300">—</p>}
                 {merged.map((item) => {
+                  if (item.kind === "trial") return <TrialChip key={item.key} trial={item.trial} onClick={() => setTrialDetail(item.trial)} />
                   if (item.kind === "coaching") {
                     const s = item.slot
                     const booked = s.bookings.filter((b) => ["BOOKED", "ATTENDED", "NO_SHOW"].includes(b.status))
@@ -129,6 +140,15 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [] 
           )
         })}
       </div>
+
+      <TrialModals
+        form={trialForm}
+        onCloseForm={() => setTrialForm(null)}
+        detail={trialDetail}
+        onCloseDetail={() => setTrialDetail(null)}
+        onEdit={(t) => { setTrialDetail(null); setTrialForm({ trial: t }) }}
+        canConvert
+      />
 
       <Modal open={creating} onClose={() => setCreating(false)} title="Crear horarios disponibles">
         <div className="space-y-3">

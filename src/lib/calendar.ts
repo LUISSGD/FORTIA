@@ -19,6 +19,8 @@ export const CALENDAR_FIELDS = new Set([
   "scheduledDate", "currentPackStart", "membershipStart", "membershipEnd", "birthDate",
   // Payment: período que cubre (membresía) o día del pago (clases EP, nutrición) y la membresía previa
   "periodStart", "periodEnd", "prevMembershipStart", "prevMembershipEnd",
+  // TrialClass: día de la clase de prueba
+  "trialDate",
 ])
 
 /**

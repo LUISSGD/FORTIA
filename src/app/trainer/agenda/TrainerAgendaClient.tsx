@@ -7,6 +7,8 @@ import { toast } from "sonner"
 import { ChevronLeft, ChevronRight, Dumbbell, Video, MapPin, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TRAINERS, UNASSIGNED_TRAINER, trainerStyle } from "@/lib/trainers"
+import { TrialChip, TrialModals } from "@/components/coaching/trials/TrialModals"
+import type { Trial } from "@/lib/coaching/trials"
 
 const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
@@ -60,15 +62,19 @@ export default function TrainerAgendaClient({
   week,
   trainingSlots,
   coachingSlots = [],
+  trials = [],
 }: {
   week: string
   trainingSlots: TrainingSlot[]
   coachingSlots?: CoachingSlot[]
+  trials?: Trial[]
 }) {
   const router = useRouter()
   const [selected, setSelected] = useState<TrainingSlot | null>(null)
   const [newDate, setNewDate] = useState("")
   const [saving, setSaving] = useState(false)
+  const [trialForm, setTrialForm] = useState<{ date?: string; trial?: Trial } | null>(null)
+  const [trialDetail, setTrialDetail] = useState<Trial | null>(null)
   const today = ymd(new Date())
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i))
 
@@ -114,6 +120,9 @@ export default function TrainerAgendaClient({
           </Link>
           <Link href="/trainer/agenda" className="text-xs text-orange-600 ml-1">Hoy</Link>
         </div>
+        <button onClick={() => setTrialForm({ date: today >= week && today <= addDays(week, 6) ? today : week })} className="self-start md:self-auto rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+          + Clase de prueba
+        </button>
       </div>
 
       {/* Leyenda: color de las clases personalizadas según su entrenador */}
@@ -123,6 +132,7 @@ export default function TrainerAgendaClient({
           <span key={t.name} className="flex items-center gap-1.5"><span className={cn("h-2.5 w-2.5 rounded-full", t.dot)} />{t.name}</span>
         ))}
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-orange-300" />Citas de coaching</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border border-dashed border-amber-500 bg-amber-100" />Clases de prueba</span>
       </div>
 
       <div className="grid md:grid-cols-7 gap-3">
@@ -133,10 +143,12 @@ export default function TrainerAgendaClient({
           type Item =
             | { key: string; time: string; kind: "coaching"; slot: CoachingSlot }
             | { key: string; time: string; kind: "training"; session: TrainingSlot }
+            | { key: string; time: string; kind: "trial"; trial: Trial }
 
           const merged: Item[] = [
             ...dayCoaching.map((s) => ({ key: s.id, kind: "coaching" as const, slot: s, time: hhmm(s.startsAt) })),
             ...dayTraining.map((s) => ({ key: s.sessionId, kind: "training" as const, session: s, time: s.startTime?.slice(0, 5) ?? "00:00" })),
+            ...trials.filter((t) => t.date === d).map((t) => ({ key: t.id, kind: "trial" as const, trial: t, time: t.startTime })),
           ].sort((a, b) => a.time.localeCompare(b.time))
 
           const isEmpty = merged.length === 0
@@ -149,6 +161,7 @@ export default function TrainerAgendaClient({
               <div className="mt-2 space-y-1.5">
                 {isEmpty && <p className="text-[11px] text-gray-300">—</p>}
                 {merged.map((item) => {
+                  if (item.kind === "trial") return <TrialChip key={item.key} trial={item.trial} onClick={() => setTrialDetail(item.trial)} />
                   if (item.kind === "coaching") {
                     const s = item.slot
                     const booked = s.bookings.filter((b) => ["BOOKED", "ATTENDED", "NO_SHOW"].includes(b.status))
@@ -203,6 +216,15 @@ export default function TrainerAgendaClient({
           )
         })}
       </div>
+
+      <TrialModals
+        form={trialForm}
+        onCloseForm={() => setTrialForm(null)}
+        detail={trialDetail}
+        onCloseDetail={() => setTrialDetail(null)}
+        onEdit={(t) => { setTrialDetail(null); setTrialForm({ trial: t }) }}
+        canConvert={false}
+      />
 
       {/* Modal de sesión EP */}
       {selected && (

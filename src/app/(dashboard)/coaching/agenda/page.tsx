@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, limaDateTime, todayYmd, weekStartYmd } from "@/lib/coaching/dates"
 import AgendaClient from "./AgendaClient"
+import { trialsBetween } from "@/lib/coaching/trials"
 
 export const dynamic = "force-dynamic"
 
@@ -11,7 +12,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
   const weekStart = new Date(week + "T00:00:00.000Z")
   const weekEnd = new Date(addDaysYmd(week, 7) + "T00:00:00.000Z")
 
-  const [slots, clients, trainingSessions] = await Promise.all([
+  const [slots, clients, trainingSessions, trials] = await Promise.all([
     prisma.coachingSlot.findMany({
       where: { startsAt: { gte: limaDateTime(week, "00:00"), lt: limaDateTime(addDaysYmd(week, 7), "00:00") } },
       include: { bookings: { orderBy: { createdAt: "asc" }, include: { client: { select: { id: true, firstName: true, lastName: true } } } } },
@@ -32,11 +33,13 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
       },
       orderBy: { scheduledDate: "asc" },
     }),
+    trialsBetween(week, addDaysYmd(week, 6)),
   ])
 
   return (
     <AgendaClient
       week={week}
+      trials={trials}
       slots={slots.map((s) => ({
         id: s.id,
         startsAt: s.startsAt.toISOString(),
