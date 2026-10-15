@@ -87,6 +87,7 @@ model Client {
   coachDocuments    CoachDocument[]
   coachingGoals     CoachingGoal[]
   automationLogs    AutomationLog[]
+  trialClasses      TrialClass[]
 }
 
 model Payment {
@@ -810,4 +811,28 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// Clase de prueba agendada por el admin o el entrenador para un interesado (aún no es cliente).
+model TrialClass {
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String?
+  phone         String?
+  email         String?
+  dni           String?
+  goal          String?
+  notes         String?
+  trialDate     DateTime // día de calendario (mediodía UTC)
+  startTime     String   // "HH:MM"
+  durationMin   Int      @default(60)
+  trainer       String?
+  status        String   @default("SCHEDULED") // SCHEDULED | ATTENDED | NO_SHOW | CANCELLED
+  clientId      String?
+  client        Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdByName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([trialDate])
 }

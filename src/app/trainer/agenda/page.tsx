@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, limaDateTime, weekStartYmd, todayYmd } from "@/lib/coaching/dates"
 import TrainerAgendaClient from "./TrainerAgendaClient"
+import { trialsBetween } from "@/lib/coaching/trials"
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -74,10 +75,13 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
     })),
   }))
 
+  const trials = await trialsBetween(week, addDaysYmd(week, 6))
+
   return (
     <div className="p-4 space-y-4">
       <TrainerAgendaClient
         week={week}
+        trials={trials}
         trainingSlots={trainingSlots}
         coachingSlots={coachingSlotsMapped}
       />
