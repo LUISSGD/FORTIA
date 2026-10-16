@@ -8,6 +8,18 @@ import { Plus, Pencil } from "lucide-react"
 // → programa "Elite Athlete", detalle "Head Coach · 8 sesiones (Regular)").
 const PROGRAM_ORDER = ["Elite Athlete", "Elite Athlete Parejas", "Prime Athlete", "Fortia X"]
 
+/** Programa y detalle del plan. Reconoce el programa aunque el nombre no use " — " o cambie mayúsculas
+ *  ("Fortia X SEMESTRAL" → Fortia X · "SEMESTRAL"). */
+function splitPlanName(name: string): { program: string; detail: string } {
+  const known = [...PROGRAM_ORDER].sort((a, b) => b.length - a.length).find((p) => name.toLowerCase().startsWith(p.toLowerCase()))
+  if (known) {
+    const detail = name.slice(known.length).replace(/^[\s—–\-·:]+/, "").split(" — ").join(" · ").trim()
+    return { program: known, detail: detail || name }
+  }
+  const [program, ...rest] = name.split(" — ")
+  return { program: program.trim(), detail: rest.join(" · ") || name }
+}
+
 export default async function MembershipsPage() {
   const plans = await prisma.membershipPlan.findMany({
     where: { isActive: true },
@@ -16,7 +28,7 @@ export default async function MembershipsPage() {
 
   const groups = new Map<string, typeof plans>()
   for (const p of plans) {
-    const program = p.name.split(" — ")[0].trim()
+    const { program } = splitPlanName(p.name)
     groups.set(program, [...(groups.get(program) ?? []), p])
   }
   const programs = [...groups.keys()].sort((a, b) => {
@@ -66,7 +78,7 @@ export default async function MembershipsPage() {
                     </td>
                   </tr>
                   {rows.map((p) => {
-                    const detail = p.name.split(" — ").slice(1).join(" · ") || p.name
+                    const { detail } = splitPlanName(p.name)
                     return (
                       <tr key={p.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                         <td className="px-3 py-2 text-gray-800">{detail}</td>
