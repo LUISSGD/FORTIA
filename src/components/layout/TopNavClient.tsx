@@ -69,8 +69,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Agenda",
     items: [
       { href: "/coaching/agenda", label: "Agenda coaching", icon: Calendar },
-      { href: "/schedule", label: "Calendario", icon: Calendar },
-      { href: "/classes", label: "Clases", icon: BookOpen },
     ],
   },
   {

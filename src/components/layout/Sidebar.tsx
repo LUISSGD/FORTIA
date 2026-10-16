@@ -28,8 +28,6 @@ const adminNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/coaching", label: "Coaching", icon: HeartPulse },
   { href: "/clients", label: "Clientes", icon: Users },
-  { href: "/schedule", label: "Calendario", icon: Calendar },
-  { href: "/classes", label: "Clases", icon: BookOpen },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
   { href: "/memberships", label: "Membresías", icon: CreditCard },
   { href: "/debts", label: "Deudas", icon: Landmark },
@@ -43,7 +41,6 @@ const adminNavItems = [
 
 const userNavItems = [
   { href: "/clients", label: "Clientes", icon: Users },
-  { href: "/schedule", label: "Calendario", icon: Calendar },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
   { href: "/training-plans", label: "Entrena. Personal", icon: Dumbbell },
 ]

@@ -1,16 +1,8 @@
-import { prisma } from "@/lib/prisma"
-import ClassesClient from "./ClassesClient"
+import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
 
-export default async function ClassesPage() {
-  const classes = await prisma.class.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    include: { _count: { select: { slots: true } } },
-  })
-
-  return (
-    <>
-      <ClassesClient initialClasses={classes} />
-    </>
-  )
+// Pantalla retirada: las clases y horarios se ven en la Agenda de coaching.
+export default async function RemovedPage() {
+  const session = await auth()
+  redirect(session?.user?.role === "USER" ? "/clients" : "/coaching/agenda")
 }
