@@ -5,7 +5,7 @@ import { SessionProvider } from "next-auth/react"
 import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({
-  variable: "--font-geist-sans",
+  variable: "--font-inter",
   subsets: ["latin"],
 })
 
