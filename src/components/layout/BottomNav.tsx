@@ -17,7 +17,6 @@ const adminNavItems = [
 
 const userNavItems = [
   { href: "/clients", label: "Clientes", icon: Users },
-  { href: "/schedule", label: "Agenda", icon: Calendar },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
   { href: "/training-plans", label: "Entrena.", icon: Dumbbell },
 ]
