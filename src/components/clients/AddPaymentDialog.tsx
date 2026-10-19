@@ -21,6 +21,7 @@ import {
   getAvailableTarifas,
   getAvailableNumPacks,
   ENTRENADOR_LABELS,
+  ENTRENADORES,
   MODALIDAD_LABELS,
   TARIFA_LABELS,
   type Entrenador,
@@ -370,7 +371,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                     <Select value={entrenador} onValueChange={(v) => handleEntrenadorChange(v as Entrenador)}>
                       <SelectTrigger><SelectValue>{(v: Entrenador) => ENTRENADOR_LABELS[v] ?? v}</SelectValue></SelectTrigger>
                       <SelectContent>
-                        {(["HEAD_COACH", "TEAM_FORTIA"] as Entrenador[]).map((e) => (
+                        {ENTRENADORES.map((e) => (
                           <SelectItem key={e} value={e}>{ENTRENADOR_LABELS[e]}</SelectItem>
                         ))}
                       </SelectContent>

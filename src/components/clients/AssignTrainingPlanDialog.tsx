@@ -15,12 +15,12 @@ import {
   getAvailableTarifas,
   getAvailableNumPacks,
   ENTRENADOR_LABELS,
+  ENTRENADORES,
   MODALIDAD_LABELS,
   TARIFA_LABELS,
 } from "@/lib/training-pricing"
 import type { Entrenador, Modalidad, Tarifa, NumPacks, ClasesPerPack } from "@/lib/training-pricing"
 
-const ENTRENADORES: Entrenador[] = ["HEAD_COACH", "TEAM_FORTIA"]
 const CLASES_OPTIONS: ClasesPerPack[] = [4, 8, 12, 16]
 const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
