@@ -109,6 +109,11 @@ model Payment {
   prevMembershipEnd    DateTime?
   membershipApplied    Boolean   @default(false)
 
+  // Pago parcial: saldo que falta pagar y su fecha límite. balancePaidAt = cuándo se completó.
+  balanceDue     Float?
+  balanceDueDate DateTime?
+  balancePaidAt  DateTime?
+
   income   Income? @relation(fields: [incomeId], references: [id])
   incomeId String? @unique
 }

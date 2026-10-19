@@ -1,7 +1,8 @@
 export type Entrenador = "HEAD_COACH" | "JULIO" | "TEAM_FORTIA"
 export type Modalidad = "ELITE_ATHLETE" | "ELITE_ATHLETE_PAREJAS"
 // ANTERIOR = precios "Regular" de Head Coach vigentes hasta oct. 2026 (los conservan los clientes que ya estaban)
-export type Tarifa = "OPENING" | "REGULAR" | "ANTERIOR"
+// PERSONALIZADO = paquete a medida (número de clases y precio libres), sin precio en la tabla
+export type Tarifa = "OPENING" | "REGULAR" | "ANTERIOR" | "PERSONALIZADO"
 export type NumPacks = 1 | 3 | 6
 export type ClasesPerPack = 4 | 8 | 12 | 16
 
@@ -116,6 +117,7 @@ export const TARIFA_LABELS: Record<Tarifa, string> = {
   OPENING: "Opening",
   REGULAR: "Regular",
   ANTERIOR: "Regular (tarifa anterior)",
+  PERSONALIZADO: "Personalizado",
 }
 
 /** Descripción del cobro de un paquete (misma que usa "Registrar pago → Entrenamiento Personal"). */

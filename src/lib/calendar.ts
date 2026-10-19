@@ -21,6 +21,8 @@ export const CALENDAR_FIELDS = new Set([
   "periodStart", "periodEnd", "prevMembershipStart", "prevMembershipEnd",
   // TrialClass: día de la clase de prueba
   "trialDate",
+  // Payment: fecha límite del saldo pendiente
+  "balanceDueDate",
 ])
 
 /**

@@ -94,6 +94,14 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
   const [numPacks, setNumPacks] = useState<NumPacks>(1)
   const [clasesPerPack, setClasesPerPack] = useState<ClasesPerPack>(8)
   const [paymentDate, setPaymentDate] = useState(() => todayLima())
+  // Paquete personalizado: número de clases y precio a medida, con fechas exactas opcionales
+  const [custom, setCustom] = useState(false)
+  const [customClasses, setCustomClasses] = useState("6")
+  const [customDates, setCustomDates] = useState<{ date: string; time: string }[]>([{ date: "", time: "" }])
+  // Pago parcial: saldo pendiente con fecha límite
+  const [hasBalance, setHasBalance] = useState(false)
+  const [balanceDue, setBalanceDue] = useState("")
+  const [balanceDueDate, setBalanceDueDate] = useState("")
 
   // Nutrition fields
   const [nutritionConcept, setNutritionConcept] = useState("")
@@ -198,6 +206,11 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
     if (!isOpen) {
       removeFile()
       setScheduleSlots([{ dayOfWeek: "0", startTime: "", endTime: "" }])
+      setCustom(false)
+      setCustomDates([{ date: "", time: "" }])
+      setHasBalance(false)
+      setBalanceDue("")
+      setBalanceDueDate("")
     }
   }
 
@@ -227,6 +240,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
         body = {
           clientId, amount, currency, method, receiptUrl,
           paymentType: "training", createPlan, entrenador, modalidad, tarifa, numPacks, clasesPerPack, paymentDate,
+          custom, customClasses: Number(customClasses), customDates: custom ? customDates.filter((d) => d.date) : [],
           scheduleSlots: createPlan
             ? scheduleSlots
                 .filter((s) => s.dayOfWeek && s.startTime && s.endTime)
@@ -242,6 +256,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
         }
       }
 
+      if (hasBalance) body = { ...body, balanceDue: Number(balanceDue), balanceDueDate }
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -365,6 +380,13 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
             {/* Training fields */}
             {paymentType === "training" && (
               <>
+                <label className="flex items-start gap-2 text-sm cursor-pointer rounded-md border border-gray-200 px-3 py-2">
+                  <input type="checkbox" className="mt-0.5" checked={custom} onChange={(e) => { setCustom(e.target.checked); if (e.target.checked) setAmount("") }} />
+                  <span>
+                    Paquete personalizado
+                    <span className="block text-xs text-gray-500">Para casos especiales: tú defines el número de clases, el precio y, si quieres, la fecha y hora de cada clase.</span>
+                  </span>
+                </label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Entrenador</Label>
@@ -388,6 +410,13 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                       </SelectContent>
                     </Select>
                   </div>
+                  {custom ? (
+                  <div className="col-span-2">
+                    <Label>Número de clases</Label>
+                    <Input type="number" min={1} max={60} value={customClasses} onChange={(e) => setCustomClasses(e.target.value)} required />
+                    <p className="text-xs text-gray-400 mt-1">Escribe el precio acordado en "Monto".</p>
+                  </div>
+                  ) : (<>
                   <div>
                     <Label>Tarifa</Label>
                     <Select value={tarifa} onValueChange={(v) => handleTarifaChange(v as Tarifa)}>
@@ -410,7 +439,9 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                       </SelectContent>
                     </Select>
                   </div>
+                  </>)}
                 </div>
+                {!custom && (
                 <div>
                   <Label>Número de packs</Label>
                   <div className="flex gap-2 mt-1">
@@ -438,6 +469,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                     })}
                   </div>
                 </div>
+                )}
                 <div>
                   <Label>Fecha de pago</Label>
                   <Input
@@ -448,13 +480,13 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   />
                   <p className="text-xs text-gray-400 mt-1">Define en qué mes se registra el ingreso.</p>
                 </div>
-                {trainingPrice && (
+                {!custom && trainingPrice && (
                   <div className="bg-orange-50 border border-orange-200 rounded-md px-3 py-2 text-sm text-orange-800">
                     Precio calculado: <span className="font-bold">S/ {trainingPrice}</span>
                     {" · "}{numPacks} pack{numPacks > 1 ? "s" : ""} × {clasesPerPack} clases = {numPacks * clasesPerPack} clases totales
                   </div>
                 )}
-                {!trainingPrice && (
+                {!custom && !trainingPrice && (
                   <p className="text-xs text-red-500">Esta combinación no está disponible.</p>
                 )}
               </>
@@ -585,6 +617,28 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
                   </span>
                 </label>
 
+                {createPlan && custom && (
+                  <div className="pl-5 space-y-2">
+                    <Label className="text-xs text-gray-600">Fecha y hora de cada clase <span className="text-gray-400 font-normal">(opcional)</span></Label>
+                    {customDates.map((d, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-400 w-5">{idx + 1}.</span>
+                        <input type="date" value={d.date} onChange={(e) => setCustomDates((xs) => xs.map((x, i) => (i === idx ? { ...x, date: e.target.value } : x)))} className="flex-1 min-w-0 text-sm border border-gray-300 rounded-md px-2 py-1.5" />
+                        <input type="time" value={d.time} onChange={(e) => setCustomDates((xs) => xs.map((x, i) => (i === idx ? { ...x, time: e.target.value } : x)))} className="w-24 text-sm border border-gray-300 rounded-md px-2 py-1.5" />
+                        {customDates.length > 1 && (
+                          <button type="button" onClick={() => setCustomDates((xs) => xs.filter((_, i) => i !== idx))} className="shrink-0 text-gray-400 hover:text-red-500 p-0.5"><X className="h-4 w-4" /></button>
+                        )}
+                      </div>
+                    ))}
+                    {customDates.length < (Number(customClasses) || 1) && (
+                      <button type="button" onClick={() => setCustomDates((xs) => [...xs, { date: "", time: xs.at(-1)?.time ?? "" }])} className="text-xs text-orange-500 hover:text-orange-600 font-medium flex items-center gap-1">
+                        <PlusCircle className="h-3.5 w-3.5" /> Agregar clase
+                      </button>
+                    )}
+                    <p className="text-[11px] text-gray-400">Si no pones fechas, se calculan con el horario semanal de abajo.</p>
+                  </div>
+                )}
+
                 {createPlan && (
                   <div className="pl-5 space-y-2">
                     <div className="flex items-center justify-between">
@@ -638,6 +692,28 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
               </div>
             )}
 
+            <div className="rounded-md border border-gray-200 px-3 py-2 space-y-2">
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="mt-0.5" checked={hasBalance} onChange={(e) => setHasBalance(e.target.checked)} />
+                <span>
+                  Pago parcial: queda saldo pendiente
+                  <span className="block text-xs text-gray-500">Te avisará en su ficha y en la lista de clientes hasta que lo pague.</span>
+                </span>
+              </label>
+              {hasBalance && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Saldo pendiente</Label>
+                    <Input type="number" step="0.01" min="0" value={balanceDue} onChange={(e) => setBalanceDue(e.target.value)} placeholder="0.00" required />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Fecha límite</Label>
+                    <Input type="date" value={balanceDueDate} onChange={(e) => setBalanceDueDate(e.target.value)} required />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {paymentType === "membership" && selectedPlan && (
               <p className="text-xs text-gray-500">
                 Extenderá la membresía {selectedPlan.durationDays} días desde la fecha de inicio.
@@ -648,7 +724,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
               <Button
                 type="submit"
                 className="bg-orange-500 hover:bg-orange-600 flex-1"
-                disabled={loading || (paymentType === "training" && !trainingPrice) || !amount}
+                disabled={loading || (paymentType === "training" && !custom && !trainingPrice) || !amount}
               >
                 {loading ? "Registrando..." : "Confirmar pago"}
               </Button>

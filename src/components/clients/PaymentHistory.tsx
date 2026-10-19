@@ -24,6 +24,9 @@ interface Payment {
   paidAt: Date | string
   receiptUrl: string | null
   income?: { currency: string } | null
+  balanceDue?: number | null
+  balanceDueDate?: Date | string | null
+  balancePaidAt?: Date | string | null
 }
 
 export default function PaymentHistory({ payments: initial }: { payments: Payment[] }) {
@@ -36,6 +39,13 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
   const [editMethod, setEditMethod] = useState("")
   const [editConcept, setEditConcept] = useState("")
   const [editDate, setEditDate] = useState("")
+  const [editBalance, setEditBalance] = useState("")
+  const [editBalanceDate, setEditBalanceDate] = useState("")
+  // Registrar el saldo pendiente de un pago
+  const [paying, setPaying] = useState<Payment | null>(null)
+  const [payAmount, setPayAmount] = useState("")
+  const [payDate, setPayDate] = useState("")
+  const [payMethod, setPayMethod] = useState("TRANSFER")
   const [saving, setSaving] = useState(false)
 
   function openEdit(p: Payment) {
@@ -44,6 +54,35 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
     setEditMethod(p.method)
     setEditConcept(p.concept ?? "")
     setEditDate(calendarYmd(p.paidAt))
+    const open = p.balanceDue && !p.balancePaidAt
+    setEditBalance(open ? String(p.balanceDue) : "")
+    setEditBalanceDate(open && p.balanceDueDate ? calendarYmd(p.balanceDueDate) : "")
+  }
+
+  function openPayBalance(p: Payment) {
+    setPaying(p)
+    setPayAmount(String(p.balanceDue ?? ""))
+    setPayDate(calendarYmd(new Date()))
+    setPayMethod("TRANSFER")
+  }
+
+  async function handlePayBalance() {
+    if (!paying) return
+    setSaving(true)
+    const res = await fetch(`/api/payments/${paying.id}/balance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: payAmount, paidAt: payDate, method: payMethod }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      const r = await res.json()
+      toast.success(r.remaining > 0 ? `Pago registrado · queda S/ ${r.remaining}` : "Saldo pagado ✅")
+      setPaying(null)
+      router.refresh()
+    } else {
+      toast.error((await res.json().catch(() => ({}))).error ?? "No se pudo registrar")
+    }
   }
 
   async function handleSaveEdit() {
@@ -52,7 +91,7 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
     const res = await fetch(`/api/payments/${editing.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: editAmount, method: editMethod, concept: editConcept, ...(editing.method === "EXTENSION" ? {} : { paidAt: editDate }) }),
+      body: JSON.stringify({ amount: editAmount, method: editMethod, concept: editConcept, ...(editing.method === "EXTENSION" ? {} : { paidAt: editDate, balanceDue: editBalance || null, balanceDueDate: editBalanceDate }) }),
     })
     setSaving(false)
     if (res.ok) {
@@ -144,6 +183,17 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
               </div>
             </div>
             {p.concept && <p className="text-xs text-gray-500 mt-1">{p.concept}</p>}
+            {!!p.balanceDue && !p.balancePaidAt && (() => {
+              const due = p.balanceDueDate ? calendarYmd(p.balanceDueDate) : null
+              const overdue = !!due && due < calendarYmd(new Date())
+              return (
+                <div className={`mt-1.5 flex flex-wrap items-center gap-2 rounded-md px-2 py-1 text-xs ${overdue ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-800"}`}>
+                  <span className="font-semibold">{overdue ? "⚠️ Saldo vencido" : "⏳ Saldo pendiente"}: {formatCurrency(p.balanceDue, p.income?.currency ?? "PEN")}{due ? ` · ${overdue ? "venció" : "vence"} el ${dmy(due)}` : ""}</span>
+                  <button onClick={() => openPayBalance(p)} className="ml-auto rounded bg-white/80 border border-current px-2 py-0.5 font-semibold">Registrar saldo</button>
+                </div>
+              )
+            })()}
+            {!!p.balanceDue && p.balancePaidAt && <p className="text-[11px] text-emerald-600 mt-1">✅ Saldo completado</p>}
           </div>
           )
         })}
@@ -171,6 +221,18 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
               </Select>
             </div>
             {editing?.method !== "EXTENSION" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Saldo pendiente</Label>
+                  <Input type="number" step="0.01" min="0" value={editBalance} onChange={e => setEditBalance(e.target.value)} placeholder="Sin saldo" />
+                </div>
+                <div>
+                  <Label>Fecha límite</Label>
+                  <Input type="date" value={editBalanceDate} onChange={e => setEditBalanceDate(e.target.value)} disabled={!Number(editBalance)} />
+                </div>
+              </div>
+            )}
+            {editing?.method !== "EXTENSION" && (
               <div>
                 <Label>Fecha del pago</Label>
                 <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
@@ -188,6 +250,45 @@ export default function PaymentHistory({ payments: initial }: { payments: Paymen
               <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!paying} onOpenChange={(o) => { if (!o) setPaying(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Registrar saldo</DialogTitle>
+          </DialogHeader>
+          {paying && (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500">{paying.concept} · saldo {formatCurrency(paying.balanceDue ?? 0, paying.income?.currency ?? "PEN")}</p>
+              <div>
+                <Label>Monto que paga</Label>
+                <Input type="number" step="0.01" min="0" value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+                <p className="text-xs text-gray-400 mt-1">Si paga menos, el resto sigue pendiente.</p>
+              </div>
+              <div>
+                <Label>Fecha del pago</Label>
+                <Input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Método de pago</Label>
+                <Select value={payMethod} onValueChange={v => v && setPayMethod(v)}>
+                  <SelectTrigger><SelectValue>{(v: string) => PAYMENT_METHODS[v] ?? v}</SelectValue></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PAYMENT_METHODS).filter(([k]) => k !== "EXTENSION").map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button className="flex-1 bg-orange-500 hover:bg-orange-600" onClick={handlePayBalance} disabled={saving || !Number(payAmount)}>
+                  {saving ? "Guardando..." : "Registrar pago del saldo"}
+                </Button>
+                <Button variant="outline" onClick={() => setPaying(null)}>Cancelar</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
