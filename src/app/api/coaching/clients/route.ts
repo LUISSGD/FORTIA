@@ -20,11 +20,17 @@ export async function POST(request: Request) {
     const firstName = str(body.firstName)
     const lastName = str(body.lastName)
     if (!firstName || !lastName) return jsonError("Nombre y apellido son obligatorios")
+    const dni = str(body.dni)
+    if (dni) {
+      const taken = await prisma.client.findFirst({ where: { OR: [{ dni }, { dni2: dni }] }, select: { firstName: true, lastName: true } })
+      if (taken) return jsonError(`Ya existe un cliente con ese DNI: ${taken.firstName} ${taken.lastName}. Búscalo en "Cliente del gimnasio".`)
+    }
     const client = await prisma.client.create({
       data: {
         firstName,
         lastName,
         email: str(body.email),
+        dni,
         phone: str(body.phone),
         birthDate: body.birthDate ? new Date(`${body.birthDate}T12:00:00Z`) : null,
         notes: "Cliente de coaching",

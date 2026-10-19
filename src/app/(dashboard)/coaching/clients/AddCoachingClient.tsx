@@ -10,7 +10,7 @@ import { Btn, Field, Input, Modal, Select, api } from "@/components/coaching/kit
 type GymClient = { id: string; firstName: string; lastName: string; phone: string | null }
 
 const EMPTY = {
-  firstName: "", lastName: "", phone: "", email: "", birthDate: "",
+  firstName: "", lastName: "", dni: "", phone: "", email: "", birthDate: "",
   goal: GOALS[0], level: "INTERMEDIO", sex: "M", heightCm: "", startWeight: "", targetWeight: "",
   trainingDays: "4", planName: "", price: "600", billingDay: "1",
   accessEmail: "", accessPassword: "",
@@ -84,7 +84,8 @@ export default function AddCoachingClient({ gymClients }: { gymClients: GymClien
             <div className="grid grid-cols-2 gap-3">
               <Field label="Nombre *"><Input value={form.firstName} onChange={(e) => set("firstName", e.target.value)} /></Field>
               <Field label="Apellido *"><Input value={form.lastName} onChange={(e) => set("lastName", e.target.value)} /></Field>
-              <Field label="Teléfono"><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
+              <Field label="DNI"><Input inputMode="numeric" value={form.dni} onChange={(e) => set("dni", e.target.value.replace(/s/g, ""))} placeholder="Documento de identidad" /></Field>
+              <Field label="Teléfono"><Input inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
               <Field label="Fecha de nacimiento"><Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} /></Field>
             </div>
           )}
