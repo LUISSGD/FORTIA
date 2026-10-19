@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, diffDaysYmd, todayYmd, toYmd, weekStartYmd } from "./dates"
 import { attendedClassDates, attendedPtDates, membershipInfo, type MembershipInfo } from "./personal-training"
+import { trainingPlanName } from "@/lib/training-pricing"
 
 export type AlertLevel = "red" | "yellow" | "green"
 export type ClientAlert = { level: "red" | "yellow"; text: string }
@@ -68,6 +69,8 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
     attendedClassDates(ids, since30),
     prisma.payment.findMany({ where: { clientId: { in: ownerIds }, balanceDue: { gt: 0 }, balancePaidAt: null }, select: { clientId: true, balanceDue: true, balanceDueDate: true }, orderBy: { balanceDueDate: "asc" } }),
   ])
+  // Paquetes EP vigentes: dan nombre al plan de quien no tiene uno de la lista de membresías
+  const epPlans = await prisma.clientTrainingPlan.findMany({ where: { clientId: { in: ownerIds }, status: { in: ["ACTIVE", "PAUSED"] } }, orderBy: { createdAt: "desc" }, select: { clientId: true, tipoEntrenador: true, modalidad: true, tarifa: true, numPacks: true, clasesPerPack: true } })
 
   return profiles.map((p) => {
     const cid = p.clientId
@@ -133,6 +136,10 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       }
     }
     const membership = membershipInfo(p.client.partnerOf ?? p.client) // pareja: membresía compartida
+    if (!membership.planName) {
+      const ep = epPlans.find((x) => x.clientId === (p.client.partnerOfId ?? cid))
+      if (ep) membership.planName = trainingPlanName(ep)
+    }
     const tracked = p.status === "ACTIVE" || p.status === "PAUSED"
     if (tracked && membership.daysLeft !== null) {
       if (membership.daysLeft < 0) alerts.push({ level: "red", text: `Membresía vencida hace ${-membership.daysLeft} día${membership.daysLeft === -1 ? "" : "s"}` })

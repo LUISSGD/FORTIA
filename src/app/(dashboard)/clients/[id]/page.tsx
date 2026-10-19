@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { trainingPlanName } from "@/lib/training-pricing"
 import { notFound } from "next/navigation"
 import { formatDate } from "@/lib/utils"
 import RenewalBadge from "@/components/clients/RenewalBadge"
@@ -117,7 +118,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/clients/[
               )}
               <div><span className="text-gray-500">Teléfono:</span> <span className="font-medium">{client.phone ?? "—"}</span></div>
               <div><span className="text-gray-500">Email:</span> <span className="font-medium">{client.email ?? "—"}</span></div>
-              <div><span className="text-gray-500">Plan:</span> <span className="font-medium">{client.membershipPlan?.name ?? "Sin plan"}</span></div>
+              <div><span className="text-gray-500">Plan:</span> <span className="font-medium">{client.membershipPlan?.name ?? (() => { const ep = trainingPlans.find((p) => p.status === "ACTIVE" || p.status === "PAUSED"); return ep ? `${trainingPlanName(ep)} · paquete EP` : "Sin plan" })()}</span></div>
               <div><span className="text-gray-500">Entrenador:</span> <span className="font-medium">{client.trainer ?? "—"}</span></div>
               <div><span className="text-gray-500">Inicio:</span> <span className="font-medium">{formatDate(client.membershipStart)}</span></div>
               <div><span className="text-gray-500">Vencimiento:</span> <span className="font-medium">{formatDate(client.membershipEnd)}</span></div>

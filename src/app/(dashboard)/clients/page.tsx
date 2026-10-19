@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { trainingPlanName } from "@/lib/training-pricing"
 import { formatDate } from "@/lib/utils"
 import RenewalBadge from "@/components/clients/RenewalBadge"
 import WhatsAppButton from "@/components/clients/WhatsAppButton"
@@ -115,7 +116,10 @@ export default async function ClientsPage({
         : {}),
       ...estadoWhere,
     },
-    include: { membershipPlan: true },
+    include: {
+      membershipPlan: true,
+      trainingPlans: { where: { status: { in: ["ACTIVE", "PAUSED"] } }, orderBy: { createdAt: "desc" }, take: 1, select: { tipoEntrenador: true, modalidad: true, tarifa: true, numPacks: true, clasesPerPack: true } },
+    },
     orderBy,
   })
 
@@ -303,7 +307,7 @@ export default async function ClientsPage({
                   </TableCell>
                   <TableCell className="text-gray-600">{client.dni ?? "—"}</TableCell>
                   <TableCell className="text-gray-600">{client.phone ?? "—"}</TableCell>
-                  <TableCell className="text-gray-600">{client.membershipPlan?.name ?? "Sin plan"}</TableCell>
+                  <TableCell className="text-gray-600">{client.membershipPlan?.name ?? (client.trainingPlans[0] ? `${trainingPlanName(client.trainingPlans[0])} · EP` : "Sin plan")}</TableCell>
                   <TableCell className="text-gray-600">{formatDate(client.membershipEnd)}</TableCell>
                   <TableCell><RenewalBadge membershipEnd={client.membershipEnd} /></TableCell>
                   <TableCell className="text-right">

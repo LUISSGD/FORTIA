@@ -11,6 +11,7 @@ import PaymentHistory from "@/components/clients/PaymentHistory"
 import ClientSchedulePanel from "@/components/clients/ClientSchedulePanel"
 import PersonalTrainingSection from "@/components/clients/PersonalTrainingSection"
 import TrainerPicker from "@/components/clients/TrainerPicker"
+import { trainingPlanName } from "@/lib/training-pricing"
 
 // Membresía, pagos, horarios y entrenamiento personal del cliente: los mismos
 // datos y acciones que la ficha de "Clientes", dentro del coaching.
@@ -38,6 +39,8 @@ export default async function MembershipTab({ clientId }: { clientId: string }) 
   ])
   if (!client) return null
   const fullName = `${client.firstName} ${client.lastName}`
+  // Sin plan de la lista (p. ej. paquete personalizado): se muestra el paquete EP vigente
+  const activeEp = trainingPlans.find((p) => p.status === "ACTIVE" || p.status === "PAUSED") ?? null
 
   const serializedPlans = trainingPlans.map((plan) => ({
     ...plan,
@@ -65,7 +68,10 @@ export default async function MembershipTab({ clientId }: { clientId: string }) 
           }
         >
           <dl className="grid grid-cols-2 gap-y-2 text-sm">
-            <dt className="text-gray-500">Plan</dt><dd className="font-medium">{client.membershipPlan?.name ?? "Sin plan"}</dd>
+            <dt className="text-gray-500">Plan</dt>
+            <dd className="font-medium">
+              {client.membershipPlan?.name ?? (activeEp ? <>{trainingPlanName(activeEp)} <span className="text-xs font-normal text-gray-400">· paquete EP</span></> : "Sin plan")}
+            </dd>
             <dt className="text-gray-500">Inicio</dt><dd>{formatDate(client.membershipStart)}</dd>
             <dt className="text-gray-500">Vencimiento</dt><dd>{formatDate(client.membershipEnd)}</dd>
             <dt className="text-gray-500">DNI</dt><dd>{client.dni ?? "—"}</dd>

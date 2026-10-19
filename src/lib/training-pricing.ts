@@ -120,6 +120,19 @@ export const TARIFA_LABELS: Record<Tarifa, string> = {
   PERSONALIZADO: "Personalizado",
 }
 
+/**
+ * Nombre del paquete EP como plan, para mostrarlo cuando el cliente no tiene un plan de la lista de
+ * membresías (p. ej. paquetes personalizados): "Elite Athlete — Team Fortia — 6 sesiones (Personalizado)".
+ */
+export function trainingPlanName(p: { tipoEntrenador: string; modalidad: string; tarifa: string; numPacks: number; clasesPerPack: number }) {
+  const parejas = p.modalidad === "ELITE_ATHLETE_PAREJAS"
+  return [
+    MODALIDAD_LABELS[p.modalidad as Modalidad] ?? p.modalidad,
+    ENTRENADOR_LABELS[p.tipoEntrenador as Entrenador] ?? p.tipoEntrenador,
+    `${p.clasesPerPack} ${parejas ? "ses." : "sesiones"}${p.numPacks > 1 ? ` × ${p.numPacks} packs` : ""}${p.tarifa !== "REGULAR" ? ` (${TARIFA_LABELS[p.tarifa as Tarifa] ?? p.tarifa})` : ""}`,
+  ].join(" — ")
+}
+
 /** Descripción del cobro de un paquete (misma que usa "Registrar pago → Entrenamiento Personal"). */
 export function trainingDescription(p: { tipoEntrenador: string; modalidad: string; tarifa: string; numPacks: number; clasesPerPack: number }, clientName: string) {
   return [
