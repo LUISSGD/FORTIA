@@ -21,6 +21,15 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (body.method !== undefined) data.method = body.method
   if (body.concept !== undefined) data.concept = body.concept
   if ("receiptUrl" in body) data.receiptUrl = body.receiptUrl ?? null
+  // Saldo pendiente: número > 0 lo pone; 0 / null lo quita
+  if ("balanceDue" in body) {
+    const due = Number(body.balanceDue)
+    data.balanceDue = due > 0 ? Math.round(due * 100) / 100 : null
+    if (!(due > 0)) data.balanceDueDate = null
+  }
+  if (typeof body.balanceDueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.balanceDueDate) && Number(body.balanceDue ?? payment.balanceDue) > 0) {
+    data.balanceDueDate = calendarDate(body.balanceDueDate)
+  }
   // Fecha del pago: mueve también el ingreso en Finanzas a ese día (y por tanto a ese mes)
   const paidAt = typeof body.paidAt === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.paidAt) ? calendarDate(body.paidAt) : null
   if (paidAt) {

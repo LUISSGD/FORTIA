@@ -18,6 +18,14 @@ export async function POST(request: Request) {
   if (!client) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 })
 
   const now = new Date()
+  // Pago parcial: saldo pendiente y su fecha límite (opcionales)
+  const balanceDue = Number(body.balanceDue) > 0 ? Math.round(Number(body.balanceDue) * 100) / 100 : null
+  const balance = balanceDue
+    ? { balanceDue, balanceDueDate: /^\d{4}-\d{2}-\d{2}$/.test(body.balanceDueDate ?? "") ? calendarDate(body.balanceDueDate) : null }
+    : {}
+  if (balanceDue && !("balanceDueDate" in balance && balance.balanceDueDate)) {
+    return NextResponse.json({ error: "Indica la fecha límite del saldo pendiente" }, { status: 400 })
+  }
   // Fecha del pago: la elige el coach (p. ej. un pago de fin de mes registrado días después).
   // Define el mes en que se cuenta el ingreso en Finanzas.
   const payDay = (ymd?: string) => calendarDate(ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? ymd : now)
@@ -36,17 +44,24 @@ export async function POST(request: Request) {
       entrenador: Entrenador; modalidad: Modalidad; tarifa: Tarifa
       numPacks: NumPacks; clasesPerPack: ClasesPerPack; paymentDate?: string
     }
-    const price = getTrainingPrice(entrenador, modalidad, tarifa, numPacks, clasesPerPack)
-    if (!price) return NextResponse.json({ error: "Combinación no válida" }, { status: 400 })
+    // Paquete personalizado: número de clases y precio a medida (p. ej. 6 clases en 4 semanas)
+    const custom = body.custom === true
+    const customClasses = Math.round(Number(body.customClasses))
+    if (custom && !(customClasses >= 1 && customClasses <= 60)) return NextResponse.json({ error: "Indica el número de clases (1 a 60)" }, { status: 400 })
+    const price = custom ? Number(amount) : getTrainingPrice(entrenador, modalidad, tarifa, numPacks, clasesPerPack)
+    if (!price) return NextResponse.json({ error: custom ? "Indica el monto del paquete" : "Combinación no válida" }, { status: 400 })
 
     const incomeDate = payDay(paymentDate)
 
+    const effTarifa: Tarifa = custom ? "PERSONALIZADO" : tarifa
+    const effPacks = custom ? 1 : numPacks
+    const effClases = custom ? customClasses : clasesPerPack
     const description = concept ?? [
       ENTRENADOR_LABELS[entrenador],
       MODALIDAD_LABELS[modalidad],
-      TARIFA_LABELS[tarifa],
-      `${numPacks} pack${numPacks > 1 ? "s" : ""}`,
-      `${clasesPerPack} clases`,
+      TARIFA_LABELS[effTarifa],
+      `${effPacks} pack${effPacks > 1 ? "s" : ""}`,
+      `${effClases} clases`,
       `— ${client.firstName} ${client.lastName}`,
     ].join(" · ")
 
@@ -65,29 +80,38 @@ export async function POST(request: Request) {
         periodEnd: incomeDate,
         incomeId: income.id,
         receiptUrl: receiptUrl ?? null,
+        ...balance,
       },
     })
     // Crear también el paquete de clases, vinculado a este pago.
     if (body.createPlan) {
-      const total = numPacks * clasesPerPack
+      const total = effPacks * effClases
       const plan = await prisma.clientTrainingPlan.create({
         data: {
-          clientId, modalidad, tipoEntrenador: entrenador, tarifa, numPacks, clasesPerPack,
+          clientId, modalidad, tipoEntrenador: entrenador, tarifa: effTarifa, numPacks: effPacks, clasesPerPack: effClases,
           pricePaid: Number(amount), currency, currentPackStart: incomeDate, incomeId: income.id,
         },
       })
+      // Fechas exactas de cada clase (opcional): se usan en orden; las demás quedan sin fecha
+      const customDates = (Array.isArray(body.customDates) ? body.customDates : [])
+        .filter((d: { date?: string }) => /^\d{4}-\d{2}-\d{2}$/.test(d?.date ?? ""))
+        .sort((a: { date: string; time?: string }, b: { date: string; time?: string }) => `${a.date} ${a.time ?? ""}`.localeCompare(`${b.date} ${b.time ?? ""}`))
+        .slice(0, total) as { date: string; time?: string }[]
       await prisma.trainingSession.createMany({
         data: Array.from({ length: total }, (_, i) => ({
-          planId: plan.id, sessionNumber: i + 1, packNumber: Math.floor(i / clasesPerPack) + 1,
+          planId: plan.id, sessionNumber: i + 1, packNumber: Math.floor(i / effClases) + 1,
+          scheduledDate: customDates[i] ? calendarDate(customDates[i].date) : null,
+          startTime: customDates[i] && /^\d{2}:\d{2}$/.test(customDates[i].time ?? "") ? customDates[i].time : null,
         })),
       })
       // Guardar horarios recurrentes y auto-asignar fechas a todas las sesiones
       const slots = body.scheduleSlots as { dayOfWeek: number; startTime: string; endTime: string }[] | undefined
       if (slots && slots.length > 0) {
+        // Con fechas exactas, el horario solo sirve de referencia: no se reasignan las fechas
         await prisma.personalTrainingSlot.createMany({
           data: slots.map((s) => ({ planId: plan.id, dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime })),
         })
-        await assignPlanScheduleDates(plan.id, incomeDate)
+        if (!customDates.length) await assignPlanScheduleDates(plan.id, incomeDate)
       }
       // La membresía vence con la última clase del paquete
       await syncMembershipWithTraining(plan.id, { reactivate: true })
@@ -115,6 +139,7 @@ export async function POST(request: Request) {
         periodEnd: incomeDate,
         incomeId: income.id,
         receiptUrl: receiptUrl ?? null,
+        ...balance,
       },
     })
     return NextResponse.json({ payment, income }, { status: 201 })
@@ -155,6 +180,7 @@ export async function POST(request: Request) {
         periodEnd,
         incomeId: income.id,
         receiptUrl: receiptUrl ?? null,
+        ...balance,
         ...snapshot,
       },
     })

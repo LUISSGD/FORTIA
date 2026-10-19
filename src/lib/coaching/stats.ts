@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, diffDaysYmd, todayYmd, toYmd, weekStartYmd } from "./dates"
 import { attendedClassDates, attendedPtDates, membershipInfo, type MembershipInfo } from "./personal-training"
 
@@ -26,6 +27,8 @@ export type ClientOverview = {
   lastWeight: number | null
   unreadMessages: number
   pendingPayment: { period: string; amount: number; overdueDays: number } | null
+  /** Saldo pendiente de un pago parcial (en parejas, el de la ficha principal). */
+  pendingBalance: { amount: number; dueDate: string | null; overdueDays: number } | null
   membership: MembershipInfo
   /** Estado de pago combinando cobros de coaching y membresía del gimnasio. */
   payState: "ok" | "soon" | "pending" | "overdue" | "none"
@@ -45,13 +48,14 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
 
   const profiles = await prisma.coachingProfile.findMany({
     where: { status: { not: "ENDED" } },
-    include: { client: { select: { id: true, firstName: true, lastName: true, phone: true, email: true, membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } }, partnerOf: { select: { membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } } } } } } },
+    include: { client: { select: { id: true, firstName: true, lastName: true, phone: true, email: true, membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } }, partnerOfId: true, partnerOf: { select: { membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } } } } } } },
     orderBy: { client: { firstName: "asc" } },
   })
   const ids = profiles.map((p) => p.clientId)
   if (!ids.length) return []
 
-  const [lastWorkouts, workouts30, activePlans, mealLogs7, checkIns, weights, pendingPayments, unread, ptDates, classDates] = await Promise.all([
+  const ownerIds = [...new Set([...ids, ...profiles.map((p) => p.client.partnerOfId).filter((x): x is string => !!x)])]
+  const [lastWorkouts, workouts30, activePlans, mealLogs7, checkIns, weights, pendingPayments, unread, ptDates, classDates, balances] = await Promise.all([
     prisma.workoutLog.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, completedAt: { not: null } }, _max: { date: true } }),
     prisma.workoutLog.findMany({ where: { clientId: { in: ids }, completedAt: { not: null }, date: { gte: since30 } }, select: { clientId: true, date: true } }),
     prisma.mealPlan.findMany({ where: { clientId: { in: ids }, isActive: true }, select: { clientId: true, _count: { select: { meals: true } } } }),
@@ -62,6 +66,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
     prisma.coachMessage.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, channel: "COACHING", sender: "CLIENT", readAt: null }, _count: { _all: true } }),
     attendedPtDates(ids, since30),
     attendedClassDates(ids, since30),
+    prisma.payment.findMany({ where: { clientId: { in: ownerIds }, balanceDue: { gt: 0 }, balancePaidAt: null }, select: { clientId: true, balanceDue: true, balanceDueDate: true }, orderBy: { balanceDueDate: "asc" } }),
   ])
 
   return profiles.map((p) => {
@@ -101,6 +106,13 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
     const overdueDays = pay ? diffDaysYmd(today, toYmd(pay.dueDate)) : 0
     const pendingPayment = pay ? { period: pay.period, amount: pay.amount, overdueDays } : null
 
+    // Saldo de pagos parciales: se suma; manda la fecha límite más próxima
+    const myBalances = balances.filter((b) => b.clientId === (p.client.partnerOfId ?? cid))
+    const balDue = myBalances[0]?.balanceDueDate ? calendarYmd(myBalances[0].balanceDueDate) : null
+    const pendingBalance = myBalances.length
+      ? { amount: Math.round(myBalances.reduce((n, b) => n + (b.balanceDue ?? 0), 0) * 100) / 100, dueDate: balDue, overdueDays: balDue ? diffDaysYmd(today, balDue) : 0 }
+      : null
+
     const alerts: ClientAlert[] = []
     if (p.status === "ACTIVE") {
       if (daysSinceWorkout >= 5) alerts.push({ level: "red", text: `${daysSinceWorkout} días sin entrenar` })
@@ -126,6 +138,12 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       if (membership.daysLeft < 0) alerts.push({ level: "red", text: `Membresía vencida hace ${-membership.daysLeft} día${membership.daysLeft === -1 ? "" : "s"}` })
       else if (membership.daysLeft <= 5) alerts.push({ level: "yellow", text: membership.daysLeft === 0 ? "Membresía vence hoy" : `Membresía vence en ${membership.daysLeft} día${membership.daysLeft === 1 ? "" : "s"}` })
     }
+    if (tracked && pendingBalance) {
+      const amount = `S/ ${pendingBalance.amount.toLocaleString("es-PE")}`
+      const due = pendingBalance.dueDate ? pendingBalance.dueDate.split("-").reverse().slice(0, 2).join("/") : null
+      if (pendingBalance.overdueDays > 0) alerts.push({ level: "red", text: `Saldo de ${amount} vencido hace ${pendingBalance.overdueDays} día${pendingBalance.overdueDays === 1 ? "" : "s"}` })
+      else alerts.push({ level: "yellow", text: due ? `Saldo de ${amount} vence el ${due}` : `Saldo pendiente de ${amount}` })
+    }
     if (tracked && pendingPayment && overdueDays > 0) {
       alerts.push({ level: overdueDays > 5 ? "red" : "yellow", text: `Pago vencido hace ${overdueDays} día${overdueDays === 1 ? "" : "s"}` })
     }
@@ -146,8 +164,10 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       workoutsLast7,
       workoutsThisWeek,
       membership,
-      payState: pendingPayment
+      payState: pendingBalance && pendingBalance.overdueDays > 0 ? "overdue"
+        : pendingPayment
         ? overdueDays > 0 ? "overdue" : "pending"
+        : pendingBalance ? "pending"
         : membership.state === "expired" ? "overdue"
         : membership.state === "urgent" ? "soon"
         : membership.state === "none" ? "none" : "ok",
@@ -160,6 +180,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       lastWeight,
       unreadMessages: unread.find((u) => u.clientId === cid)?._count._all ?? 0,
       pendingPayment,
+      pendingBalance,
       alerts,
       level,
     }
