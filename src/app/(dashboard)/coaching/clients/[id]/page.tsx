@@ -34,6 +34,7 @@ import PaymentsTable from "@/components/coaching/PaymentsTable"
 import { mpEnabled } from "@/lib/coaching/mercadopago"
 import DocumentsManager from "@/components/coaching/DocumentsManager"
 import RenewalBadge from "@/components/clients/RenewalBadge"
+import ProgramEndLine from "@/components/coaching/ProgramEndLine"
 import MembershipTab from "./MembershipTab"
 import { getMembership, getPersonalTraining } from "@/lib/coaching/personal-training"
 import { calendarYmd } from "@/lib/calendar"
@@ -237,7 +238,10 @@ async function SummaryTab({ clientId, profile, age, overview, birthDate, phone }
         <div className="grid md:grid-cols-2 gap-4">
           <Panel title="🏋️ Programa actual" action={<Link href={`?tab=training`} className="text-xs text-orange-600">Ver →</Link>}>
             {program ? (
-              <p className="text-sm"><span className="font-medium">{program.name}</span> · {program._count.days} días</p>
+              <>
+                <p className="text-sm"><span className="font-medium">{program.name}</span> · {program._count.days} días · {program.weeks} semanas</p>
+                <ProgramEndLine program={program} />
+              </>
             ) : (
               <p className="text-sm text-amber-600">Sin programa asignado</p>
             )}

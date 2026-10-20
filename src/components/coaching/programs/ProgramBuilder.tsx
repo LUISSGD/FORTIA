@@ -7,12 +7,15 @@ import { toast } from "sonner"
 import { ArrowDown, ArrowUp, Copy, Plus, Trash2, Save, Users, Search } from "lucide-react"
 import { GOALS, LEVELS, MUSCLE_GROUPS } from "@/lib/coaching/constants"
 import { DAYS_OF_WEEK } from "@/lib/utils"
+import { defaultProgramEnd } from "@/lib/coaching/program-dates"
 import { Btn, Field, Input, Modal, Panel, Select, Textarea, api } from "@/components/coaching/kit"
 
 type ExRow = { key: string; exerciseId: string; sets: string; reps: string; restSec: string; rir: string; tempo: string; load: string; notes: string }
 type Day = { id?: string; key: string; name: string; dayOfWeek: string; notes: string; exercises: ExRow[] }
 type Program = {
   id: string; name: string; goal: string; level: string; description: string; weeks: number; isTemplate: boolean; isActive: boolean
+  /** "YYYY-MM-DD" o "". programEnd vacío = se calcula con inicio + semanas. */
+  startDate: string; programEnd: string
   client: { id: string; name: string } | null; days: Day[]
 }
 type Exercise = { id: string; name: string; muscleGroup: string; equipment: string | null }
@@ -39,7 +42,9 @@ export default function ProgramBuilder({
   basePath?: string
 }) {
   const router = useRouter()
-  const [meta, setMeta] = useState({ name: program.name, goal: program.goal, level: program.level, description: program.description, weeks: String(program.weeks), isActive: program.isActive })
+  const [meta, setMeta] = useState({ name: program.name, goal: program.goal, level: program.level, description: program.description, weeks: String(program.weeks), isActive: program.isActive, startDate: program.startDate, programEnd: program.programEnd })
+  // Fin sugerido mientras el coach no elija otro: inicio + semanas
+  const suggestedEnd = meta.startDate && Number(meta.weeks) > 0 ? defaultProgramEnd(meta.startDate, Number(meta.weeks)) : ""
   const [days, setDays] = useState<Day[]>(program.days.length ? program.days : [{ key: uid(), name: "Día 1", dayOfWeek: "", notes: "", exercises: [] }])
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -150,6 +155,19 @@ export default function ProgramBuilder({
             </Select>
           </Field>
           <Field label="Semanas"><Input type="number" min={1} value={meta.weeks} onChange={(e) => { setMeta({ ...meta, weeks: e.target.value }); setDirty(true) }} /></Field>
+          {!program.isTemplate && (
+            <>
+              <Field label="Inicio del programa"><Input type="date" value={meta.startDate} onChange={(e) => { setMeta({ ...meta, startDate: e.target.value }); setDirty(true) }} /></Field>
+              <Field label="Termina">
+                <Input type="date" value={meta.programEnd || suggestedEnd} min={meta.startDate || undefined} onChange={(e) => { setMeta({ ...meta, programEnd: e.target.value }); setDirty(true) }} />
+                {meta.programEnd && meta.programEnd !== suggestedEnd && suggestedEnd && (
+                  <button type="button" className="text-[11px] text-orange-600 mt-0.5" onClick={() => { setMeta({ ...meta, programEnd: "" }); setDirty(true) }}>
+                    Usar {meta.weeks} semanas
+                  </button>
+                )}
+              </Field>
+            </>
+          )}
           {!program.isTemplate && (
             <Field label="Estado">
               <Select value={meta.isActive ? "1" : "0"} onChange={(e) => { setMeta({ ...meta, isActive: e.target.value === "1" }); setDirty(true) }}>

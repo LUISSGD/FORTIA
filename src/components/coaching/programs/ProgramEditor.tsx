@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import ProgramBuilder from "./ProgramBuilder"
+import { programDates } from "@/lib/coaching/program-dates"
 
 /** Carga un programa (plantilla o de un cliente) y abre el editor. Compartido por /coaching y /trainer. */
 export default async function ProgramEditor({ id, basePath }: { id: string; basePath: "/coaching" | "/trainer" }) {
@@ -16,6 +17,7 @@ export default async function ProgramEditor({ id, basePath }: { id: string; base
     prisma.coachingProfile.findMany({ where: { status: "ACTIVE" }, select: { client: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { client: { firstName: "asc" } } }),
   ])
   if (!program) notFound()
+  const dates = programDates(program)
 
   return (
     <ProgramBuilder
@@ -27,6 +29,8 @@ export default async function ProgramEditor({ id, basePath }: { id: string; base
         level: program.level ?? "",
         description: program.description ?? "",
         weeks: program.weeks,
+        startDate: dates.start ?? "",
+        programEnd: program.programEnd ? dates.end ?? "" : "",
         isTemplate: program.isTemplate,
         isActive: program.isActive,
         client: program.client ? { id: program.client.id, name: `${program.client.firstName} ${program.client.lastName}` } : null,

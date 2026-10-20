@@ -72,6 +72,10 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   **Solo consulta** lo que hacen los clientes: no registra entrenamientos por ellos (decisión de Luis).
 - **Clases de prueba**: `TrialClass` (interesado, día, hora, entrenador, estado). Admin y entrenador las agendan
   (`/api/trainer/trials`); solo el admin las convierte en cliente (`/api/coaching/trials/[id]/convert`).
+- **Duración del programa** (`src/lib/coaching/program-dates.ts`): la define el coach (4, 6, 8 semanas…),
+  **no depende del pago**. `Program.startDate` + `Program.programEnd` (fecha de calendario; vacío = inicio +
+  semanas × 7 − 1). Se edita en el editor de la rutina del cliente; se ve en los Resúmenes, en la lista de
+  clientes del entrenador, en las alertas (≤7 días / terminado) y en Vencimientos → pestaña Programas.
 - **Reproductor de entrenamiento** (`WorkoutPlayer.tsx`): bloques y superseries a partir de las notas
   (`exercise-format.ts`), series por tiempo, sugerencia de peso (doble progresión), casillas vacías con lo
   sugerido en gris, ejercicio completo = todas sus series marcadas.

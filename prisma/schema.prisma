@@ -446,6 +446,7 @@ model Program {
   client      Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   isActive    Boolean   @default(true)
   startDate   DateTime?
+  programEnd  DateTime? // último día que define el coach; vacío = inicio + semanas
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
