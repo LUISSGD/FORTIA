@@ -8,7 +8,9 @@ import { requireTrainerPage } from "@/lib/coaching/auth"
 import { clientAchievements } from "@/lib/coaching/stats"
 import { formatYmd, toYmd } from "@/lib/coaching/dates"
 import { LEVELS, PROFILE_STATUS } from "@/lib/coaching/constants"
-import { getPersonalTraining } from "@/lib/coaching/personal-training"
+import { getPersonalTraining, membershipInfo, type MembershipInfo } from "@/lib/coaching/personal-training"
+import { calendarYmd } from "@/lib/calendar"
+import { trainingPlanName } from "@/lib/training-pricing"
 import { Panel, Stat } from "@/components/coaching/kit"
 import { withCoachErrors } from "@/components/coaching/withCoachErrors"
 import TrainingTab from "@/components/coaching/client-tabs/TrainingTab"
@@ -46,10 +48,11 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
     where: { id },
     select: {
       id: true, firstName: true, lastName: true, phone: true, birthDate: true,
+      membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } },
       coachingProfile: true,
       trainingPlans,
       // Pareja: las clases EP están en el plan compartido de la ficha principal
-      partnerOf: { select: { id: true, firstName: true, lastName: true, trainingPlans } },
+      partnerOf: { select: { id: true, firstName: true, lastName: true, membershipStart: true, membershipEnd: true, membershipPlan: { select: { name: true } }, trainingPlans } },
       _count: { select: { coachMessages: { where: { channel: "COACHING", sender: "CLIENT", readAt: null } }, checkIns: { where: { reviewedAt: null } } } },
     },
   })
@@ -61,6 +64,10 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
   const tab: Tab = (tabs.find(([k]) => k === sp.tab)?.[0] ?? "summary") as Tab
   const badge: Partial<Record<Tab, number>> = { chat: client._count.coachMessages, checkins: client._count.checkIns }
   const profile = client.coachingProfile
+  // Plan y fechas de la membresía (en parejas, los de la ficha principal). Sin plan de lista, el paquete EP.
+  const membership = membershipInfo(epOwner)
+  if (!membership.planName && plan) membership.planName = trainingPlanName(plan)
+  const lastClass = plan?.sessions.map((s) => (s.scheduledDate ? calendarYmd(s.scheduledDate) : "")).sort().at(-1) || null
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-4">
@@ -91,14 +98,20 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
         ))}
       </nav>
 
-      {tab === "summary" && <SummaryTab clientId={client.id} profile={profile} birthDate={client.birthDate} />}
+      {tab === "summary" && (
+        <>
+          <PlanCard membership={membership} ep={plan ? { used: plan.sessionsCompleted, total: plan.numPacks * plan.clasesPerPack, lastClass } : null} epHref={`/trainer/clients/${client.id}?tab=ep`} />
+          <SummaryTab clientId={client.id} profile={profile} birthDate={client.birthDate} />
+        </>
+      )}
       {tab === "training" && <TrainingTab clientId={client.id} basePath="/trainer" />}
       {tab === "checkins" && <CheckInsTab clientId={client.id} />}
       {tab === "chat" && <ChatTab clientId={client.id} />}
       {tab === "ep" && plan && (
         <div className="max-w-lg space-y-4">
+          <PlanCard membership={membership} ep={null} />
           <div className="rounded-xl border border-gray-100 p-4 space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Plan actual</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase">Clases del paquete</p>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Clases</span>
               <span className="font-medium">{plan.sessionsCompleted} / {plan.numPacks * plan.clasesPerPack}</span>
@@ -126,6 +139,42 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
             }))}
           />
         </div>
+      )}
+    </div>
+  )
+}
+
+const dmy = (ymd: string) => ymd.split("-").reverse().join("/")
+
+/** Plan, inicio y vencimiento de la membresía (sin montos), con el avance de clases EP si tiene paquete. */
+function PlanCard({ membership: m, ep, epHref }: { membership: MembershipInfo; ep: { used: number; total: number; lastClass: string | null } | null; epHref?: string }) {
+  const days = m.daysLeft
+  const badge =
+    days === null ? null
+    : days < 0 ? { text: `Venció hace ${-days} d`, cls: "bg-red-100 text-red-700" }
+    : days === 0 ? { text: "Vence hoy", cls: "bg-red-100 text-red-700" }
+    : { text: `${days} días`, cls: days <= 7 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700" }
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2 max-w-lg">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-gray-900">📋 Plan y membresía</p>
+        {badge && <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", badge.cls)}>{badge.text}</span>}
+      </div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+        <dt className="text-gray-500">Plan</dt><dd className="text-right font-medium">{m.planName ?? "Sin plan"}</dd>
+        <dt className="text-gray-500">Inicio</dt><dd className="text-right">{m.start ? dmy(m.start) : "—"}</dd>
+        <dt className="text-gray-500">Vencimiento</dt><dd className="text-right font-semibold">{m.end ? dmy(m.end) : "—"}</dd>
+        {ep && (
+          <>
+            <dt className="text-gray-500">Clases EP</dt><dd className="text-right">{Math.min(ep.used, ep.total)} de {ep.total} · quedan {Math.max(0, ep.total - ep.used)}</dd>
+            {ep.lastClass && (<><dt className="text-gray-500">Última clase</dt><dd className="text-right">{dmy(ep.lastClass)}</dd></>)}
+          </>
+        )}
+      </dl>
+      {ep && epHref && (
+        <Link href={epHref} className="block rounded-lg bg-orange-500 py-2 text-center text-sm font-semibold text-white hover:bg-orange-600">
+          Ver clases EP →
+        </Link>
       )}
     </div>
   )

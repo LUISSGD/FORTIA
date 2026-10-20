@@ -97,7 +97,7 @@ export default async function ExpiryList({ basePath, showStandby }: { basePath: 
               const days = m.daysLeft
               return (
                 <li key={c.id} className="flex items-center gap-3 px-3 py-2.5">
-                  <Link href={isAdmin ? `/coaching/clients/${c.id}?tab=membership` : `/trainer/clients/${c.id}`} className="flex-1 min-w-0">
+                  <Link href={isAdmin ? `/coaching/clients/${c.id}?tab=membership` : `/trainer/clients/${c.id}?tab=ep`} className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-gray-900 truncate">
                       {c.name}
                       {c.status === "STANDBY" && <span className="ml-1.5 text-[10px] font-normal text-gray-400">stand-by</span>}
