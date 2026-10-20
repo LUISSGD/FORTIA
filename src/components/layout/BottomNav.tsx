@@ -5,13 +5,14 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { signOut } from "next-auth/react"
-import { HeartPulse, Dumbbell, Calendar, DollarSign, Users, LayoutDashboard, Settings, UserCog, LogOut } from "lucide-react"
+import { CalendarClock, HeartPulse, Dumbbell, Calendar, DollarSign, Users, LayoutDashboard, Settings, UserCog, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
   { href: "/coaching/clients", label: "Clientes", icon: HeartPulse },
   { href: "/coaching/programs", label: "Librería", icon: Dumbbell },
   { href: "/coaching/agenda", label: "Agenda", icon: Calendar },
+  { href: "/coaching/vencimientos", label: "Vencen", icon: CalendarClock },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
 ]
 
