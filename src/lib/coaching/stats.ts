@@ -3,6 +3,7 @@ import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, diffDaysYmd, todayYmd, toYmd, weekStartYmd } from "./dates"
 import { attendedClassDates, attendedPtDates, membershipInfo, type MembershipInfo } from "./personal-training"
 import { trainingPlanName } from "@/lib/training-pricing"
+import { programDates } from "./program-dates"
 
 export type AlertLevel = "red" | "yellow" | "green"
 export type ClientAlert = { level: "red" | "yellow"; text: string }
@@ -31,6 +32,8 @@ export type ClientOverview = {
   /** Saldo pendiente de un pago parcial (en parejas, el de la ficha principal). */
   pendingBalance: { amount: number; dueDate: string | null; overdueDays: number } | null
   membership: MembershipInfo
+  /** Programa de entrenamiento activo y su fin (lo define el coach, no el pago). */
+  program: { id: string; name: string; start: string | null; end: string | null; daysLeft: number | null } | null
   /** Estado de pago combinando cobros de coaching y membresía del gimnasio. */
   payState: "ok" | "soon" | "pending" | "overdue" | "none"
   ptSessionsLast7: number
@@ -71,6 +74,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
   ])
   // Paquetes EP vigentes: dan nombre al plan de quien no tiene uno de la lista de membresías
   const epPlans = await prisma.clientTrainingPlan.findMany({ where: { clientId: { in: ownerIds }, status: { in: ["ACTIVE", "PAUSED"] } }, orderBy: { createdAt: "desc" }, select: { clientId: true, tipoEntrenador: true, modalidad: true, tarifa: true, numPacks: true, clasesPerPack: true } })
+  const programs = await prisma.program.findMany({ where: { clientId: { in: ids }, isActive: true, isTemplate: false }, orderBy: { updatedAt: "desc" }, select: { id: true, clientId: true, name: true, weeks: true, startDate: true, programEnd: true } })
 
   return profiles.map((p) => {
     const cid = p.clientId
@@ -145,6 +149,13 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       if (membership.daysLeft < 0) alerts.push({ level: "red", text: `Membresía vencida hace ${-membership.daysLeft} día${membership.daysLeft === -1 ? "" : "s"}` })
       else if (membership.daysLeft <= 5) alerts.push({ level: "yellow", text: membership.daysLeft === 0 ? "Membresía vence hoy" : `Membresía vence en ${membership.daysLeft} día${membership.daysLeft === 1 ? "" : "s"}` })
     }
+    const prog = programs.find((x) => x.clientId === cid)
+    const program = prog ? { id: prog.id, name: prog.name, ...programDates(prog, today) } : null
+    if (p.status === "ACTIVE" && program?.daysLeft != null) {
+      const d = program.daysLeft
+      if (d < 0) alerts.push({ level: "red", text: `Programa terminó hace ${-d} día${d === -1 ? "" : "s"}` })
+      else if (d <= 7) alerts.push({ level: "yellow", text: d === 0 ? "Programa termina hoy" : `Programa termina en ${d} día${d === 1 ? "" : "s"}` })
+    }
     if (tracked && pendingBalance) {
       const amount = `S/ ${pendingBalance.amount.toLocaleString("es-PE")}`
       const due = pendingBalance.dueDate ? pendingBalance.dueDate.split("-").reverse().slice(0, 2).join("/") : null
@@ -171,6 +182,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       workoutsLast7,
       workoutsThisWeek,
       membership,
+      program,
       payState: pendingBalance && pendingBalance.overdueDays > 0 ? "overdue"
         : pendingPayment
         ? overdueDays > 0 ? "overdue" : "pending"

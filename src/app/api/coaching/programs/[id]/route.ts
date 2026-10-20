@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireCoachOrTrainer, jsonError, num, str } from "@/lib/coaching/auth"
 import { programInclude, saveProgramDays } from "../shared"
+import { calendarDate } from "@/lib/calendar"
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -36,6 +37,9 @@ export async function PUT(request: Request, { params }: Params) {
       description: str(body.description),
       weeks: Math.round(num(body.weeks) ?? program.weeks),
       ...(typeof body.isActive === "boolean" ? { isActive: body.isActive } : {}),
+      // Fechas del programa (solo rutinas de cliente). Fin vacío = inicio + semanas.
+      ...(program.clientId && typeof body.startDate === "string" && body.startDate ? { startDate: calendarDate(body.startDate) } : {}),
+      ...(program.clientId && typeof body.programEnd === "string" ? { programEnd: body.programEnd || null } : {}),
     },
   })
   if (Array.isArray(body.days)) await saveProgramDays(id, body.days)

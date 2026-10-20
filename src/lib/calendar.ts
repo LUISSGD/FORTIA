@@ -23,6 +23,8 @@ export const CALENDAR_FIELDS = new Set([
   "trialDate",
   // Payment: fecha límite del saldo pendiente
   "balanceDueDate",
+  // Program: último día del programa de entrenamiento
+  "programEnd",
 ])
 
 /**

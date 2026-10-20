@@ -17,6 +17,7 @@ import TrainingTab from "@/components/coaching/client-tabs/TrainingTab"
 import CheckInsTab from "@/components/coaching/client-tabs/CheckInsTab"
 import ChatTab from "@/components/coaching/client-tabs/ChatTab"
 import TrainerClientSessions from "./TrainerClientSessions"
+import ProgramEndLine from "@/components/coaching/ProgramEndLine"
 import { defaultPlanTime, sessionTime } from "@/lib/session-time"
 
 export const dynamic = "force-dynamic"
@@ -220,6 +221,7 @@ async function SummaryTab({ clientId, profile, birthDate }: { clientId: string; 
               <>
                 <p className="text-sm font-medium">{program.name}</p>
                 <p className="text-xs text-gray-500 mt-1">{program.days.map((d) => d.name).join(" · ")}</p>
+                <ProgramEndLine program={program} />
               </>
             ) : (
               <p className="text-sm text-amber-600">Sin rutina asignada. Asígnale una en Entrenamiento.</p>
