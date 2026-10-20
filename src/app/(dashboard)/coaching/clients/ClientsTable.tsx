@@ -144,6 +144,8 @@ export default function ClientsTable({ rows }: { rows: Row[] }) {
   const [open, setOpen] = useState<{ key: string; rect: DOMRect } | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmText, setConfirmText] = useState("")
   const loaded = useRef(false)
 
   // Recordar filtros y orden en este navegador.
@@ -207,6 +209,22 @@ export default function ClientsTable({ rows }: { rows: Row[] }) {
       const r = await api<{ updated: number }>("/api/coaching/clients/status", "POST", { clientIds: ids, status })
       toast.success(`${r.updated} cliente(s) actualizados`)
       setSelected(new Set())
+      router.refresh()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** Borra por completo a los seleccionados (pide escribir ELIMINAR). */
+  async function deleteSelected() {
+    setBusy(true)
+    try {
+      const r = await api<{ deleted: number }>("/api/coaching/clients/delete", "POST", { clientIds: [...selected], confirm: confirmText.trim().toUpperCase() })
+      toast.success(`${r.deleted} cliente(s) eliminados`)
+      setSelected(new Set())
+      setDeleting(false)
       router.refresh()
     } catch (e) {
       toast.error((e as Error).message)
@@ -300,6 +318,7 @@ export default function ClientsTable({ rows }: { rows: Row[] }) {
           <Btn size="sm" variant="outline" disabled={busy} onClick={() => setStatus("STANDBY")}>💤 Pasar a stand-by</Btn>
           <Btn size="sm" variant="outline" disabled={busy} onClick={() => setStatus("ACTIVE")}>✅ Reactivar</Btn>
           <Btn size="sm" variant="outline" disabled={busy} onClick={() => setStatus("PAUSED")}>⏸️ Pausar</Btn>
+          <Btn size="sm" variant="danger" disabled={busy} onClick={() => { setConfirmText(""); setDeleting(true) }}>🗑️ Eliminar</Btn>
           <button className="ml-auto text-xs text-gray-300 underline" onClick={() => setSelected(new Set())}>Deseleccionar</button>
         </div>
       )}
@@ -369,6 +388,28 @@ export default function ClientsTable({ rows }: { rows: Row[] }) {
           Mostrando {visible.length} de {base.length}
         </div>
       </Panel>
+
+      <Modal open={deleting} onClose={() => !busy && setDeleting(false)} title={`Eliminar ${selected.size} cliente(s)`}>
+        <div className="space-y-3 text-sm">
+          <ul className="max-h-40 overflow-y-auto rounded-lg bg-gray-50 px-3 py-2 text-gray-800">
+            {rows.filter((r) => selected.has(r.id)).map((r) => <li key={r.id}>• {r.name}</li>)}
+          </ul>
+          <p className="text-red-600">
+            Se borra <b>todo</b> y no se puede deshacer: ficha, rutinas, entrenamientos registrados, check-ins, chat,
+            pagos, clases EP y acceso a la app. Los ingresos en Finanzas se mantienen (sin nombre de cliente).
+          </p>
+          <p className="text-gray-500">Si solo dejó de venir, mejor usa <b>Pasar a stand-by</b>: así conservas su historial.</p>
+          <Field label='Escribe ELIMINAR para confirmar'>
+            <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="ELIMINAR" autoFocus />
+          </Field>
+          <div className="flex justify-end gap-2 pt-1">
+            <Btn variant="outline" disabled={busy} onClick={() => setDeleting(false)}>Cancelar</Btn>
+            <Btn variant="danger" disabled={busy || confirmText.trim().toUpperCase() !== "ELIMINAR"} onClick={deleteSelected}>
+              {busy ? "Eliminando…" : "Eliminar definitivamente"}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
     </>
   )
 }

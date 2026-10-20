@@ -53,6 +53,7 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   app del cliente `src/app/(client)/app/**` (PWA), panel del entrenador `src/app/trainer/**`,
   APIs `src/app/api/{coaching,app,trainer}/**`, lógica `src/lib/coaching/*`.
 - **Clientes ↔ Coaching** (`lifecycle.ts`): cliente inactivo = perfil STANDBY y viceversa (`setCoachingStatus`).
+  Eliminar clientes (solo ADMIN): Coaching → Clientes → seleccionar → Eliminar, escribiendo ELIMINAR (`/api/coaching/clients/delete`). Borra todo salvo los ingresos de Finanzas, que quedan sin cliente.
 - **Pagos ↔ Finanzas ↔ Membresía** (`src/lib/finance-sync.ts`). `Payment.paidAt` = fecha del pago
   (define el mes en Finanzas; editable) = `Income.date`. Período del pago: membresía cubre del…al;
   clases EP y nutrición, un solo día.
