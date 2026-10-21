@@ -13,6 +13,8 @@ interface ClientRow {
   membershipEnd: string
   planName: string
   price: number
+  /** lastPayment = lo que pagó la última vez; plan = precio de lista (sin pagos registrados) */
+  priceSource?: "lastPayment" | "plan"
   willSkip: boolean
 }
 
@@ -177,6 +179,7 @@ export default function ProyeccionClient() {
                   <td className="px-4 py-3 text-center text-gray-600">{fmtDate(c.membershipEnd)}</td>
                   <td className="px-4 py-3 text-right font-semibold text-green-700">
                     S/ {c.price.toFixed(2)}
+                    <span className="block text-[10px] font-normal text-gray-400">{c.priceSource === "plan" ? "precio del plan" : "último pago"}</span>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
