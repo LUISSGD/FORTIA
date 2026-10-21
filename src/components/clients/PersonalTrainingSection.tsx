@@ -14,7 +14,7 @@ import AssignTrainingPlanDialog from "./AssignTrainingPlanDialog"
 import { PAYMENT_METHODS } from "@/lib/utils"
 import { ENTRENADOR_LABELS, MODALIDAD_LABELS, TARIFA_LABELS } from "@/lib/training-pricing"
 import type { Entrenador, Modalidad, Tarifa } from "@/lib/training-pricing"
-import { defaultPlanTime, sessionTime } from "@/lib/session-time"
+import { defaultPlanTime, sessionTime, reprogramFrom } from "@/lib/session-time"
 
 const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 const MONTH_NAMES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -554,6 +554,8 @@ interface SessionRowProps {
 function SessionRow({ session, slots, label, planId, clientId, onUpdated }: SessionRowProps) {
   const [busy, setBusy] = useState(false)
   const [editingDate, setEditingDate] = useState(false)
+  // true = la fecha que se edita es la nueva de una clase que el cliente reprogramó
+  const [reprogramming, setReprogramming] = useState(false)
   const [dateVal, setDateVal] = useState(toInputValue(session.scheduledDate))
   const time = sessionTime({ startTime: session.startTime, scheduledYmd: toInputValue(session.scheduledDate) || null }, slots)
   const [timeVal, setTimeVal] = useState(time ?? "")
@@ -578,12 +580,16 @@ function SessionRow({ session, slots, label, planId, clientId, onUpdated }: Sess
   }
 
   async function saveDate() {
-    await patch({ scheduledDate: dateVal || null, startTime: timeVal })
+    if (reprogramming && !dateVal) return toast.error("Elige la nueva fecha")
+    await patch({ scheduledDate: dateVal || null, startTime: timeVal, ...(reprogramming ? { reprogram: true } : {}) })
+    if (reprogramming) toast.success("Clase reprogramada")
     setEditingDate(false)
+    setReprogramming(false)
   }
 
   const displayDate = session.scheduledDate ?? session.completedAt
   const isRescheduled = session.isRescheduled
+  const reprogFrom = reprogramFrom(session.notes)
 
   return (
     <div className={`flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0 ${isRescheduled ? "bg-blue-50/40" : ""}`}>
@@ -605,6 +611,7 @@ function SessionRow({ session, slots, label, planId, clientId, onUpdated }: Sess
           <span className="text-xs text-gray-500">{fmtDate(displayDate) || "—"}{time ? ` · ${time}` : ""}</span>
         ) : editingDate ? (
           <div className="flex items-center gap-1">
+            {reprogramming && <span className="text-[10px] font-semibold text-blue-600 shrink-0">Nueva:</span>}
             <Input
               type="date"
               value={dateVal}
@@ -621,7 +628,7 @@ function SessionRow({ session, slots, label, planId, clientId, onUpdated }: Sess
               onKeyDown={e => { if (e.key === "Enter") saveDate(); if (e.key === "Escape") setEditingDate(false) }}
             />
             <button onClick={saveDate} className="text-orange-500 hover:text-orange-600 text-[11px] font-medium">ok</button>
-            <button onClick={() => setEditingDate(false)} className="text-gray-400 hover:text-gray-600 text-[11px]">✕</button>
+            <button onClick={() => { setEditingDate(false); setReprogramming(false) }} className="text-gray-400 hover:text-gray-600 text-[11px]">✕</button>
           </div>
         ) : (
           <button
@@ -631,6 +638,9 @@ function SessionRow({ session, slots, label, planId, clientId, onUpdated }: Sess
             {fmtDate(session.scheduledDate) || <span className="italic text-gray-300">sin fecha</span>}
             {session.scheduledDate && <span className={session.startTime ? "text-gray-600" : ""}> · {time ?? "sin hora"}</span>}
           </button>
+        )}
+        {reprogFrom && !editingDate && (
+          <span className="block text-[10px] text-blue-600" title={session.notes ?? ""}>🔁 Reprogramó · {reprogFrom}</span>
         )}
       </div>
 
@@ -673,6 +683,14 @@ function SessionRow({ session, slots, label, planId, clientId, onUpdated }: Sess
               className="text-[11px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium hover:bg-gray-300 transition-colors disabled:opacity-50"
             >
               No asistió
+            </button>
+            <button
+              onClick={() => { setReprogramming(true); setEditingDate(true) }}
+              disabled={busy}
+              className="text-[11px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium hover:bg-blue-200 transition-colors disabled:opacity-50"
+              title="El cliente pidió cambiar esta clase: elige la nueva fecha y hora"
+            >
+              Reprogramó
             </button>
           </>
         )}

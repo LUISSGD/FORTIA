@@ -19,6 +19,24 @@ export function sessionTime(s: { startTime?: string | null; scheduledYmd: string
   return slots.find((x) => x.dayOfWeek === weekday(s.scheduledYmd!))?.startTime.slice(0, 5) ?? defaultPlanTime(slots)
 }
 
+export const REPROGRAM_MARK = "🔁"
+
+/**
+ * "Reprogramó": la clase se mueve a otra fecha/hora y en sus notas queda de qué fecha venía
+ * ("🔁 Reprogramó: era vie 16/10 08:30"). Sigue pendiente y cuenta como clase del paquete.
+ */
+export function reprogramNotes(prev: string | null, oldYmd: string | null, oldTime: string | null): string {
+  const DAYS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
+  const was = oldYmd ? `${DAYS[weekday(oldYmd)]} ${oldYmd.slice(8, 10)}/${oldYmd.slice(5, 7)}${oldTime ? ` ${oldTime}` : ""}` : "sin fecha"
+  return [prev, `${REPROGRAM_MARK} Reprogramó: era ${was}`].filter(Boolean).join("\n")
+}
+
+/** Última línea de reprogramación de las notas de una clase ("era vie 16/10 08:30"), o null. */
+export function reprogramFrom(notes: string | null | undefined): string | null {
+  const line = notes?.split("\n").filter((l) => l.startsWith(REPROGRAM_MARK)).at(-1)
+  return line ? line.replace(`${REPROGRAM_MARK} Reprogramó: `, "") : null
+}
+
 /** Valida "HH:MM"; cadena vacía o null → null (usar el horario del plan). undefined → no cambiar. */
 export function parseStartTime(v: unknown): string | null | undefined {
   if (v === undefined) return undefined
