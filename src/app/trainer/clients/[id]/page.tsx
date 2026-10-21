@@ -18,7 +18,7 @@ import CheckInsTab from "@/components/coaching/client-tabs/CheckInsTab"
 import ChatTab from "@/components/coaching/client-tabs/ChatTab"
 import TrainerClientSessions from "./TrainerClientSessions"
 import ProgramEndLine from "@/components/coaching/ProgramEndLine"
-import { defaultPlanTime, sessionTime } from "@/lib/session-time"
+import { defaultPlanTime, reprogramFrom, sessionTime } from "@/lib/session-time"
 
 export const dynamic = "force-dynamic"
 
@@ -137,6 +137,7 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
               time: sessionTime({ startTime: s.startTime, scheduledYmd: s.scheduledDate ? s.scheduledDate.toISOString().slice(0, 10) : null }, plan.scheduleSlots),
               attended: s.attended,
               isRescheduled: s.isRescheduled,
+              reprogFrom: reprogramFrom(s.notes),
             }))}
           />
         </div>

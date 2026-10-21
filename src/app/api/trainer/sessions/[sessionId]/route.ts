@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
-import { calendarDate } from "@/lib/calendar"
-import { parseStartTime } from "@/lib/session-time"
+import { calendarDate, calendarYmd } from "@/lib/calendar"
+import { parseStartTime, reprogramNotes, sessionTime } from "@/lib/session-time"
 import { requireTrainer } from "@/lib/coaching/auth"
 
 type Ctx = { params: Promise<{ sessionId: string }> }
@@ -20,8 +20,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const trainingSession = await prisma.trainingSession.findUnique({ where: { id: sessionId } })
   if (!trainingSession) return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 })
 
-  const plan = await prisma.clientTrainingPlan.findUnique({ where: { id: trainingSession.planId } })
+  const plan = await prisma.clientTrainingPlan.findUnique({ where: { id: trainingSession.planId }, include: { scheduleSlots: true } })
   if (!plan) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 })
+
+  // Reprogramó: se mueve la clase (queda pendiente) y se anota la fecha de la que venía
+  const reprogram = body.reprogram === true
+  if (reprogram && !scheduledDate) return NextResponse.json({ error: "Indica la nueva fecha" }, { status: 400 })
+  const oldYmd = trainingSession.scheduledDate ? calendarYmd(trainingSession.scheduledDate) : null
+  const newNotes = reprogram
+    ? reprogramNotes(trainingSession.notes, oldYmd, sessionTime({ startTime: trainingSession.startTime, scheduledYmd: oldYmd }, plan.scheduleSlots))
+    : undefined
 
   const attendedProvided = "attended" in body
   const wasAttended = trainingSession.attended === true
@@ -47,6 +55,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
         ? (scheduledDate ? calendarDate(scheduledDate) : null)
         : undefined,
       startTime,
+      notes: newNotes,
     },
   })
 

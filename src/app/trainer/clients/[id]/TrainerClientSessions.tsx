@@ -15,6 +15,8 @@ type Session = {
   time: string | null
   attended: boolean | null
   isRescheduled: boolean
+  /** "era vie 16/10 08:30" si el cliente reprogramó esta clase */
+  reprogFrom: string | null
 }
 
 async function patchSession(sessionId: string, body: object) {
@@ -33,6 +35,7 @@ async function patchSession(sessionId: string, body: object) {
 function SessionRow({ s }: { s: Session }) {
   const router = useRouter()
   const [editDate, setEditDate] = useState(false)
+  const [reprogramming, setReprogramming] = useState(false)
   const [dateVal, setDateVal] = useState(s.scheduledDate ?? "")
   const [timeVal, setTimeVal] = useState(s.time ?? "")
   const [saving, setSaving] = useState(false)
@@ -49,6 +52,7 @@ function SessionRow({ s }: { s: Session }) {
     } finally {
       setSaving(false)
       setEditDate(false)
+      setReprogramming(false)
     }
   }
 
@@ -65,6 +69,7 @@ function SessionRow({ s }: { s: Session }) {
         {/* Fecha */}
         {editDate && canEdit ? (
           <div className="flex items-center gap-1 flex-1 justify-end">
+            {reprogramming && <span className="text-[10px] font-semibold text-sky-700">Nueva:</span>}
             <input
               type="date"
               value={dateVal}
@@ -79,12 +84,12 @@ function SessionRow({ s }: { s: Session }) {
             />
             <button
               disabled={saving || !dateVal}
-              onClick={() => act({ scheduledDate: dateVal, startTime: timeVal })}
+              onClick={() => act({ scheduledDate: dateVal, startTime: timeVal, ...(reprogramming ? { reprogram: true } : {}) })}
               className="text-xs px-2 py-0.5 bg-gray-900 text-white rounded disabled:opacity-40"
             >
               OK
             </button>
-            <button onClick={() => setEditDate(false)} className="text-xs text-gray-400">×</button>
+            <button onClick={() => { setEditDate(false); setReprogramming(false) }} className="text-xs text-gray-400">×</button>
           </div>
         ) : (
           <button
@@ -124,9 +129,18 @@ function SessionRow({ s }: { s: Session }) {
             >
               ❌
             </button>
+            <button
+              disabled={saving}
+              onClick={() => { setReprogramming(true); setEditDate(true) }}
+              className="text-xs px-2 py-0.5 bg-sky-50 border border-sky-200 text-sky-700 rounded hover:bg-sky-100 disabled:opacity-40"
+              title="Reprogramó: elegir la nueva fecha y hora"
+            >
+              🔁
+            </button>
           </div>
         )}
       </div>
+      {s.reprogFrom && <p className="text-[11px] text-sky-600">🔁 Reprogramó · {s.reprogFrom}</p>}
     </div>
   )
 }
