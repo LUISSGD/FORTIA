@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils"
 const adminNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/coaching", label: "Coaching", icon: HeartPulse },
-  { href: "/clients", label: "Clientes", icon: Users },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
   { href: "/memberships", label: "Membresías", icon: CreditCard },
   { href: "/debts", label: "Deudas", icon: Landmark },
