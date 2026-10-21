@@ -174,7 +174,7 @@ async function TrainerTodayPage() {
                 </div>
               </div>
               <div className="divide-y divide-gray-100">{c.persons.map((p) => routine(p))}</div>
-              <AttendanceButtons sessionId={c.id} attended={c.attended} />
+              <AttendanceButtons sessionId={c.id} attended={c.attended} time={c.time} />
             </div>
           ))}
         </section>
