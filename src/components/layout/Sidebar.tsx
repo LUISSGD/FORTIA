@@ -32,7 +32,7 @@ const adminNavItems = [
   { href: "/memberships", label: "Membresías", icon: CreditCard },
   { href: "/debts", label: "Deudas", icon: Landmark },
   { href: "/finances/monthly-expenses", label: "Gastos Corrientes", icon: ClipboardList },
-  { href: "/finances/pending-accumulated", label: "Pend. Acumulados", icon: AlertCircle },
+  { href: "/finances/obligaciones", label: "Obligaciones", icon: AlertCircle },
   { href: "/finances/proyeccion", label: "Proyección renov.", icon: LineChart },
   { href: "/training-plans", label: "Entrena. Personal", icon: Dumbbell },
   { href: "/nutrition", label: "Nutrición", icon: Salad },

@@ -81,6 +81,10 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
 - **Reproductor de entrenamiento** (`WorkoutPlayer.tsx`): bloques y superseries a partir de las notas
   (`exercise-format.ts`), series por tiempo, sugerencia de peso (doble progresión), casillas vacías con lo
   sugerido en gris, ejercicio completo = todas sus series marcadas.
+- **Flujo de obligaciones** (`/finances/obligaciones`, reemplaza a "Acumulados"): cuadro anual concepto × mes sobre
+  `MonthlyExpense` (una celda = un registro; `category` agrupa con subtotal, p. ej. SUNAT; `sortOrder` = orden;
+  USD con `exchangeRate`, totales en soles). Importa el Excel de Luis (fila de meses, "Total X" = grupo,
+  `C6*3.45` en la fórmula del total = fila en dólares). API `/api/finances/obligations` (acciones).
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.

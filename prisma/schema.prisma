@@ -312,6 +312,11 @@ model MonthlyExpense {
   status    String    @default("PENDIENTE")
   paidAt    DateTime?
   notes     String?
+  // Obligaciones: grupo (p. ej. "SUNAT", con subtotal) y orden de la fila en el cuadro anual
+  category  String?
+  sortOrder Int?
+  // Tipo de cambio para pasar a soles los montos en USD (p. ej. alquiler); null = 3.45
+  exchangeRate Float?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }

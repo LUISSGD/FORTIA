@@ -80,7 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/memberships", label: "Membresías", icon: CreditCard },
       { href: "/debts", label: "Deudas", icon: Landmark },
       { href: "/finances/monthly-expenses", label: "Gastos", icon: ClipboardList },
-      { href: "/finances/pending-accumulated", label: "Acumulados", icon: AlertCircle },
+      { href: "/finances/obligaciones", label: "Obligaciones", icon: AlertCircle },
       { href: "/finances/proyeccion", label: "Proyección", icon: TrendingUp },
       { href: "/coaching/payments", label: "Mensualidades", icon: CreditCard },
       { href: "/coaching/messages", label: "Mensajes", icon: MessageSquare },
