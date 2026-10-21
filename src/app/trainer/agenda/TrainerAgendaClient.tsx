@@ -95,12 +95,13 @@ export default function TrainerAgendaClient({
     }
   }
 
-  async function changeDate(sessionId: string, date: string, time: string) {
+  /** reprogram = el cliente pidió cambiar la clase: queda anotada la fecha de la que venía. */
+  async function changeDate(sessionId: string, date: string, time: string, reprogram = false) {
     if (!date) return
     setSaving(true)
     try {
-      await patchSession(sessionId, { scheduledDate: date, startTime: time })
-      toast.success("Fecha y hora actualizadas")
+      await patchSession(sessionId, { scheduledDate: date, startTime: time, ...(reprogram ? { reprogram: true } : {}) })
+      toast.success(reprogram ? "Clase reprogramada 🔁" : "Fecha y hora actualizadas")
       setSelected(null)
       router.refresh()
     } catch (e) {
@@ -274,6 +275,15 @@ export default function TrainerAgendaClient({
                   Guardar
                 </button>
               </div>
+              {selected.attended === null && (
+                <button
+                  disabled={saving || newDate === selected.scheduledDate}
+                  onClick={() => changeDate(selected.sessionId, newDate, newTime, true)}
+                  className="w-full py-2 rounded-lg border border-sky-200 bg-sky-50 text-sky-700 text-xs font-semibold hover:bg-sky-100 disabled:opacity-40"
+                >
+                  🔁 Reprogramó: mover a la fecha elegida
+                </button>
+              )}
             </div>
 
             <div className="space-y-2">
