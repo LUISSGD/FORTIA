@@ -39,6 +39,19 @@ export async function POST(request: Request) {
     // Importa el cuadro de Excel: crea o actualiza cada celda (conserva el estado pagado/pendiente).
     case "import": {
       const rows = (Array.isArray(body.rows) ? body.rows : []) as { concept: string; category?: string | null; currency?: string; exchangeRate?: number | null; amounts: Record<string, number> }[]
+      // Reemplazar todo: borra las obligaciones/gastos anteriores (todos los meses y años) y deja solo el Excel
+      if (body.replaceAll === true) {
+        const data = rows.flatMap((r, idx) => {
+          const concept = clean(r.concept)
+          if (!concept) return []
+          return Object.entries(r.amounts ?? {})
+            .map(([m, raw]) => ({ month: validMonth(m), amount: money(raw) }))
+            .filter((c): c is { month: number; amount: number } => !!c.month && c.amount > 0)
+            .map((c) => ({ concept, year, month: c.month, amount: c.amount, category: clean(r.category) || null, sortOrder: idx, ...fx(r) }))
+        })
+        const [del] = await prisma.$transaction([prisma.monthlyExpense.deleteMany({}), prisma.monthlyExpense.createMany({ data })])
+        return NextResponse.json({ created: data.length, updated: 0, deleted: del.count })
+      }
       const existing = await prisma.monthlyExpense.findMany({ where: { year } })
       let created = 0, updated = 0
       await prisma.$transaction(async (tx) => {

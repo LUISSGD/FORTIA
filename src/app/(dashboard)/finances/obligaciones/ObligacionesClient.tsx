@@ -129,6 +129,7 @@ export default function ObligacionesClient() {
   const [rowEdit, setRowEdit] = useState<Row | null>(null)
   const [adding, setAdding] = useState(false)
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof parseExcel>> | null>(null)
+  const [replaceAll, setReplaceAll] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -372,15 +373,23 @@ export default function ObligacionesClient() {
             {[...new Set(preview.rows.map((r) => r.category).filter(Boolean))].map((g) => (
               <p key={g} className="text-xs text-gray-500">Grupo <b>{g}</b>: {preview.rows.filter((r) => r.category === g).map((r) => r.concept).join(", ")}</p>
             ))}
-            <p className="text-xs text-gray-500">Si un concepto ya existe en ese mes, se actualiza el monto y se mantiene si estaba pagado. Las filas de total se calculan solas.</p>
+            <label className={cn("flex items-start gap-2 rounded-lg border p-2.5 text-xs", replaceAll ? "border-red-200 bg-red-50 text-red-700" : "border-gray-200 text-gray-600")}>
+              <input type="checkbox" className="mt-0.5" checked={replaceAll} onChange={(e) => setReplaceAll(e.target.checked)} />
+              <span>
+                <b>Reemplazar todo con este Excel.</b> Se borran todas las obligaciones y gastos registrados antes (de todos los meses y años,
+                también los de Gastos) y quedan solo los datos de este archivo, todos como pendientes.
+              </span>
+            </label>
+            {!replaceAll && <p className="text-xs text-gray-500">Si un concepto ya existe en ese mes, se actualiza el monto y se mantiene si estaba pagado. Las filas de total se calculan solas.</p>}
             <div className="flex justify-end gap-2">
               <Btn variant="outline" onClick={() => setPreview(null)}>Cancelar</Btn>
               <Btn
                 onClick={async () => {
                   const y = preview.year ?? year
                   try {
-                    const r = await api<{ created: number; updated: number }>("/api/finances/obligations", "POST", { action: "import", year: y, rows: preview.rows })
-                    toast.success(`Importado: ${r.created} montos nuevos, ${r.updated} actualizados`)
+                    if (replaceAll && !confirm("Se borrarán todos los datos anteriores y quedará solo este Excel. ¿Continuar?")) return
+                    const r = await api<{ created: number; updated: number; deleted?: number }>("/api/finances/obligations", "POST", { action: "import", year: y, rows: preview.rows, replaceAll })
+                    toast.success(replaceAll ? `Listo: ${r.created} montos cargados (se borraron ${r.deleted ?? 0} anteriores)` : `Importado: ${r.created} montos nuevos, ${r.updated} actualizados`)
                     setPreview(null)
                     if (y !== year) setYear(y)
                     else load()
