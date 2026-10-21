@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Bell,
   HeartPulse,
-  Users,
   Trophy,
   Dumbbell,
   Play,
@@ -50,7 +49,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Clientes",
     items: [
       { href: "/coaching/clients", label: "Coaching", icon: HeartPulse },
-      { href: "/clients", label: "Gimnasio", icon: Users },
       { href: "/coaching/community", label: "Comunidad", icon: Trophy },
     ],
   },
