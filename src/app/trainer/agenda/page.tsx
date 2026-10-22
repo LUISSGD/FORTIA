@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { VISIBLE_SESSIONS } from "@/lib/coaching/personal-training"
 import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, limaDateTime, weekStartYmd, todayYmd } from "@/lib/coaching/dates"
 import TrainerAgendaClient from "./TrainerAgendaClient"
@@ -17,7 +18,7 @@ export default async function TrainerAgendaPage({ searchParams }: { searchParams
 
   const [trainingSessions, coachingSlots] = await Promise.all([
     prisma.trainingSession.findMany({
-      where: { scheduledDate: { gte: weekStart, lt: weekEnd }, plan: { status: { in: ["ACTIVE", "PAUSED"] } } },
+      where: { scheduledDate: { gte: weekStart, lt: weekEnd }, ...VISIBLE_SESSIONS },
       include: {
         plan: {
           select: {

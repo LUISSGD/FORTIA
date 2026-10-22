@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { VISIBLE_SESSIONS } from "@/lib/coaching/personal-training"
 import { calendarYmd } from "@/lib/calendar"
 import { addDaysYmd, limaDateTime, todayYmd, weekStartYmd } from "@/lib/coaching/dates"
 import AgendaClient from "./AgendaClient"
@@ -21,7 +22,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/coaching/
     }),
     prisma.coachingProfile.findMany({ where: { status: "ACTIVE" }, select: { client: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { client: { firstName: "asc" } } }),
     prisma.trainingSession.findMany({
-      where: { scheduledDate: { gte: weekStart, lt: weekEnd }, plan: { status: "ACTIVE" } },
+      where: { scheduledDate: { gte: weekStart, lt: weekEnd }, ...VISIBLE_SESSIONS },
       include: {
         plan: {
           select: {

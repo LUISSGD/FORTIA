@@ -37,13 +37,13 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
   const sp = await searchParams
 
   const trainingPlans = {
-    where: { status: { in: ["ACTIVE", "PAUSED"] } },
+    where: { status: { in: ["ACTIVE", "PAUSED", "COMPLETED"] } },
     include: {
       sessions: { orderBy: [{ isRescheduled: "asc" as const }, { sessionNumber: "asc" as const }] },
       scheduleSlots: { orderBy: [{ dayOfWeek: "asc" as const }, { startTime: "asc" as const }] },
     },
-    orderBy: { currentPackStart: "desc" as const },
-    take: 1,
+    orderBy: { createdAt: "desc" as const },
+    take: 8,
   }
   const client = await prisma.client.findUnique({
     where: { id },
@@ -60,7 +60,9 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
   if (!client) notFound()
 
   const epOwner = client.partnerOf ?? client
-  const plan = epOwner.trainingPlans[0] ?? null
+  // Paquete vigente; si ya terminó, el último completado (para ver las clases que se dieron)
+  const plan = epOwner.trainingPlans.find((p) => p.status !== "COMPLETED") ?? epOwner.trainingPlans[0] ?? null
+  const pastPlans = epOwner.trainingPlans.filter((p) => p !== plan && p.status === "COMPLETED")
   const tabs = TABS.filter(([k]) => k !== "ep" || plan)
   const tab: Tab = (tabs.find(([k]) => k === sp.tab)?.[0] ?? "summary") as Tab
   const badge: Partial<Record<Tab, number>> = { chat: client._count.coachMessages, checkins: client._count.checkIns }
@@ -112,7 +114,11 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
         <div className="max-w-lg space-y-4">
           <PlanCard membership={membership} ep={null} />
           <div className="rounded-xl border border-gray-100 p-4 space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Clases del paquete</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-500 uppercase">Clases del paquete</p>
+              {plan.status === "COMPLETED" && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">✓ Paquete completado</span>}
+            </div>
+            <p className="text-xs text-gray-500">{trainingPlanName(plan)}</p>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Clases</span>
               <span className="font-medium">{plan.sessionsCompleted} / {plan.numPacks * plan.clasesPerPack}</span>
@@ -140,6 +146,28 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
               reprogFrom: reprogramFrom(s.notes),
             }))}
           />
+          {pastPlans.length > 0 && (
+            <details className="rounded-xl border border-gray-100 p-4">
+              <summary className="cursor-pointer text-xs font-semibold uppercase text-gray-500">Paquetes anteriores ({pastPlans.length})</summary>
+              <div className="mt-3 space-y-3">
+                {pastPlans.map((p) => {
+                  const done = p.sessions.filter((s) => s.attended === true).length
+                  return (
+                    <div key={p.id} className="space-y-1">
+                      <p className="text-sm font-medium text-gray-800">{trainingPlanName(p)} <span className="text-xs font-normal text-gray-400">· {done}/{p.numPacks * p.clasesPerPack} asistidas</span></p>
+                      <ul className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-gray-600">
+                        {p.sessions.filter((s) => s.scheduledDate).map((s) => (
+                          <li key={s.id}>
+                            {s.attended === true ? "✅" : s.attended === false ? "❌" : "·"} S{s.sessionNumber} {s.scheduledDate!.toISOString().slice(0, 10).split("-").reverse().join("/")}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )
+                })}
+              </div>
+            </details>
+          )}
         </div>
       )}
     </div>

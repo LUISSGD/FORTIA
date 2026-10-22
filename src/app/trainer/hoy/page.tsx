@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { VISIBLE_SESSIONS } from "@/lib/coaching/personal-training"
 import { AlertTriangle, CheckSquare, ChevronDown, History, MessageSquare, Video, MapPin } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { cn } from "@/lib/utils"
@@ -32,7 +33,7 @@ async function TrainerTodayPage() {
 
   const [sessions, slots, unread, checkIns, trials] = await Promise.all([
     prisma.trainingSession.findMany({
-      where: { scheduledDate: calendarDate(today), plan: { status: { in: ["ACTIVE", "PAUSED"] } } },
+      where: { scheduledDate: calendarDate(today), ...VISIBLE_SESSIONS },
       include: {
         plan: {
           select: {

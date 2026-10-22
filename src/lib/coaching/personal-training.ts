@@ -10,6 +10,18 @@ import { setCoachingStatus } from "./lifecycle"
 
 export const APP_SESSION_NOTE = "📱 Registrada por el cliente desde la app"
 
+/**
+ * Clases que se muestran en las agendas y en Hoy: las del paquete vigente (activo o pausado) y, de los
+ * paquetes ya completados, las que se marcaron (asistió / no asistió). Así la última clase de un paquete
+ * no desaparece al completarlo; las pendientes de un paquete renovado antes de tiempo no se duplican.
+ */
+export const VISIBLE_SESSIONS = {
+  OR: [
+    { plan: { status: { in: ["ACTIVE", "PAUSED"] } } },
+    { plan: { status: "COMPLETED" }, attended: { not: null } },
+  ],
+}
+
 export type MembershipInfo = {
   planName: string | null
   start: string | null
