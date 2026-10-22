@@ -22,8 +22,9 @@ async function TrainerClientsPage({ searchParams }: PageProps<"/trainer/clients"
   const [pendingCheckIns, ptPlans] = await Promise.all([
     prisma.checkIn.groupBy({ by: ["clientId"], where: { clientId: { in: ids }, reviewedAt: null }, _count: { _all: true } }),
     prisma.clientTrainingPlan.findMany({
-      where: { clientId: { in: ids }, status: { in: ["ACTIVE", "PAUSED"] } },
-      select: { clientId: true, sessionsCompleted: true, numPacks: true, clasesPerPack: true, sessions: { where: { attended: null, scheduledDate: { gte: new Date() } }, orderBy: { scheduledDate: "asc" }, take: 1, select: { scheduledDate: true } } },
+      where: { clientId: { in: ids }, status: { in: ["ACTIVE", "PAUSED", "COMPLETED"] } },
+      orderBy: { createdAt: "desc" },
+      select: { clientId: true, status: true, sessionsCompleted: true, numPacks: true, clasesPerPack: true, sessions: { where: { attended: null, scheduledDate: { gte: new Date() } }, orderBy: { scheduledDate: "asc" }, take: 1, select: { scheduledDate: true } } },
     }),
   ])
 
@@ -31,7 +32,8 @@ async function TrainerClientsPage({ searchParams }: PageProps<"/trainer/clients"
     .filter((c) => !q || norm(c.name).includes(norm(q)))
     .map((c) => {
       const checkIns = pendingCheckIns.find((x) => x.clientId === c.id)?._count._all ?? 0
-      const pt = ptPlans.find((p) => p.clientId === c.id)
+      // Paquete vigente; si no hay, el último completado
+      const pt = ptPlans.find((p) => p.clientId === c.id && p.status !== "COMPLETED") ?? ptPlans.find((p) => p.clientId === c.id)
       // Programa sin rutina, terminado o por terminar (≤7 días): toca preparar el siguiente
       const programDue = !c.program || (c.program.daysLeft !== null && c.program.daysLeft <= 7)
       // Prioridad: lo que el entrenador debe atender primero
@@ -84,7 +86,7 @@ async function TrainerClientsPage({ searchParams }: PageProps<"/trainer/clients"
                       {c.lastWorkout ? `Último entreno ${formatYmd(c.lastWorkout, true)}` : "Sin entrenamientos"}
                       {` · ${c.workoutsLast7}/${c.trainingDays} esta semana`}
                       {c.trainingAdherence !== null && ` (${c.trainingAdherence}%)`}
-                      {c.pt && ` · EP ${c.pt.sessionsCompleted}/${ptTotal}`}
+                      {c.pt && ` · EP ${c.pt.sessionsCompleted}/${ptTotal}${c.pt.status === "COMPLETED" ? " ✓ completado" : ""}`}
                       {nextPt && ` · próxima clase ${formatYmd(toYmd(nextPt), true)}`}
                     </p>
                   </div>

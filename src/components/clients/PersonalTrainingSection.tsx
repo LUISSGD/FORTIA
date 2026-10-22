@@ -746,8 +746,11 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
     ])
   }
 
-  const activePlans = plans.filter(p => p.status === "ACTIVE" || p.status === "PAUSED")
-  const pastPlans = plans.filter(p => p.status === "COMPLETED" || p.status === "CANCELLED")
+  const currentPlans = plans.filter(p => p.status === "ACTIVE" || p.status === "PAUSED")
+  // Sin paquete vigente: el último completado se muestra abierto (clases dadas + Renovar), no escondido
+  const lastDone = currentPlans.length ? undefined : plans.find(p => p.status === "COMPLETED")
+  const activePlans = lastDone ? [lastDone] : currentPlans
+  const pastPlans = plans.filter(p => (p.status === "COMPLETED" || p.status === "CANCELLED") && p !== lastDone)
 
   return (
     <div>
@@ -898,6 +901,12 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
 
               {/* Plan actions */}
               <div className="flex gap-2 flex-wrap">
+                {plan.status === "COMPLETED" && (
+                  <>
+                    <span className="text-xs text-emerald-700 font-medium self-center">✓ Paquete completado</span>
+                    <RenewPlanDialog plan={plan} clientId={clientId} onRenewed={handlePlanRenewed} />
+                  </>
+                )}
                 {(plan.status === "ACTIVE" || plan.status === "PAUSED") && (
                   <>
                     <Button

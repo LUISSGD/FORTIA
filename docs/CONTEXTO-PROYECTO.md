@@ -65,6 +65,9 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
     horario, la hora estándar del plan (`src/lib/session-time.ts`).
   - **Reprogramó** (admin, ficha del entrenador, Hoy y agenda del entrenador): mueve la clase a otra fecha/hora,
     sigue pendiente y anota en `notes` "🔁 Reprogramó: era vie 16/10 08:30" (`reprogramNotes`/`reprogramFrom`).
+  - Paquete completado (todas las clases marcadas): sigue visible. Agendas y Hoy usan `VISIBLE_SESSIONS`
+    (vigentes + clases marcadas de paquetes completados); fichas admin y entrenador muestran el último completado
+    si no hay uno vigente (admin: con Renovar) y los anteriores con sus clases.
   - Entrenador asignado: `Client.trainer` ∈ `TRAINERS` (Julio, Piero) con colores en `src/lib/trainers.ts`;
     se ve en las agendas y en Hoy.
 - **Parejas**: la 2ª persona tiene su propia ficha con `Client.partnerOfId` → ficha principal, que conserva

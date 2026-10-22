@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { VISIBLE_SESSIONS } from "@/lib/coaching/personal-training"
 import { prisma } from "@/lib/prisma"
 import { requireTrainer } from "@/lib/coaching/auth"
 import { addDaysYmd, limaDateTime, weekStartYmd, todayYmd } from "@/lib/coaching/dates"
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   const weekEnd = new Date(addDaysYmd(week, 7) + "T00:00:00.000Z")
 
   const trainingSessions = await prisma.trainingSession.findMany({
-    where: { scheduledDate: { gte: weekStart, lt: weekEnd }, plan: { status: { in: ["ACTIVE", "PAUSED"] } } },
+    where: { scheduledDate: { gte: weekStart, lt: weekEnd }, ...VISIBLE_SESSIONS },
     include: {
       plan: {
         select: {
