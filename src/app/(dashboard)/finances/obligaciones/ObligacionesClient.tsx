@@ -9,7 +9,7 @@ import { Btn, Field, Input, Modal, Textarea, api } from "@/components/coaching/k
 
 // Flujo de obligaciones: cuadro anual tipo Excel (concepto × mes) con estado pagado/pendiente por celda.
 
-type Item = { id: string; concept: string; amount: number; currency: string; exchangeRate: number | null; month: number; year: number; status: string; paidAt: string | null; notes: string | null; category: string | null; sortOrder: number | null; createdAt: string }
+type Item = { id: string; concept: string; amount: number; currency: string; exchangeRate: number | null; month: number; year: number; status: string; paidAt: string | null; notes: string | null; category: string | null; sortOrder: number | null; createdAt: string; inPlans?: { id: string; yearMonth: string }[] }
 type Row = { key: string; concept: string; category: string | null; order: number; cells: Record<number, Item> }
 type Block = { kind: "row"; row: Row } | { kind: "group"; name: string; rows: Row[] }
 
@@ -19,6 +19,9 @@ const MONTH_ALIASES: Record<string, number> = Object.fromEntries(
   MONTHS.flatMap((m, i) => [[m.toLowerCase(), i + 1], [SHORT[i].toLowerCase(), i + 1]]).concat([["septiembre", 9], ["sep", 9], ["sept", 9]]),
 )
 const STORE = "fortia.obligaciones"
+/** Mes actual en Lima ("2026-10"): el Plan del mes al que se agregan las obligaciones. */
+const currentYm = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit" }).format(new Date()).slice(0, 7)
+const planOf = (it: Item | undefined) => it?.inPlans?.find((p) => p.yearMonth === currentYm()) ?? null
 
 const num = (v: number) => v.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const sum = (xs: number[]) => Math.round(xs.reduce((a, b) => a + b, 0) * 100) / 100
@@ -230,6 +233,7 @@ export default function ObligacionesClient() {
   const cellClass = (it: Item | undefined, m: number) => {
     if (!it || !it.amount) return "text-gray-300"
     if (it.status === "PAGADO") return "bg-emerald-50 text-emerald-700"
+    if (planOf(it)) return "bg-sky-100 text-sky-900 font-semibold ring-2 ring-inset ring-sky-500"
     if (m < curMonth) return "bg-red-50 text-red-700 font-semibold"
     if (m === curMonth) return "bg-amber-50 text-amber-800"
     return "text-gray-800"
@@ -247,7 +251,7 @@ export default function ObligacionesClient() {
         return (
           <td key={m} className="p-0 border-l border-gray-100">
             <button onClick={() => setCell({ row: r, month: m })} className={cn("w-full h-full px-2 py-1.5 text-right text-sm tabular-nums whitespace-nowrap hover:ring-2 hover:ring-inset hover:ring-orange-300", cellClass(it, m))} title={[it?.currency === "USD" ? `≈ S/ ${num(pen(it))} (T.C. ${it.exchangeRate ?? 3.45})` : "", it?.notes ?? ""].filter(Boolean).join(" · ") || undefined}>
-              {it && it.amount ? <>{it.status === "PAGADO" && <span className="mr-1 text-[10px]">✓</span>}{shown(it)}{it.notes && <span className="ml-0.5 text-[9px] align-top">•</span>}</> : "—"}
+              {it && it.amount ? <>{it.status === "PAGADO" && <span className="mr-1 text-[10px]">✓</span>}{it.status !== "PAGADO" && planOf(it) && <span className="mr-1 text-[10px]">📌</span>}{shown(it)}{it.notes && <span className="ml-0.5 text-[9px] align-top">•</span>}</> : "—"}
             </button>
           </td>
         )
@@ -296,6 +300,7 @@ export default function ObligacionesClient() {
         <span><span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-100 mr-1" />Pagado</span>
         <span><span className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-100 mr-1" />Pendiente del mes</span>
         <span><span className="inline-block h-2.5 w-2.5 rounded-sm bg-red-100 mr-1" />Vencido sin pagar</span>
+        <span><span className="inline-block h-2.5 w-2.5 rounded-sm bg-sky-100 ring-2 ring-sky-500 mr-1" />📌 En el Plan del mes</span>
         <span>• = tiene nota</span>
         <span>$ = en dólares (los totales van en soles)</span>
       </div>
@@ -354,7 +359,7 @@ export default function ObligacionesClient() {
         )}
       </div>
 
-      {cell && <CellModal key={`${cell.row?.key}-${cell.month}`} year={year} row={cell.row} month={cell.month} onClose={() => setCell(null)} onSave={(b, ok) => post(b, ok).then((r) => r && setCell(null))} />}
+      {cell && <CellModal key={`${cell.row?.key}-${cell.month}`} year={year} row={cell.row} month={cell.month} onClose={() => setCell(null)} onSave={(b, ok) => post(b, ok).then((r) => r && setCell(null))} onPlanChanged={() => { setCell(null); load() }} />}
       {rowEdit && (
         <RowModal
           row={rowEdit}
@@ -420,7 +425,7 @@ function Card({ label, value, tone = "text-gray-900", hint }: { label: string; v
   )
 }
 
-function CellModal({ year, row, month, onClose, onSave }: { year: number; row: Row | null; month: number; onClose: () => void; onSave: (body: object, ok: string) => void }) {
+function CellModal({ year, row, month, onClose, onSave, onPlanChanged }: { year: number; row: Row | null; month: number; onClose: () => void; onSave: (body: object, ok: string) => void; onPlanChanged: () => void }) {
   const it = row?.cells[month]
   const [amount, setAmount] = useState(it?.amount ? String(it.amount) : "")
   const [paid, setPaid] = useState(it?.status === "PAGADO")
@@ -431,12 +436,22 @@ function CellModal({ year, row, month, onClose, onSave }: { year: number; row: R
   const [rate, setRate] = useState(String(base?.exchangeRate ?? 3.45))
   if (!row) return null
   // Plan del mes actual: la agrega al final de las prioridades, con fecha límite fin de mes
+  const inPlan = planOf(it)
   async function addToPlan(expenseId: string) {
-    const ym = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit" }).format(new Date()).slice(0, 7)
     try {
-      await api("/api/finances/cash-plan", "POST", { month: ym, action: "addItems", expenseIds: [expenseId] })
-      toast.success("Agregada al Plan del mes 📌")
-      onClose()
+      const r = await api<{ added: number }>("/api/finances/cash-plan", "POST", { month: currentYm(), action: "addItems", expenseIds: [expenseId] })
+      if (r.added) toast.success("Agregada al Plan del mes 📌")
+      else toast.info("Ya estaba en el Plan del mes")
+      onPlanChanged()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+  async function removeFromPlan(id: string) {
+    try {
+      await api("/api/finances/cash-plan", "POST", { month: currentYm(), action: "removeItem", id })
+      toast.success("Quitada del Plan del mes")
+      onPlanChanged()
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -445,6 +460,12 @@ function CellModal({ year, row, month, onClose, onSave }: { year: number; row: R
   return (
     <Modal open onClose={onClose} title={`${row.concept} · ${MONTHS[month - 1]} ${year}`}>
       <div className="space-y-3">
+        {inPlan && it?.status !== "PAGADO" && (
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-sky-50 border border-sky-200 px-3 py-2 text-sm text-sky-900">
+            <span>📌 Ya está en el <b>Plan del mes</b></span>
+            <button onClick={() => removeFromPlan(inPlan.id)} className="text-xs text-sky-700 underline">Quitar del plan</button>
+          </div>
+        )}
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <Field label={currency === "USD" ? "Monto (US$)" : "Monto (S/)"}>
             <Input type="number" inputMode="decimal" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus onKeyDown={(e) => e.key === "Enter" && save()} />
@@ -476,7 +497,7 @@ function CellModal({ year, row, month, onClose, onSave }: { year: number; row: R
           </label>
         )}
         <div className="flex flex-wrap justify-between gap-2 pt-1">
-          {it && it.amount > 0 && it.status !== "PAGADO" ? (
+          {it && it.amount > 0 && it.status !== "PAGADO" && !inPlan ? (
             <Btn variant="outline" onClick={() => addToPlan(it.id)} title="Agregarla a los pagos priorizados de este mes">📌 Al plan del mes</Btn>
           ) : <span />}
           <div className="flex gap-2">
