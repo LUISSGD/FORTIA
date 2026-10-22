@@ -68,6 +68,9 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   - Paquete completado (todas las clases marcadas): sigue visible. Agendas y Hoy usan `VISIBLE_SESSIONS`
     (vigentes + clases marcadas de paquetes completados); fichas admin y entrenador muestran el último completado
     si no hay uno vigente (admin: con Renovar) y los anteriores con sus clases.
+  - **Clases del mes por entrenador** (comisiones): `/trainer/clases` y `/coaching/agenda/clases` (`getTrainerMonth`,
+    `src/lib/coaching/trainer-month.ts`): dadas, no asistió, sin marcar, por dar y pruebas. Al marcar asistencia se guarda
+    `TrainingSession.trainer` (`planTrainer()`), así reasignar al cliente no mueve las clases ya dadas.
   - Entrenador asignado: `Client.trainer` ∈ `TRAINERS` (Julio, Piero) con colores en `src/lib/trainers.ts`;
     se ve en las agendas y en Hoy.
 - **Parejas**: la 2ª persona tiene su propia ficha con `Client.partnerOfId` → ficha principal, que conserva

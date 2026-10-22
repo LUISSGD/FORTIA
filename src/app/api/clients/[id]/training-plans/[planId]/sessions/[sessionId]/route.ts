@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
+import { planTrainer, syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 import { calendarDate, calendarYmd } from "@/lib/calendar"
 import { parseStartTime, reprogramNotes, sessionTime } from "@/lib/session-time"
 import { auth } from "@/lib/auth"
@@ -51,6 +51,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
     where: { id: sessionId },
     data: {
       attended: attendedProvided ? attended : undefined,
+      // Quién dio la clase (para comisiones): el entrenador asignado al marcarla
+      trainer: !attendedProvided ? undefined : attended === null ? null : await planTrainer(planId),
       completedAt: !attendedProvided ? undefined : willAttend ? new Date() : null,
       scheduledDate: scheduledDate !== undefined
         ? (scheduledDate ? calendarDate(scheduledDate) : null)

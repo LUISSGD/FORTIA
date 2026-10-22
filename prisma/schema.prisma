@@ -259,6 +259,8 @@ model TrainingSession {
   attended      Boolean?
   isRescheduled Boolean            @default(false)
   notes         String?
+  // Entrenador que dio la clase, guardado al marcar asistencia (para comisiones; no cambia si se reasigna al cliente)
+  trainer       String?
   createdAt     DateTime           @default(now())
 }
 

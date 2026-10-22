@@ -31,6 +31,7 @@ import {
   LogOut,
   CalendarClock,
   Target,
+  ClipboardCheck,
 } from "lucide-react"
 
 type NavSubItem = {
@@ -68,7 +69,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Agenda",
     items: [
-      { href: "/coaching/agenda", label: "Agenda coaching", icon: Calendar },
+      { href: "/coaching/agenda", label: "Agenda coaching", icon: Calendar, exact: true },
+      { href: "/coaching/agenda/clases", label: "Clases por entrenador", icon: ClipboardCheck },
     ],
   },
   {
