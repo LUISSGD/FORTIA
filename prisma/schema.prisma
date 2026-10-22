@@ -317,6 +317,7 @@ model MonthlyExpense {
   sortOrder Int?
   // Tipo de cambio para pasar a soles los montos en USD (p. ej. alquiler); null = 3.45
   exchangeRate Float?
+  planItems    CashPlanItem[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -848,4 +849,45 @@ model TrialClass {
   updatedAt     DateTime @updatedAt
 
   @@index([trialDate])
+}
+
+// Plan del mes: caja en el banco, obligaciones priorizadas con fecha límite y ventas extra proyectadas.
+model CashPlan {
+  id            String         @id @default(cuid())
+  yearMonth     String         @unique // "2026-10"
+  bankPen       Float          @default(0)
+  bankUsd       Float          @default(0)
+  exchangeRate  Float          @default(3.45)
+  bankUpdatedAt DateTime?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  items         CashPlanItem[]
+  sales         CashPlanSale[]
+}
+
+model CashPlanItem {
+  id        String         @id @default(cuid())
+  planId    String
+  plan      CashPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  expenseId String
+  expense   MonthlyExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  priority  Int
+  payBy     DateTime // fecha límite de pago (fecha de calendario)
+  createdAt DateTime       @default(now())
+
+  @@unique([planId, expenseId])
+}
+
+model CashPlanSale {
+  id               String    @id @default(cuid())
+  planId           String
+  plan             CashPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  label            String
+  membershipPlanId String?
+  unitPrice        Float
+  quantity         Int       @default(1)
+  expectedOn       DateTime? // fecha estimada de cobro (fecha de calendario)
+  sortOrder        Int       @default(0)
+  createdAt        DateTime  @default(now())
 }

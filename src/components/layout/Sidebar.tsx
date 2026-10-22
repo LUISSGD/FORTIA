@@ -20,6 +20,7 @@ import {
   LineChart,
   Salad,
   HeartPulse,
+  Target,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -32,6 +33,7 @@ const adminNavItems = [
   { href: "/debts", label: "Deudas", icon: Landmark },
   { href: "/finances/monthly-expenses", label: "Gastos Corrientes", icon: ClipboardList },
   { href: "/finances/obligaciones", label: "Obligaciones", icon: AlertCircle },
+  { href: "/finances/plan", label: "Plan del mes", icon: Target },
   { href: "/finances/proyeccion", label: "Proyección renov.", icon: LineChart },
   { href: "/training-plans", label: "Entrena. Personal", icon: Dumbbell },
   { href: "/nutrition", label: "Nutrición", icon: Salad },

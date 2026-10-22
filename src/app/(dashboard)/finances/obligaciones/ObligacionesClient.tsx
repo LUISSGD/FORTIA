@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { toast } from "sonner"
 import { ArrowDown, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, Download, Plus, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -275,6 +276,7 @@ export default function ObligacionesClient() {
           <button onClick={() => setYear((y) => y + 1)} className="p-2 rounded-lg hover:bg-gray-100" aria-label="Año siguiente"><ChevronRight className="h-4 w-4" /></button>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/finances/plan"><Btn size="sm" variant="outline">📌 Plan del mes</Btn></Link>
           <Btn size="sm" variant="outline" onClick={() => setHideEmpty((v) => !v)}>{hideEmpty ? "Ver los 12 meses" : "Solo meses con montos"}</Btn>
           <Btn size="sm" variant="outline" onClick={() => fileRef.current?.click()}><Upload className="h-3.5 w-3.5" /> Importar Excel</Btn>
           <Btn size="sm" variant="outline" onClick={() => exportExcel().catch(() => toast.error("No se pudo generar el Excel"))}><Download className="h-3.5 w-3.5" /> Excel</Btn>
@@ -428,6 +430,17 @@ function CellModal({ year, row, month, onClose, onSave }: { year: number; row: R
   const [currency, setCurrency] = useState(base?.currency === "USD" ? "USD" : "PEN")
   const [rate, setRate] = useState(String(base?.exchangeRate ?? 3.45))
   if (!row) return null
+  // Plan del mes actual: la agrega al final de las prioridades, con fecha límite fin de mes
+  async function addToPlan(expenseId: string) {
+    const ym = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit" }).format(new Date()).slice(0, 7)
+    try {
+      await api("/api/finances/cash-plan", "POST", { month: ym, action: "addItems", expenseIds: [expenseId] })
+      toast.success("Agregada al Plan del mes 📌")
+      onClose()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
   const save = () => onSave({ action: "setCell", concept: row.concept, month, amount: Number(amount) || 0, currency, exchangeRate: Number(rate) || 3.45, status: paid ? "PAGADO" : "PENDIENTE", notes, applyForward: forward }, "Guardado")
   return (
     <Modal open onClose={onClose} title={`${row.concept} · ${MONTHS[month - 1]} ${year}`}>
@@ -462,9 +475,14 @@ function CellModal({ year, row, month, onClose, onSave }: { year: number; row: R
             Usar este monto también de {MONTHS[month].toLowerCase()} a diciembre
           </label>
         )}
-        <div className="flex justify-end gap-2 pt-1">
-          <Btn variant="outline" onClick={onClose}>Cancelar</Btn>
-          <Btn onClick={save}>Guardar</Btn>
+        <div className="flex flex-wrap justify-between gap-2 pt-1">
+          {it && it.amount > 0 && it.status !== "PAGADO" ? (
+            <Btn variant="outline" onClick={() => addToPlan(it.id)} title="Agregarla a los pagos priorizados de este mes">📌 Al plan del mes</Btn>
+          ) : <span />}
+          <div className="flex gap-2">
+            <Btn variant="outline" onClick={onClose}>Cancelar</Btn>
+            <Btn onClick={save}>Guardar</Btn>
+          </div>
         </div>
       </div>
     </Modal>
