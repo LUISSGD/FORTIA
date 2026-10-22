@@ -78,7 +78,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
 
   await prisma.trainingSession.update({
     where: { id: lastAttended.id },
-    data: { attended: null, completedAt: null },
+    data: { attended: null, completedAt: null, trainer: null },
   })
 
   const newSessionsCompleted = Math.max(0, plan.sessionsCompleted - 1)

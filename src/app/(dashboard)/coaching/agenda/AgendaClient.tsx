@@ -64,6 +64,7 @@ export default function AgendaClient({ week, slots, clients, trainingSlots = [],
           <Link href="/coaching/agenda" className="text-xs text-orange-600 ml-1">Hoy</Link>
         </div>
         <div className="flex gap-2">
+          <Link href="/coaching/agenda/clases"><Btn variant="outline">📊 Clases del mes</Btn></Link>
           <Btn variant="outline" onClick={() => setTrialForm({ date: today >= week && today <= addDays(week, 6) ? today : week })}><Plus className="h-4 w-4" /> Clase de prueba</Btn>
           <Btn onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Crear horarios</Btn>
         </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Users, LogOut, Dumbbell, ListChecks, Sun, CalendarClock } from "lucide-react"
+import { Calendar, Users, LogOut, Dumbbell, ListChecks, Sun, CalendarClock, ClipboardCheck } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import PushToggle from "@/components/coaching/PushToggle"
@@ -10,6 +10,7 @@ import PushToggle from "@/components/coaching/PushToggle"
 const NAV = [
   { href: "/trainer/hoy", icon: Sun, label: "Hoy" },
   { href: "/trainer/agenda", icon: Calendar, label: "Agenda" },
+  { href: "/trainer/clases", icon: ClipboardCheck, label: "Clases" },
   { href: "/trainer/clients", icon: Users, label: "Clientes" },
   { href: "/trainer/vencimientos", icon: CalendarClock, label: "Vencen" },
   { href: "/trainer/programs", icon: ListChecks, label: "Rutinas" },
@@ -55,7 +56,7 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
       {/* Navegación en móvil */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 flex h-16 z-40">
         {NAV.map(({ href, icon: Icon, label }) => (
-          <Link key={href} href={href} className={cn("flex-1 flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium", isActive(href) ? "text-orange-500" : "text-gray-400")}>
+          <Link key={href} href={href} className={cn("flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium", isActive(href) ? "text-orange-500" : "text-gray-400")}>
             <Icon className="h-5 w-5" />
             {label}
           </Link>

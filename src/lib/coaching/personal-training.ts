@@ -10,6 +10,12 @@ import { setCoachingStatus } from "./lifecycle"
 
 export const APP_SESSION_NOTE = "📱 Registrada por el cliente desde la app"
 
+/** Entrenador asignado hoy al dueño del paquete: se guarda en la clase al marcar asistencia (comisiones). */
+export async function planTrainer(planId: string) {
+  const p = await prisma.clientTrainingPlan.findUnique({ where: { id: planId }, select: { client: { select: { trainer: true } } } })
+  return p?.client.trainer ?? null
+}
+
 /**
  * Clases que se muestran en las agendas y en Hoy: las del paquete vigente (activo o pausado) y, de los
  * paquetes ya completados, las que se marcaron (asistió / no asistió). Así la última clase de un paquete
@@ -201,7 +207,7 @@ export async function registerClientSession(clientId: string) {
 
     await tx.trainingSession.update({
       where: { id: target.id },
-      data: { attended: true, completedAt: new Date(), scheduledDate: ymdToDate(today), notes: APP_SESSION_NOTE },
+      data: { attended: true, completedAt: new Date(), scheduledDate: ymdToDate(today), notes: APP_SESSION_NOTE, trainer: (await tx.client.findUnique({ where: { id: plan.clientId }, select: { trainer: true } }))?.trainer ?? null },
     })
     const sessionsCompleted = plan.sessionsCompleted + 1
     await tx.clientTrainingPlan.update({
@@ -258,7 +264,7 @@ export async function undoClientSession(clientId: string) {
     })
     const session = plan?.sessions.find((s) => s.completedAt && toYmd(s.completedAt) === today)
     if (!plan || !session) return { error: "Solo puedes deshacer la clase que registraste hoy." }
-    await tx.trainingSession.update({ where: { id: session.id }, data: { attended: null, completedAt: null, notes: null } })
+    await tx.trainingSession.update({ where: { id: session.id }, data: { attended: null, completedAt: null, notes: null, trainer: null } })
     const sessionsCompleted = Math.max(0, plan.sessionsCompleted - 1)
     await tx.clientTrainingPlan.update({
       where: { id: plan.id },
