@@ -24,7 +24,13 @@ export async function GET(request: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   const year = validYear(new URL(request.url).searchParams.get("year")) ?? new Date().getFullYear()
-  const items = await prisma.monthlyExpense.findMany({ where: { year }, orderBy: { createdAt: "asc" } })
+  const rows = await prisma.monthlyExpense.findMany({
+    where: { year },
+    orderBy: { createdAt: "asc" },
+    include: { planItems: { select: { id: true, plan: { select: { yearMonth: true } } } } },
+  })
+  // inPlans: en qué Planes del mes está cada celda (para marcarla y no agregarla dos veces)
+  const items = rows.map(({ planItems, ...e }) => ({ ...e, inPlans: planItems.map((p) => ({ id: p.id, yearMonth: p.plan.yearMonth })) }))
   return NextResponse.json({ year, items })
 }
 
