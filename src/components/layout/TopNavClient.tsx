@@ -30,6 +30,7 @@ import {
   UserCog,
   LogOut,
   CalendarClock,
+  Target,
 } from "lucide-react"
 
 type NavSubItem = {
@@ -79,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/debts", label: "Deudas", icon: Landmark },
       { href: "/finances/monthly-expenses", label: "Gastos", icon: ClipboardList },
       { href: "/finances/obligaciones", label: "Obligaciones", icon: AlertCircle },
+      { href: "/finances/plan", label: "Plan del mes", icon: Target },
       { href: "/finances/proyeccion", label: "Proyección", icon: TrendingUp },
       { href: "/coaching/payments", label: "Mensualidades", icon: CreditCard },
       { href: "/coaching/messages", label: "Mensajes", icon: MessageSquare },

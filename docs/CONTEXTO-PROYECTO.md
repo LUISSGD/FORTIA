@@ -85,6 +85,10 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   `MonthlyExpense` (una celda = un registro; `category` agrupa con subtotal, p. ej. SUNAT; `sortOrder` = orden;
   USD con `exchangeRate`, totales en soles). Importa el Excel de Luis (fila de meses, "Total X" = grupo,
   `C6*3.45` en la fórmula del total = fila en dólares). API `/api/finances/obligations` (acciones).
+- **Plan del mes** (`/finances/plan`): `CashPlan` (caja S/ y US$ + T.C. por mes), `CashPlanItem` (obligación
+  `MonthlyExpense` con prioridad y fecha límite `payBy`) y `CashPlanSale` (ventas extra proyectadas). Cálculo puro en
+  `src/lib/finance/cash-plan.ts` (3 escenarios: caja / + renovaciones / + ventas; línea de tiempo; US$ primero del saldo
+  en dólares). Renovaciones: `getRenewalProjection()` en `src/lib/finance/renewals.ts` (compartida con Proyección).
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.
