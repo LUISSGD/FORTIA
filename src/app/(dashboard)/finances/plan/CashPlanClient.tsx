@@ -20,7 +20,7 @@ type Data = {
   plan: { bankPen: number; bankUsd: number; exchangeRate: number; bankUpdatedAt: string | null; notes: string | null; items: Item[]; sales: Sale[] }
   candidates: Candidate[]
   products: { id: string; name: string; price: number }[]
-  renewals: { name: string; end: string | null; price: number; willSkip: boolean }[]
+  renewals: { name: string; end: string | null; price: number; willSkip: boolean; kind?: "balance" }[]
 }
 
 const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"]
@@ -230,7 +230,7 @@ export default function CashPlanClient() {
             <div className="rounded-lg bg-gray-50 p-3">
               <div className="flex items-center justify-between text-sm">
                 <button onClick={() => setShowRenewals((v) => !v)} className="font-medium text-gray-800 hover:text-orange-600">
-                  Renovaciones · {data.renewals.filter((r) => !r.willSkip).length} clientes {showRenewals ? "▲" : "▼"}
+                  Renovaciones y saldos · {data.renewals.filter((r) => !r.willSkip).length} {showRenewals ? "▲" : "▼"}
                 </button>
                 <b className="tabular-nums text-emerald-700">{soles(calc.renewalsTotal)}</b>
               </div>
@@ -238,7 +238,7 @@ export default function CashPlanClient() {
                 <ul className="mt-2 space-y-0.5 text-xs">
                   {data.renewals.map((r, k) => (
                     <li key={k} className={cn("flex justify-between", r.willSkip && "line-through text-gray-400")}>
-                      <span>{r.end ? dm(r.end) : "—"} · {r.name}{r.end && r.end < data.today && !r.willSkip ? " (vencido, por cobrar)" : ""}</span>
+                      <span>{r.end ? dm(r.end) : "—"} · {r.kind === "balance" ? "Saldo: " : ""}{r.name}{r.end && r.end < data.today && !r.willSkip ? " (vencido, por cobrar)" : ""}</span>
                       <span className="tabular-nums">{soles(r.price)}</span>
                     </li>
                   ))}

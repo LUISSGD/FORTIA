@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { startOfMonth, endOfMonth, format } from "date-fns"
 import { es } from "date-fns/locale"
 import { trainingPlanName } from "@/lib/training-pricing"
+import { calendarYmd } from "@/lib/calendar"
 
 // Proyección de renovaciones del mes: clientes cuya membresía vence en el mes y lo que pagaron la última vez.
 // La usan la pantalla Proyección y el Plan del mes.
@@ -28,6 +29,42 @@ export function parseYearMonth(month: string | null): { monthStart: Date; monthE
     monthEnd: endOfMonth(now),
     yearMonth: format(now, "yyyy-MM"),
   }
+}
+
+export type BalanceRow = { paymentId: string; clientId: string; name: string; concept: string; amount: number; dueDate: string | null; overdue: boolean }
+
+/**
+ * Saldos pendientes de pagos parciales que se esperan cobrar en el mes: los que vencen en el mes y,
+ * si es el mes actual, también los ya vencidos que siguen sin pagarse.
+ */
+async function getPendingBalances(monthStart: Date, monthEnd: Date): Promise<BalanceRow[]> {
+  const today = calendarYmd(new Date())
+  const first = calendarYmd(monthStart), last = calendarYmd(monthEnd)
+  const isCurrent = today >= first && today <= last
+  const rows = await prisma.payment.findMany({
+    where: { balanceDue: { gt: 0 }, balancePaidAt: null },
+    select: { id: true, clientId: true, concept: true, balanceDue: true, balanceDueDate: true, client: { select: { firstName: true, lastName: true } } },
+    orderBy: { balanceDueDate: "asc" },
+  })
+  return rows
+    .map((p) => {
+      const due = p.balanceDueDate ? calendarYmd(p.balanceDueDate) : null
+      const name = `${p.client.firstName} ${p.client.lastName}`.replace(/\s+/g, " ").trim()
+      // El concepto a veces termina en "— Nombre del cliente": se quita solo esa parte
+      const parts = (p.concept ?? "").split(" — ")
+      const last = (parts.at(-1) ?? "").replace(/\s+/g, " ").trim().toLowerCase()
+      const concept = (parts.length > 1 && last === name.toLowerCase() ? parts.slice(0, -1) : parts).join(" — ").trim()
+      return {
+        paymentId: p.id,
+        clientId: p.clientId,
+        name,
+        concept: concept || "Pago parcial",
+        amount: Math.round((p.balanceDue ?? 0) * 100) / 100,
+        dueDate: due,
+        overdue: !!due && due < today,
+      }
+    })
+    .filter((b) => (b.dueDate ? (b.dueDate >= first && b.dueDate <= last) || (isCurrent && b.dueDate < first) : isCurrent))
 }
 
 export type RenewalRow = { id: string; name: string; membershipEnd: Date | null; planName: string; price: number; priceSource: "lastPayment" | "plan"; willSkip: boolean }
@@ -100,5 +137,8 @@ export async function getRenewalProjection(month: string | null) {
   const [y, m] = yearMonth.split("-")
   const monthLabel = format(new Date(Number(y), Number(m) - 1, 1), "MMMM yyyy", { locale: es })
 
-    return { clients: result as RenewalRow[], projectedTotal, skippedTotal, monthLabel, yearMonth }
+  const balances = await getPendingBalances(monthStart, monthEnd)
+  const balancesTotal = Math.round(balances.reduce((s, b) => s + b.amount, 0) * 100) / 100
+
+    return { clients: result as RenewalRow[], projectedTotal, skippedTotal, balances, balancesTotal, monthLabel, yearMonth }
 }

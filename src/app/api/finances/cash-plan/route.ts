@@ -61,7 +61,11 @@ export async function GET(request: Request) {
       : { bankPen: 0, bankUsd: 0, exchangeRate: 3.45, bankUpdatedAt: null, notes: null, items: [], sales: [] },
     candidates: pending.filter((e) => !inPlan.has(e.id)).map((e) => ({ id: e.id, concept: e.concept, category: e.category, month: e.month, year: e.year, amount: e.amount, currency: e.currency })),
     products,
-    renewals: projection.clients.map((c) => ({ name: c.name, end: c.membershipEnd ? calendarYmd(c.membershipEnd) : null, price: c.price, willSkip: c.willSkip })),
+    renewals: [
+      ...projection.clients.map((c) => ({ name: c.name, end: c.membershipEnd ? calendarYmd(c.membershipEnd) : null, price: c.price, willSkip: c.willSkip })),
+      // Saldos por cobrar de pagos parciales: entran como ingreso en su fecha límite
+      ...projection.balances.map((b) => ({ name: b.name, end: b.dueDate, price: b.amount, willSkip: false, kind: "balance" as const })),
+    ],
   })
 }
 
