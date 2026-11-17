@@ -9,7 +9,7 @@
 
 export type PlanBank = { pen: number; usd: number; rate: number }
 export type PlanPayment = { id: string; concept: string; month: number; year: number; amount: number; currency: string; status: string; priority: number; payBy: string }
-export type PlanRenewal = { name: string; end: string | null; price: number; willSkip: boolean }
+export type PlanRenewal = { name: string; end: string | null; price: number; willSkip: boolean; kind?: "balance" }
 export type PlanSale = { id: string; label: string; unitPrice: number; quantity: number; expectedOn: string | null }
 
 export type TimelineEvent =
@@ -68,7 +68,7 @@ export function computeCashPlan(input: {
     const evs: Ev[] = []
     if (withRenewals) for (const r of renewals) {
       const date = clamp(r.end, monthEnd)
-      evs.push({ date, order: 0, run: () => { pen += r.price; return { kind: "in", date, label: `Renovación ${r.name}`, source: "renewal", pen: r.price, balance: balance() } } })
+      evs.push({ date, order: 0, run: () => { pen += r.price; return { kind: "in", date, label: `${r.kind === "balance" ? "Saldo pendiente" : "Renovación"} ${r.name}`, source: "renewal", pen: r.price, balance: balance() } } })
     }
     if (withSales) for (const s of sales) {
       const date = clamp(s.expectedOn, monthEnd)

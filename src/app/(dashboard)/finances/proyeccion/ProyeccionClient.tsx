@@ -18,8 +18,21 @@ interface ClientRow {
   willSkip: boolean
 }
 
+interface BalanceRow {
+  paymentId: string
+  clientId: string
+  name: string
+  concept: string
+  amount: number
+  dueDate: string | null
+  overdue: boolean
+}
+
 interface ProjectionData {
   clients: ClientRow[]
+  /** Saldos por cobrar de pagos parciales (vencen en el mes o ya vencidos, si es el mes actual) */
+  balances: BalanceRow[]
+  balancesTotal: number
   projectedTotal: number
   skippedTotal: number
   monthLabel: string
@@ -111,8 +124,13 @@ export default function ProyeccionClient() {
               <div>
                 <p className="text-xs text-gray-500">Proyectado</p>
                 <p className="text-xl font-bold text-green-600">
-                  S/ {data.projectedTotal.toFixed(2)}
+                  S/ {(data.projectedTotal + (data.balancesTotal ?? 0)).toFixed(2)}
                 </p>
+                {(data.balancesTotal ?? 0) > 0 && (
+                  <p className="text-[11px] text-gray-500">
+                    Renovaciones S/ {data.projectedTotal.toFixed(2)} + saldos S/ {data.balancesTotal.toFixed(2)}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -226,6 +244,44 @@ export default function ProyeccionClient() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Saldos por cobrar (pagos parciales) */}
+      {!loading && data && (data.balances?.length ?? 0) > 0 && (
+        <div className="mt-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            Saldos por cobrar · {data.balances.length} · S/ {data.balancesTotal.toFixed(2)}
+          </h3>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Cliente</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Pago</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600">Vence</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600">Saldo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {data.balances.map((b) => (
+                  <tr key={b.paymentId} className="bg-white hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <Link href={`/coaching/clients/${b.clientId}?tab=payments`} className="font-medium hover:text-orange-600">
+                        {b.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{b.concept}</td>
+                    <td className={`px-4 py-3 text-center ${b.overdue ? "text-red-600 font-medium" : "text-gray-600"}`}>
+                      {b.dueDate ? b.dueDate.slice(8, 10) + "/" + b.dueDate.slice(5, 7) : "—"}
+                      {b.overdue && <span className="block text-[10px]">vencido</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-green-700">S/ {b.amount.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </main>

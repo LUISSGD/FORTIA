@@ -95,6 +95,8 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   `MonthlyExpense` con prioridad y fecha límite `payBy`) y `CashPlanSale` (ventas extra proyectadas). Cálculo puro en
   `src/lib/finance/cash-plan.ts` (3 escenarios: caja / + renovaciones / + ventas; línea de tiempo; US$ primero del saldo
   en dólares). Renovaciones: `getRenewalProjection()` en `src/lib/finance/renewals.ts` (compartida con Proyección).
+  `getRenewalProjection()` también devuelve los **saldos por cobrar** (pagos parciales que vencen en el mes; en el mes
+  actual, también los vencidos): se suman al Proyectado y entran como ingreso en el Plan del mes.
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.
