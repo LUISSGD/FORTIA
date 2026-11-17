@@ -52,6 +52,8 @@ export default function ProyeccionClient() {
   const [currentDate, setCurrentDate] = useState(() => new Date())
   const [data, setData] = useState<ProjectionData | null>(null)
   const [loading, setLoading] = useState(true)
+  // "No renuevan" va al final y cerrado: la pantalla se enfoca en lo que hay que cobrar
+  const [showSkipped, setShowSkipped] = useState(false)
 
   const yearMonth = toYearMonth(currentDate)
 
@@ -210,38 +212,6 @@ export default function ProyeccionClient() {
                   </td>
                 </tr>
               ))}
-              {skippedClients.length > 0 && (
-                <>
-                  <tr>
-                    <td colSpan={5} className="px-4 py-2 bg-gray-50 text-xs text-gray-400 font-medium uppercase tracking-wide">
-                      No renuevan
-                    </td>
-                  </tr>
-                  {skippedClients.map((c) => (
-                    <tr key={c.id} className="bg-gray-50 opacity-60">
-                      <td className="px-4 py-3">
-                        <Link href={`/clients/${c.id}`} className="font-medium line-through text-gray-400">
-                          {c.name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs line-through">{c.planName}</td>
-                      <td className="px-4 py-3 text-center text-gray-400 line-through">{fmtDate(c.membershipEnd)}</td>
-                      <td className="px-4 py-3 text-right text-gray-400 line-through">
-                        S/ {c.price.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => toggleSkip(c.id, c.willSkip)}
-                          className="w-8 h-5 rounded-full bg-orange-500 relative transition-colors hover:bg-orange-400"
-                          aria-label="Reactivar renovación"
-                        >
-                          <span className="absolute right-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </>
-              )}
             </tbody>
           </table>
         </div>
@@ -282,6 +252,49 @@ export default function ProyeccionClient() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+      {/* No renuevan: al final, plegado */}
+      {!loading && skippedClients.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => setShowSkipped((v) => !v)}
+            className="flex w-full items-center justify-between rounded-lg border bg-gray-50 px-4 py-3 text-sm text-gray-500 hover:bg-gray-100"
+          >
+            <span className="font-medium">No renuevan · {skippedClients.length} · S/ {data!.skippedTotal.toFixed(2)}</span>
+            <span className="text-xs">{showSkipped ? "Ocultar ▲" : "Ver ▼"}</span>
+          </button>
+          {showSkipped && (
+            <div className="mt-2 overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <tbody className="divide-y">
+                  {skippedClients.map((c) => (
+                  <tr key={c.id} className="bg-gray-50 opacity-60">
+                    <td className="px-4 py-3">
+                      <Link href={`/clients/${c.id}`} className="font-medium line-through text-gray-400">
+                        {c.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs line-through">{c.planName}</td>
+                    <td className="px-4 py-3 text-center text-gray-400 line-through">{fmtDate(c.membershipEnd)}</td>
+                    <td className="px-4 py-3 text-right text-gray-400 line-through">
+                      S/ {c.price.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => toggleSkip(c.id, c.willSkip)}
+                        className="w-8 h-5 rounded-full bg-orange-500 relative transition-colors hover:bg-orange-400"
+                        aria-label="Reactivar renovación"
+                      >
+                        <span className="absolute right-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </main>
