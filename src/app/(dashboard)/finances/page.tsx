@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { getStaffModules } from "@/lib/staff-access-server"
 import { formatDate, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +17,8 @@ export default async function FinancesPage() {
   const session = await auth()
   const role = (session?.user as { role?: string })?.role ?? "ADMIN"
   const isUser = role === "USER"
+  const modules = isUser ? await getStaffModules(session?.user?.id) : null
+  const seesAll = !modules || modules.includes("movements")
 
   const now = new Date()
   const monthStart = startOfMonth(now)
@@ -117,7 +120,7 @@ export default async function FinancesPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-700">Últimos ingresos</h3>
               <div className="flex gap-2">
-                {!isUser && <Link href="/finances/income"><Button variant="outline" size="sm">Ver todos</Button></Link>}
+                {seesAll && <Link href="/finances/income"><Button variant="outline" size="sm">Ver todos</Button></Link>}
                 <Link href="/finances/income/new"><Button size="sm" className="bg-green-500 hover:bg-green-600">+ Ingreso</Button></Link>
               </div>
             </div>
@@ -143,7 +146,7 @@ export default async function FinancesPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-700">Últimos egresos</h3>
               <div className="flex gap-2">
-                {!isUser && <Link href="/finances/expenses"><Button variant="outline" size="sm">Ver todos</Button></Link>}
+                {seesAll && <Link href="/finances/expenses"><Button variant="outline" size="sm">Ver todos</Button></Link>}
                 <Link href="/finances/expenses/new"><Button size="sm" className="bg-red-500 hover:bg-red-600">+ Egreso</Button></Link>
               </div>
             </div>

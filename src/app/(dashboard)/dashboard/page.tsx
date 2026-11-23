@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { TrendingUp, TrendingDown, Users, MessageCircle } from "lucide-react"
 import { startOfMonth, endOfMonth, addDays } from "date-fns"
+import { auth } from "@/lib/auth"
 import ClearDataButton from "@/components/ui/ClearDataButton"
 
 export default async function DashboardPage() {
+  const isAdmin = (await auth())?.user?.role === "ADMIN"
   const now = new Date()
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
@@ -40,7 +42,7 @@ export default async function DashboardPage() {
       <main className="flex-1 p-3 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Bienvenido a FORTIA</h2>
-          <ClearDataButton />
+          {isAdmin && <ClearDataButton />}
         </div>
 
         {/* KPI Cards */}

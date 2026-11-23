@@ -6,6 +6,8 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
+import { staffHome } from "@/lib/staff-access"
+import { staffNavGroups } from "./staff-nav"
 import {
   ChevronDown,
   Bell,
@@ -101,6 +103,7 @@ const USER_MENU: NavSubItem[] = [
 ]
 
 type Props = {
+  staffModules: string[] | null // null = administrador (menú completo)
   expiringCount: number
   initials: string
   name: string | null
@@ -115,7 +118,9 @@ function isGroupActive(group: NavGroup, pathname: string): boolean {
   return group.items.some((item) => isItemActive(item, pathname))
 }
 
-export default function TopNavClient({ expiringCount, initials, name }: Props) {
+export default function TopNavClient({ staffModules, expiringCount, initials, name }: Props) {
+  const groups: NavGroup[] = staffModules ? staffNavGroups(staffModules) : NAV_GROUPS
+  const userMenu = staffModules ? [] : USER_MENU
   const pathname = usePathname()
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const navRef = useRef<HTMLDivElement>(null)
@@ -136,14 +141,14 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
       className="hidden md:flex bg-white border-b border-gray-100 sticky top-0 z-50 h-14 items-center px-6 gap-2"
     >
       {/* Logo */}
-      <Link href="/coaching" className="flex items-center gap-2 shrink-0 mr-6">
+      <Link href={staffModules ? staffHome(staffModules) : "/coaching"} className="flex items-center gap-2 shrink-0 mr-6">
         <Image src="/logo.png" alt="FORTIA" width={30} height={30} className="rounded-lg" />
         <span className="text-sm font-bold text-gray-900 tracking-widest uppercase">FORTIA</span>
       </Link>
 
       {/* Nav groups */}
       <nav className="flex items-center gap-0.5 flex-1">
-        {NAV_GROUPS.map((group) => {
+        {groups.map((group) => {
           const active = isGroupActive(group, pathname)
           const isOpen = openMenu === group.label
           return (
@@ -204,7 +209,7 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
       {/* Right side: Bell + Avatar */}
       <div className="flex items-center gap-2 shrink-0">
         {/* Bell */}
-        <Link
+        {(!staffModules || staffModules.includes("dashboard")) && <Link
           href="/dashboard"
           className="relative p-2 rounded-md hover:bg-gray-50 transition-colors"
         >
@@ -214,7 +219,7 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
               {expiringCount > 9 ? "9+" : expiringCount}
             </span>
           )}
-        </Link>
+        </Link>}
 
         {/* Avatar + User dropdown */}
         <div
@@ -240,7 +245,7 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
           {openMenu === "user" && (
             <div className="absolute top-full right-0 pt-1 z-50 min-w-48">
             <div className="rounded-xl shadow-lg bg-white border border-gray-100 py-1">
-              {USER_MENU.map((item) => (
+              {userMenu.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -251,7 +256,7 @@ export default function TopNavClient({ expiringCount, initials, name }: Props) {
                   {item.label}
                 </Link>
               ))}
-              <div className="border-t border-gray-100 mt-1 pt-1">
+              <div className={userMenu.length ? "border-t border-gray-100 mt-1 pt-1" : undefined}>
                 <button
                   onClick={() => {
                     setOpenMenu(null)

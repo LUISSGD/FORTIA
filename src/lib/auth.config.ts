@@ -27,30 +27,10 @@ const NUTRITIONIST_ALLOWED_PREFIXES = [
   "/login",
 ]
 
-// Rutas bloqueadas para USER (exact prefix match, except where noted)
-const USER_BLOCKED_PREFIXES = [
-  "/dashboard",
-  "/debts",
-  "/classes",
-  "/memberships",
-  "/finances/reports",
-  "/finances/monthly-expenses",
-  "/finances/pending-accumulated",
-  "/finances/cobranza",
-  "/settings",
-  "/coaching",
-]
-
-const PUBLIC_FILES = ["/sw.js", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/apple-icon.png", "/logo.png"]
+export const PUBLIC_FILES = ["/sw.js", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/apple-icon.png", "/logo.png"]
 
 // El rol CLIENT (clientes de coaching) solo accede a su app móvil
 const CLIENT_ALLOWED_PREFIXES = ["/app", "/api/app", "/api/push", "/api/auth", "/login", "/manifest.webmanifest", "/logo.png", "/icon-192.png", "/icon-512.png", "/apple-icon.png"]
-
-// Rutas exactas bloqueadas para USER (la lista completa, no el formulario de creación)
-const USER_BLOCKED_EXACT = [
-  "/finances/income",
-  "/finances/expenses",
-]
 
 export const authConfig: NextAuthConfig = {
   pages: { signIn: "/login" },
@@ -110,19 +90,7 @@ export const authConfig: NextAuthConfig = {
         return Response.redirect(new URL(role === "USER" ? "/clients" : "/coaching", nextUrl))
       }
 
-      // El nutricionista ya fue redirigido arriba, aquí solo llegan ADMIN y USER
-
-
-      // Block restricted routes for USER role
-      if (role === "USER") {
-        const path = nextUrl.pathname
-        const blockedByPrefix = USER_BLOCKED_PREFIXES.some(r => path.startsWith(r))
-        const blockedByExact = USER_BLOCKED_EXACT.includes(path)
-        if (blockedByPrefix || blockedByExact) {
-          return Response.redirect(new URL("/clients", nextUrl))
-        }
-      }
-
+      // Aquí solo llegan ADMIN y USER. Los accesos del staff (USER) se validan en src/lib/auth.ts, con la base.
       return true
     },
   },

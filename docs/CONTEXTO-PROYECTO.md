@@ -110,6 +110,10 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.
+- **Accesos del staff** (rol USER): `src/lib/staff-access.ts` es el catálogo de módulos con sus páginas **y** APIs (todo lo que no esté
+  activo queda cerrado); se valida en `authorized` de `src/lib/auth.ts` leyendo `StaffAccess` en cada pedido (vale al instante; si la
+  base falla, no abre nada). El admin los cambia en Usuarios → Accesos. **Pantalla o API nueva para el staff: agregarla al catálogo**;
+  si no, el staff no la ve. Cobranza, Interesados, Coaching y Usuarios son solo ADMIN. Sin `StaffAccess` = accesos por defecto.
 - Otras piezas: Web Push (VAPID), Mercado Pago (pendiente de credenciales), cron diario (`vercel.json`),
   importador Excel/CSV, exportación de clientes a .xlsx.
 

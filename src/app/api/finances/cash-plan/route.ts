@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { denyUnless } from "@/lib/staff-access-server"
 import { calendarDate, calendarYmd } from "@/lib/calendar"
 import { getRenewalProjection } from "@/lib/finance/renewals"
 
@@ -20,8 +21,8 @@ async function ensurePlan(yearMonth: string) {
 }
 
 export async function GET(request: Request) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  const denied = await denyUnless(await auth(), "plan")
+  if (denied) return denied
   const q = new URL(request.url).searchParams.get("month") ?? ""
   const yearMonth = YM.test(q) ? q : thisMonth()
   const [y, m] = yearMonth.split("-").map(Number)
@@ -70,8 +71,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  const denied = await denyUnless(await auth(), "plan", "obligations")
+  if (denied) return denied
   const body = await request.json().catch(() => ({}))
   const yearMonth = typeof body.month === "string" && YM.test(body.month) ? body.month : null
   if (!yearMonth) return NextResponse.json({ error: "Mes no válido" }, { status: 400 })

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/lib/auth"
+import { denyUnless } from "@/lib/staff-access-server"
 
 function getEstado(membershipEnd: Date | null, isActive: boolean): string {
   if (!isActive) return "Inactivo"
@@ -27,6 +29,8 @@ function csvCell(value: string | number | null | undefined): string {
 }
 
 export async function GET() {
+  const denied = await denyUnless(await auth(), "export")
+  if (denied) return denied
   try {
   const clients = await prisma.client.findMany({
     include: {
