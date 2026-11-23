@@ -36,8 +36,8 @@ export function monthBounds(ym: string) {
   return { first, last }
 }
 
-export async function getTrainerMonth(ym: string) {
-  const { first, last } = monthBounds(ym)
+/** Clases personalizadas y de prueba entre dos días (incluidos), con su estado. */
+export async function getClassesBetween(first: string, last: string): Promise<MonthClass[]> {
   const today = todayYmd()
   const unassigned = UNASSIGNED_TRAINER.name
 
@@ -82,7 +82,14 @@ export async function getTrainerMonth(ym: string) {
       client: [t.firstName, t.lastName].filter(Boolean).join(" "), clientId: null, plan: "Clase de prueba", number: null, couple: false, state,
     })
   }
-  classes.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? "99").localeCompare(b.time ?? "99"))
+  return classes.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? "99").localeCompare(b.time ?? "99"))
+}
+
+export async function getTrainerMonth(ym: string) {
+  const { first, last } = monthBounds(ym)
+  const today = todayYmd()
+  const unassigned = UNASSIGNED_TRAINER.name
+  const classes = await getClassesBetween(first, last)
 
   const names = [...TRAINERS.map((t) => t.name as string), unassigned]
   const totals: TrainerTotals[] = names

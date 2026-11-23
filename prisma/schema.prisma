@@ -963,3 +963,9 @@ model Lead {
   @@index([stage])
   @@index([phone])
 }
+
+// Resumen de la mañana: un registro por día, para no enviarlo dos veces.
+model DailyDigest {
+  ymd    String   @id // día en Lima, "2026-11-23"
+  sentAt DateTime @default(now())
+}
