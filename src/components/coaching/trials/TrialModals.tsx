@@ -32,6 +32,9 @@ export function TrialChip({ trial, onClick }: { trial: Trial; onClick: () => voi
   )
 }
 
+/** Datos de un interesado para agendarle su clase de prueba (queda enlazada a él). */
+export type TrialLead = { id: string; firstName: string; lastName: string | null; phone: string | null; email: string | null; goal: string | null }
+
 const EMPTY = { firstName: "", lastName: "", phone: "", email: "", dni: "", goal: "", notes: "", date: "", startTime: "", durationMin: "60", trainer: "" }
 
 /**
@@ -39,13 +42,15 @@ const EMPTY = { firstName: "", lastName: "", phone: "", email: "", dni: "", goal
  * - `form`: null cerrado; { date } para una nueva; { trial } para editar.
  * - `canConvert`: solo el admin crea clientes.
  */
-export function TrialModals({ form, onCloseForm, detail, onCloseDetail, onEdit, canConvert }: {
-  form: { date?: string; trial?: Trial } | null
+export function TrialModals({ form, onCloseForm, detail, onCloseDetail, onEdit, canConvert, onSaved }: {
+  form: { date?: string; trial?: Trial; lead?: TrialLead } | null
   onCloseForm: () => void
   detail: Trial | null
   onCloseDetail: () => void
   onEdit: (t: Trial) => void
   canConvert: boolean
+  /** Después de guardar, además de refrescar la página */
+  onSaved?: () => void
 }) {
   const router = useRouter()
   const [f, setF] = useState(EMPTY)
@@ -55,17 +60,18 @@ export function TrialModals({ form, onCloseForm, detail, onCloseDetail, onEdit, 
   useEffect(() => {
     if (!form) return
     const t = form.trial
-    setF(t ? { firstName: t.firstName, lastName: t.lastName ?? "", phone: t.phone ?? "", email: t.email ?? "", dni: t.dni ?? "", goal: t.goal ?? "", notes: t.notes ?? "", date: t.date, startTime: t.startTime, durationMin: String(t.durationMin), trainer: t.trainer ?? "" } : { ...EMPTY, date: form.date ?? "" })
+    setF(t ? { firstName: t.firstName, lastName: t.lastName ?? "", phone: t.phone ?? "", email: t.email ?? "", dni: t.dni ?? "", goal: t.goal ?? "", notes: t.notes ?? "", date: t.date, startTime: t.startTime, durationMin: String(t.durationMin), trainer: t.trainer ?? "" } : { ...EMPTY, date: form.date ?? "", ...(form.lead ? { firstName: form.lead.firstName, lastName: form.lead.lastName ?? "", phone: form.lead.phone ?? "", email: form.lead.email ?? "", goal: form.lead.goal ?? "" } : {}) })
   }, [form])
 
   async function save() {
     setSaving(true)
     try {
       if (form?.trial) await api(`/api/trainer/trials/${form.trial.id}`, "PATCH", f)
-      else await api("/api/trainer/trials", "POST", f)
+      else await api("/api/trainer/trials", "POST", { ...f, leadId: form?.lead?.id })
       toast.success(form?.trial ? "Clase de prueba actualizada" : "Clase de prueba agendada 🎯")
       onCloseForm()
       router.refresh()
+      onSaved?.()
     } catch (e) {
       toast.error((e as Error).message)
     } finally {

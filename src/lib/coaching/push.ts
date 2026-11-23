@@ -41,6 +41,9 @@ export function trainerLink(link?: string | null) {
   return "/trainer/clients"
 }
 
+/** Push solo a los administradores (ventas, cobros): nunca a los entrenadores. */
+export const pushToAdmins = (payload: Payload) => sendTo({ user: { role: "ADMIN" } }, payload)
+
 /** Push al staff: ADMIN con el link original y TRAINER con el link de su panel. */
 export const pushToCoaches = async (payload: Payload) => {
   await Promise.all([
