@@ -34,8 +34,6 @@ export async function buildDigest() {
   ])
 
   const toCollect = collections.items.filter((i) => i.step !== "REACTIVATE")
-  const todayClasses = classes.filter((c) => c.date === today)
-  const unmarked = classes.filter((c) => c.state === "unmarked" && c.date >= addCalendarDays(today, -UNMARKED_DAYS))
 
   const active = overview.filter((c) => c.status === "ACTIVE")
   return {
@@ -46,18 +44,36 @@ export async function buildDigest() {
       promises: toCollect.filter((i) => i.step === "PROMISE").length,
       top: toCollect.slice(0, 5).map((i) => ({ clientId: i.clientId, name: i.name, amount: i.amount, daysLeft: i.daysLeft })),
     },
-    classes: { today: todayClasses, unmarked },
+    classes: splitClasses(classes, today),
     leads: leadData.leads.filter((l) => l.alert),
     risk: findAtRisk(active, classes),
-    programs: active
-      .filter((c) => c.program?.daysLeft != null && c.program.daysLeft <= 7)
-      .sort((a, b) => b.program!.daysLeft! - a.program!.daysLeft!)
-      .map((c) => ({ id: c.id, name: c.name, label: programEndLabel(c.program!.daysLeft!) })),
+    programs: programsToRenew(overview),
     obligations: obligations.map((o) => {
       const payBy = calendarYmd(o.payBy)
       return { id: o.id, concept: o.expense.concept, month: o.expense.month, year: o.expense.year, amount: o.expense.amount, currency: o.expense.currency, payBy, daysLeft: diffDaysYmd(payBy, today) }
     }),
   }
+}
+
+const splitClasses = (classes: MonthClass[], today: string) => ({
+  today: classes.filter((c) => c.date === today),
+  unmarked: classes.filter((c) => c.state === "unmarked" && c.date >= addCalendarDays(today, -UNMARKED_DAYS)),
+})
+
+/** Clientes activos cuya rutina termina en 7 días o menos, o ya terminó. */
+const programsToRenew = (overview: Awaited<ReturnType<typeof getClientsOverview>>) =>
+  overview
+    .filter((c) => c.status === "ACTIVE" && c.program?.daysLeft != null && c.program.daysLeft <= 7)
+    .sort((a, b) => b.program!.daysLeft! - a.program!.daysLeft!)
+    .map((c) => ({ id: c.id, name: c.name, label: programEndLabel(c.program!.daysLeft!) }))
+
+export type StaffToday = Awaited<ReturnType<typeof buildStaffToday>>
+
+/** "Hoy" del staff: solo clases y rutinas. No consulta cobros, interesados ni pagos del negocio. */
+export async function buildStaffToday() {
+  const today = todayYmd()
+  const [classes, overview] = await Promise.all([getClassesBetween(addCalendarDays(today, -UNMARKED_DAYS), today), getClientsOverview()])
+  return { today, classes: splitClasses(classes, today), programs: programsToRenew(overview) }
 }
 
 /**

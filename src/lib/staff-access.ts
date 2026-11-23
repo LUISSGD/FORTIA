@@ -19,6 +19,10 @@ const only = (base: string, ...methods: string[]): Rule => ({ path: new RegExp(`
 
 export const STAFF_MODULES = [
   {
+    key: "today", label: "Hoy", hint: "Clases de hoy, clases sin marcar (7 días) y rutinas por renovar", group: "Clientes", href: "/hoy", byDefault: true,
+    rules: [only("/hoy")],
+  },
+  {
     key: "clients", label: "Clientes", hint: "Fichas, pagos, renovaciones y clases de los clientes", group: "Clientes", href: "/clients", byDefault: true,
     rules: [under("/clients"), { path: /^\/api\/clients(?!\/export(\/|$))(\/|$)/ }, under("/api/payments"), under("/api/schedule"), only("/api/upload/receipt"), { path: /^\/api\/memberships(\/|$)/, methods: ["GET"] }],
   },

@@ -118,6 +118,7 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   activo queda cerrado); se valida en `authorized` de `src/lib/auth.ts` leyendo `StaffAccess` en cada pedido (vale al instante; si la
   base falla, no abre nada). El admin los cambia en Usuarios → Accesos. **Pantalla o API nueva para el staff: agregarla al catálogo**;
   si no, el staff no la ve. Cobranza, Interesados, Coaching y Usuarios son solo ADMIN. Sin `StaffAccess` = accesos por defecto.
+  El staff tiene su propio Hoy (`/hoy`, `buildStaffToday()`): clases de hoy, sin marcar (7 días) y rutinas por renovar; nada de dinero.
 - Otras piezas: Web Push (VAPID), Mercado Pago (pendiente de credenciales), cron diario (`vercel.json`),
   importador Excel/CSV, exportación de clientes a .xlsx.
 

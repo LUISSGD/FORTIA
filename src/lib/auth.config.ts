@@ -55,7 +55,7 @@ export const authConfig: NextAuthConfig = {
 
       if (isLoggedIn && isLoginPage) {
         const role = (auth?.user as { role?: string })?.role ?? "ADMIN"
-        const dest = role === "CLIENT" ? "/app" : role === "USER" ? "/clients" : role === "NUTRITIONIST" ? "/nutrition" : role === "TRAINER" ? "/trainer/hoy" : "/dashboard"
+        const dest = role === "CLIENT" ? "/app" : role === "USER" ? "/" : role === "NUTRITIONIST" ? "/nutrition" : role === "TRAINER" ? "/trainer/hoy" : "/dashboard"
         return Response.redirect(new URL(dest, nextUrl))
       }
 
@@ -87,7 +87,7 @@ export const authConfig: NextAuthConfig = {
 
       // La app del cliente no es para el staff
       if (nextUrl.pathname === "/app" || nextUrl.pathname.startsWith("/app/")) {
-        return Response.redirect(new URL(role === "USER" ? "/clients" : "/coaching", nextUrl))
+        return Response.redirect(new URL(role === "USER" ? "/" : "/coaching", nextUrl))
       }
 
       // Aquí solo llegan ADMIN y USER. Los accesos del staff (USER) se validan en src/lib/auth.ts, con la base.
