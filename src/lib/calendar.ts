@@ -27,6 +27,8 @@ export const CALENDAR_FIELDS = new Set([
   "programEnd",
   // Plan del mes: fecha límite de cada pago y fecha estimada de cobro de las ventas extra
   "payBy", "expectedOn",
+  // Cobranza: día en que el cliente prometió pagar
+  "promiseDate",
 ])
 
 /**

@@ -21,6 +21,7 @@ import {
   Salad,
   HeartPulse,
   Target,
+  HandCoins,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -31,6 +32,7 @@ const adminNavItems = [
   { href: "/finances", label: "Finanzas", icon: DollarSign },
   { href: "/memberships", label: "Membresías", icon: CreditCard },
   { href: "/debts", label: "Deudas", icon: Landmark },
+  { href: "/finances/cobranza", label: "Cobranza", icon: HandCoins },
   { href: "/finances/monthly-expenses", label: "Gastos Corrientes", icon: ClipboardList },
   { href: "/finances/obligaciones", label: "Obligaciones", icon: AlertCircle },
   { href: "/finances/plan", label: "Plan del mes", icon: Target },

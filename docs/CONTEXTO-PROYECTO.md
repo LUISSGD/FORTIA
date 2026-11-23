@@ -97,6 +97,11 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   en dólares). Renovaciones: `getRenewalProjection()` en `src/lib/finance/renewals.ts` (compartida con Proyección).
   `getRenewalProjection()` también devuelve los **saldos por cobrar** (pagos parciales que vencen en el mes; en el mes
   actual, también los vencidos): se suman al Proyectado y entran como ingreso en el Plan del mes.
+- **Cobranza** (`/finances/cobranza`, solo ADMIN): a quién escribir hoy por renovación o saldo, con el WhatsApp ya escrito
+  (lo envía Luis; nada se envía solo). Reglas puras en `src/lib/finance/collection-rules.ts`: activo vencido = se cobra cada
+  7 días; "reactivar" solo para stand-by o "no renueva" (7 a 60 días). Cada paso queda en `FollowUp` (ciclo = fecha de
+  vencimiento o id del pago con saldo); mensajes editados en `MessageTemplate`. Celulares: `normalizePhone()` (`src/lib/phone.ts`)
+  y `whatsappUrl()` (`src/lib/utils.ts`). Precio: `renewalPrice()`, compartido con Proyección.
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.
