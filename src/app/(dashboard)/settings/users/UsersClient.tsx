@@ -133,7 +133,7 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <p className="text-xs text-gray-500">
-                {form.role === "NUTRITIONIST" ? "El nutricionista accede al panel en /nutrition con clientes, agenda y chat." : form.role === "TRAINER" ? "El entrenador accede al panel en /trainer con la agenda EP, marcado de asistencia y ficha de clientes." : "Entra con Clientes, Entrena. Personal y Finanzas básicas. Después puedes cambiar sus accesos desde esta pantalla."}
+                {form.role === "NUTRITIONIST" ? "El nutricionista accede al panel en /nutrition con clientes, agenda y chat." : form.role === "TRAINER" ? "El entrenador accede al panel en /trainer con la agenda EP, marcado de asistencia y ficha de clientes." : "Entra con Hoy, Clientes, Entrena. Personal y Finanzas básicas. Después puedes cambiar sus accesos desde esta pantalla."}
               </p>
               <Button
                 onClick={handleCreate}

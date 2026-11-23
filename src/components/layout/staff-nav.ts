@@ -1,8 +1,8 @@
-import { AlertCircle, ClipboardList, CreditCard, DollarSign, Dumbbell, FileText, Landmark, LayoutDashboard, ListOrdered, Salad, Target, TrendingUp, Users } from "lucide-react"
+import { AlertCircle, ClipboardList, CreditCard, DollarSign, Dumbbell, FileText, Landmark, LayoutDashboard, ListOrdered, Salad, Sun, Target, TrendingUp, Users } from "lucide-react"
 import { staffScreens } from "@/lib/staff-access"
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  clients: Users, training: Dumbbell, nutrition: Salad, finances: DollarSign, movements: ListOrdered, obligations: AlertCircle, plan: Target,
+  today: Sun, clients: Users, training: Dumbbell, nutrition: Salad, finances: DollarSign, movements: ListOrdered, obligations: AlertCircle, plan: Target,
   projection: TrendingUp, expenses: ClipboardList, debts: Landmark, reports: FileText, memberships: CreditCard, dashboard: LayoutDashboard,
 }
 
