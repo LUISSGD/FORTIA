@@ -23,7 +23,7 @@ import {
   Target,
   HandCoins,
   UserPlus,
-  Sun,
+  Sparkles, Sun,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils"
 const adminNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/coaching/hoy", label: "Hoy", icon: Sun },
+  { href: "/coaching/asistente", label: "Asistente IA", icon: Sparkles },
   { href: "/coaching", label: "Coaching", icon: HeartPulse },
   { href: "/coaching/interesados", label: "Interesados", icon: UserPlus },
   { href: "/finances", label: "Finanzas", icon: DollarSign },

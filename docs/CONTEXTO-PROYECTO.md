@@ -111,6 +111,11 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   Sale una vez al día (`DailyDigest`) desde el cron de automatizaciones (13:00 UTC ≈ 8 a. m. en Lima) con `notifyAdmin()`: solo
   cantidades, sin nombres ni montos. "En riesgo" **no** usa las alertas rojas (casi nadie registra entrenamientos y saldrían
   todos): faltó a 2 clases EP en 14 días, o entrenaba en la app y lleva 10 días o más sin registrar.
+- **Asistente IA** (`/coaching/asistente`, solo ADMIN): `src/lib/assistant/*`. Chat con Claude (`AI_MODEL` en `config.ts`) que consulta datos con
+  `TOOLS` (`tools.ts`): **solo lectura** y sin celular, correo, DNI, lesiones, peso, medidas, fotos, chats ni notas. **Consulta nueva = respetar
+  ambas reglas.** Los WhatsApp son borradores: el celular lo pone el servidor y Luis los envía. `AiConversation` guarda la historia completa y
+  solo se le agrega al final (si cambian instrucciones o consultas, `stripThinking()`); `AiUsage` guarda el gasto y corta al llegar al tope
+  (`AI_MONTHLY_LIMIT_USD`, 15 por defecto). Claves en Vercel: `ANTHROPIC_API_KEY`. Las respuestas no crean enlaces ni imágenes (`Markdown.tsx`).
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.

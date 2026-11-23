@@ -36,7 +36,7 @@ import {
   ClipboardCheck,
   HandCoins,
   UserPlus,
-  Sun,
+  Sparkles, Sun,
 } from "lucide-react"
 
 type NavSubItem = {
@@ -76,6 +76,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Agenda",
     items: [
       { href: "/coaching/hoy", label: "Hoy", icon: Sun },
+      { href: "/coaching/asistente", label: "Asistente IA", icon: Sparkles },
       { href: "/coaching/agenda", label: "Agenda coaching", icon: Calendar, exact: true },
       { href: "/coaching/agenda/clases", label: "Clases por entrenador", icon: ClipboardCheck },
     ],

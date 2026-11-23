@@ -969,3 +969,32 @@ model DailyDigest {
   ymd    String   @id // día en Lima, "2026-11-23"
   sentAt DateTime @default(now())
 }
+
+// Asistente con IA (solo ADMIN). `messages` guarda la conversación tal como la necesita la IA: solo se le agrega al final.
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  messages  String // JSON como texto: JSONB cambiaría el orden de los campos
+  promptKey String // versión de las instrucciones y consultas con las que se generó
+  version   Int      @default(0) // evita que dos envíos a la vez se pisen
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+// Gasto del asistente: un registro por llamada a la IA, para respetar el tope mensual.
+model AiUsage {
+  id               String   @id @default(cuid())
+  yearMonth        String // "2026-11", en Lima
+  model            String
+  inputTokens      Int
+  outputTokens     Int
+  cacheReadTokens  Int
+  cacheWriteTokens Int
+  costUsd          Float
+  createdAt        DateTime @default(now())
+
+  @@index([yearMonth])
+}

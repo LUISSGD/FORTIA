@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { signOut } from "next-auth/react"
-import { CalendarClock, HandCoins, HeartPulse, Sun, UserPlus, Dumbbell, Calendar, DollarSign, Users, LayoutDashboard, Settings, UserCog, LogOut } from "lucide-react"
+import { CalendarClock, HandCoins, HeartPulse, Sparkles, Sun, UserPlus, Dumbbell, Calendar, DollarSign, Users, LayoutDashboard, Settings, UserCog, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
@@ -18,6 +18,7 @@ const adminNavItems = [
 
 // Accesos del administrador que no caben abajo: se abren desde Perfil
 const adminMoreItems = [
+  { href: "/coaching/asistente", label: "Asistente IA", icon: Sparkles },
   { href: "/finances/cobranza", label: "Cobranza", icon: HandCoins },
   { href: "/coaching/interesados", label: "Interesados", icon: UserPlus },
   { href: "/coaching/programs", label: "Librería", icon: Dumbbell },
