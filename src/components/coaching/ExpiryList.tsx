@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ChevronRight } from "lucide-react"
 import { getClientsOverview, type ClientOverview } from "@/lib/coaching/stats"
 import { formatYmdLong } from "@/lib/coaching/dates"
-import { cn } from "@/lib/utils"
+import { cn, whatsappUrl } from "@/lib/utils"
 import { programEndLabel } from "@/lib/coaching/program-dates"
 
 // Vencimientos ordenados por fecha, pensado para el celular: membresías (pago) o
@@ -17,8 +17,7 @@ function expiry(c: ClientOverview, kind: ExpiryKind): { daysLeft: number | null;
   return { daysLeft: c.membership.daysLeft, end: c.membership.end, label: c.membership.planName ?? "Sin plan" }
 }
 
-const waLink = (c: ClientOverview, text: string) =>
-  `https://wa.me/${c.phone!.replace(/\D/g, "").replace(/^(?!51)/, "51")}?text=${encodeURIComponent(text)}`
+const waLink = (c: ClientOverview, text: string) => whatsappUrl(c.phone, text)
 
 function whenLabel(days: number) {
   if (days === 0) return "Vence hoy"
@@ -57,7 +56,10 @@ export default async function ExpiryList({ basePath, showStandby, kind = "member
   return (
     <div className={cn("max-w-2xl mx-auto space-y-4", isAdmin ? "pb-20" : "p-4")}>
       <div>
-        <h1 className="text-xl font-bold">Vencimientos</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl font-bold">Vencimientos</h1>
+          {isAdmin && <Link href="/finances/cobranza" className="shrink-0 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">Cobranza de hoy →</Link>}
+        </div>
         <p className="text-sm text-gray-500">
           {groups[0].rows.length} {programs ? "terminados" : "vencidos"} · {groups[1].rows.length} esta semana · {groups[2].rows.length} este mes
         </p>

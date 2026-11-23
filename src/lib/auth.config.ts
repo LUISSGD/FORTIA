@@ -36,6 +36,7 @@ const USER_BLOCKED_PREFIXES = [
   "/finances/reports",
   "/finances/monthly-expenses",
   "/finances/pending-accumulated",
+  "/finances/cobranza",
   "/settings",
   "/coaching",
 ]

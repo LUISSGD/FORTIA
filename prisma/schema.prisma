@@ -68,6 +68,7 @@ model Client {
   attendances     Attendance[]
   physicalRecords PhysicalRecord[]
   renewalSkips    RenewalProjectionSkip[]
+  followUps       FollowUp[]
   nutritionClients NutritionClient[]
 
   // Coaching
@@ -892,4 +893,28 @@ model CashPlanSale {
   expectedOn       DateTime? // fecha estimada de cobro (fecha de calendario)
   sortOrder        Int       @default(0)
   createdAt        DateTime  @default(now())
+}
+
+// Cobranza: qué paso de seguimiento ya se hizo con cada cliente en cada vencimiento (o saldo).
+model FollowUp {
+  id            String    @id @default(cuid())
+  clientId      String
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  kind          String // RENEWAL | BALANCE
+  step          String // PRE | DUE | LATE | REACTIVATE | PROMISE
+  cycleKey      String // fecha de vencimiento de la membresía o id del pago con saldo
+  outcome       String // SENT | PROMISED | DISMISSED
+  promiseDate   DateTime? // día de calendario en que prometió pagar
+  createdByName String?
+  at            DateTime  @default(now())
+
+  @@unique([clientId, kind, step, cycleKey])
+  @@index([at])
+}
+
+// Mensajes de WhatsApp editados por el coach (si no existe, se usa el de fábrica).
+model MessageTemplate {
+  key       String   @id
+  text      String
+  updatedAt DateTime @updatedAt
 }

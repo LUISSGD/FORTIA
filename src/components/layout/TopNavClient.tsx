@@ -32,6 +32,7 @@ import {
   CalendarClock,
   Target,
   ClipboardCheck,
+  HandCoins,
 } from "lucide-react"
 
 type NavSubItem = {
@@ -77,6 +78,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Finanzas",
     items: [
       { href: "/finances", label: "Resumen", icon: DollarSign, exact: true },
+      { href: "/finances/cobranza", label: "Cobranza", icon: HandCoins },
       { href: "/coaching/vencimientos", label: "Vencimientos", icon: CalendarClock },
       { href: "/memberships", label: "Membresías", icon: CreditCard },
       { href: "/debts", label: "Deudas", icon: Landmark },
