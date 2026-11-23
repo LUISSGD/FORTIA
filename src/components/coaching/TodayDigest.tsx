@@ -21,7 +21,7 @@ function due(days: number | null) {
 
 function Block({ title, count, href, cta, tone, children, empty }: { title: string; count: number; href: string; cta: string; tone: string; children?: React.ReactNode; empty: string }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
+    <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-bold text-gray-900">{title} {count > 0 && <span className={cn("ml-1 rounded-full px-2 py-0.5 text-xs", tone)}>{count}</span>}</h2>
         <Link href={href} className="shrink-0 text-xs font-medium text-orange-600 hover:underline">{cta} →</Link>
@@ -47,7 +47,7 @@ export default function TodayDigest({ d }: { d: Digest }) {
         <PushToggle variant="button" />
       </div>
 
-      <div className="grid items-start gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
         <Block title="💰 Por cobrar" count={d.collect.count} href="/finances/cobranza" cta="Cobranza" tone="bg-emerald-100 text-emerald-800" empty="No hay cobros pendientes hoy.">
           <li className="text-sm font-semibold text-emerald-700">{soles(d.collect.total)}{d.collect.promises > 0 && <span className="ml-2 font-normal text-violet-700">{d.collect.promises} prometió pagar hoy</span>}</li>
           {d.collect.top.map((c, k) => <li key={k} className={row}><span className={left}>{c.name}</span><span className={right}>{soles(c.amount)} · {due(c.daysLeft) || "sin fecha"}</span></li>)}

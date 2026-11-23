@@ -72,9 +72,9 @@ export function findAtRisk(
   for (const c of classes) if (c.kind === "ep" && c.state === "noShow" && c.clientId) noShows.set(c.clientId, (noShows.get(c.clientId) ?? 0) + 1)
   return active.flatMap((c) => {
     const missed = noShows.get(c.id) ?? 0
-    if (missed >= RISK_NO_SHOWS) return [{ id: c.id, name: c.name, reason: `Faltó a ${missed} clases en 2 semanas` }]
+    if (missed >= RISK_NO_SHOWS) return [{ id: c.id, name: c.name, reason: `Faltó a ${missed} clases` }]
     const d = c.daysSinceWorkout
-    if (c.lastWorkout && d !== null && d >= RISK_STOPPED_DAYS && d <= STOPPED_LIMIT_DAYS) return [{ id: c.id, name: c.name, reason: `Dejó de registrar sus entrenamientos hace ${d} días` }]
+    if (c.lastWorkout && d !== null && d >= RISK_STOPPED_DAYS && d <= STOPPED_LIMIT_DAYS) return [{ id: c.id, name: c.name, reason: `Sin registrar hace ${d} días` }]
     return []
   })
 }
