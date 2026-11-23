@@ -19,6 +19,17 @@ model User {
   createdAt DateTime @default(now())
 
   pushSubscriptions PushSubscription[]
+  staffAccess       StaffAccess?
+}
+
+// Pantallas que puede abrir una cuenta del staff (rol USER). Sin registro = accesos por defecto.
+// Va en su propia tabla para no tocar User, que se lee al iniciar sesión.
+model StaffAccess {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modules       String // claves de src/lib/staff-access.ts separadas por comas
+  updatedByName String?
+  updatedAt     DateTime @updatedAt
 }
 
 model MembershipPlan {

@@ -10,7 +10,7 @@ async function getExpiringCount() {
   })
 }
 
-export default async function TopNav() {
+export default async function TopNav({ staffModules }: { staffModules: string[] | null }) {
   const session = await auth()
   const expiringCount = await getExpiringCount().catch(() => 0)
   const initials =
@@ -22,6 +22,7 @@ export default async function TopNav() {
 
   return (
     <TopNavClient
+      staffModules={staffModules}
       expiringCount={expiringCount}
       initials={initials}
       name={session?.user?.name ?? null}

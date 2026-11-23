@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/lib/auth"
+import { getSessionModules } from "@/lib/staff-access-server"
 import { trainingPlanName } from "@/lib/training-pricing"
 import { formatDate } from "@/lib/utils"
 import RenewalBadge from "@/components/clients/RenewalBadge"
@@ -130,6 +132,8 @@ export default async function ClientsPage({
   })
 
   const filters = { search, programa, entrenador, estado }
+  const modules = await getSessionModules(await auth())
+  const canExport = !modules || modules.includes("export")
   const hasFilters = !!(search || programa || entrenador || estado)
 
   return (
@@ -140,12 +144,12 @@ export default async function ClientsPage({
             Clientes registrados ({clients.length})
           </h2>
           <div className="flex gap-2">
-            <a href="/api/clients/export">
+            {canExport && <a href="/api/clients/export">
               <Button variant="outline" className="gap-2">
                 <FileSpreadsheet className="h-4 w-4" />
                 Exportar
               </Button>
-            </a>
+            </a>}
             <Link href="/clients/new">
               <Button className="bg-orange-500 hover:bg-orange-600">
                 <Plus className="h-4 w-4 mr-2" />

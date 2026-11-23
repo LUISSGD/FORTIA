@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { requireCoach } from "@/lib/coaching/auth"
+import { DEFAULT_STAFF_MODULES } from "@/lib/staff-access"
 
 export async function POST(request: Request) {
   // Solo el administrador gestiona usuarios del staff.
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       select: { id: true, name: true, email: true, role: true, createdAt: true },
     })
 
-    return NextResponse.json(user, { status: 201 })
+    return NextResponse.json({ ...user, modules: role === "USER" ? DEFAULT_STAFF_MODULES : null }, { status: 201 })
   } catch {
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }

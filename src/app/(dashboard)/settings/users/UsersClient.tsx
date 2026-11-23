@@ -1,7 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { UserCog, Plus, Trash2, RefreshCw } from "lucide-react"
+import { UserCog, Plus, Trash2, RefreshCw, KeyRound } from "lucide-react"
+import { toast } from "sonner"
+import { STAFF_MODULES, type StaffModule } from "@/lib/staff-access"
+import AccessModal from "./AccessModal"
 import {
   Dialog,
   DialogContent,
@@ -19,7 +22,15 @@ type User = {
   name: string | null
   email: string
   role: string
-  createdAt: Date
+  createdAt: Date | string
+  modules: StaffModule[] | null // solo staff (USER)
+}
+
+const ROLE: Record<string, { label: string; cls: string; note: string }> = {
+  ADMIN: { label: "Administrador", cls: "bg-orange-500 text-white", note: "Ve y administra todo" },
+  NUTRITIONIST: { label: "Nutricionista", cls: "bg-green-100 text-green-700", note: "Solo el módulo de nutrición" },
+  TRAINER: { label: "Entrenador EP", cls: "bg-sky-100 text-sky-700", note: "Solo el panel del entrenador" },
+  USER: { label: "Staff", cls: "", note: "" },
 }
 
 export default function UsersClient({ users: initialUsers }: { users: User[] }) {
@@ -28,6 +39,7 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "USER" })
   const [error, setError] = useState("")
+  const [editing, setEditing] = useState<User | null>(null)
 
   async function handleCreate() {
     setError("")
@@ -63,11 +75,13 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
     const res = await fetch(`/api/settings/users/${id}`, { method: "DELETE" })
     if (res.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== id))
+    } else {
+      toast.error("No se pudo eliminar el usuario")
     }
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <UserCog className="h-6 w-6 text-orange-500" />
@@ -119,7 +133,7 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <p className="text-xs text-gray-500">
-                {form.role === "NUTRITIONIST" ? "El nutricionista accede al panel en /nutrition con clientes, agenda y chat." : form.role === "TRAINER" ? "El entrenador accede al panel en /trainer con la agenda EP, marcado de asistencia y ficha de clientes." : "El usuario tendrá acceso limitado: Clientes, Calendario y Finanzas (solo registro básico)."}
+                {form.role === "NUTRITIONIST" ? "El nutricionista accede al panel en /nutrition con clientes, agenda y chat." : form.role === "TRAINER" ? "El entrenador accede al panel en /trainer con la agenda EP, marcado de asistencia y ficha de clientes." : "Entra con Clientes, Entrena. Personal y Finanzas básicas. Después puedes cambiar sus accesos desde esta pantalla."}
               </p>
               <Button
                 onClick={handleCreate}
@@ -134,54 +148,49 @@ export default function UsersClient({ users: initialUsers }: { users: User[] }) 
         </Dialog>
       </div>
 
-      <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Nombre</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Email</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Rol</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <td className="px-4 py-3 font-medium">{user.name ?? "—"}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user.email}</td>
-                <td className="px-4 py-3">
-                  <Badge
-                    variant={user.role === "ADMIN" ? "default" : "secondary"}
-                    className={
-                      user.role === "ADMIN" ? "bg-orange-500 text-white" :
-                      user.role === "NUTRITIONIST" ? "bg-green-100 text-green-700" :
-                      user.role === "TRAINER" ? "bg-sky-100 text-sky-700" : ""
-                    }
-                  >
-                    {user.role === "ADMIN" ? "Administrador" :
-                     user.role === "NUTRITIONIST" ? "Nutricionista" :
-                     user.role === "TRAINER" ? "Entrenador EP" : "Usuario"}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {user.role !== "ADMIN" && (
-                    <button
-                      onClick={() => handleDelete(user.id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                      title="Eliminar usuario"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {users.length === 0 && (
-          <p className="text-center text-gray-500 py-8 text-sm">No hay usuarios registrados.</p>
-        )}
-      </div>
+      <ul className="divide-y rounded-lg border">
+        {users.map((user) => {
+          const role = ROLE[user.role] ?? ROLE.USER
+          return (
+            <li key={user.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+              <div className="min-w-0 flex-1 basis-52">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">{user.name ?? "—"}</span>
+                  <Badge variant="secondary" className={role.cls}>{role.label}</Badge>
+                </div>
+                <p className="truncate text-xs text-gray-500">{user.email}</p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {user.modules ? (user.modules.length ? "Ve: " + STAFF_MODULES.filter((m) => user.modules!.includes(m.key)).map((m) => m.label).join(", ") : "Sin accesos") : role.note}
+                </p>
+              </div>
+              {user.modules && (
+                <button onClick={() => setEditing(user)} className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  <KeyRound className="h-4 w-4 text-orange-500" />
+                  Accesos
+                </button>
+              )}
+              {user.role !== "ADMIN" && (
+                <button onClick={() => handleDelete(user.id)} className="p-1.5 text-gray-400 transition-colors hover:text-red-500" title="Eliminar usuario" aria-label={"Eliminar a " + (user.name ?? user.email)}>
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      {users.length === 0 && <p className="text-center text-gray-500 py-8 text-sm">No hay usuarios registrados.</p>}
+
+      {editing?.modules && (
+        <AccessModal
+          key={editing.id}
+          user={{ id: editing.id, name: editing.name ?? editing.email, modules: editing.modules }}
+          onClose={() => setEditing(null)}
+          onSaved={(modules) => {
+            setUsers((prev) => prev.map((u) => (u.id === editing.id ? { ...u, modules } : u)))
+            setEditing(null)
+          }}
+        />
+      )}
     </div>
   )
 }

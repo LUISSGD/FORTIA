@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { denyUnless } from "@/lib/staff-access-server"
 
 // Flujo de obligaciones: cuadro anual (concepto × mes) sobre MonthlyExpense.
 // Cada celda es un MonthlyExpense (concepto, mes, año, monto, estado). Las filas se identifican por el
@@ -21,8 +22,8 @@ async function rowItems(year: number, concept: string) {
 }
 
 export async function GET(request: Request) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  const denied = await denyUnless(await auth(), "obligations")
+  if (denied) return denied
   const year = validYear(new URL(request.url).searchParams.get("year")) ?? new Date().getFullYear()
   const rows = await prisma.monthlyExpense.findMany({
     where: { year },
@@ -35,8 +36,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  const denied = await denyUnless(await auth(), "obligations", "plan")
+  if (denied) return denied
   const body = await request.json().catch(() => ({}))
   const year = validYear(body.year)
   if (!year) return NextResponse.json({ error: "Año no válido" }, { status: 400 })

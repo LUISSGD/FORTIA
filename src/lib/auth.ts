@@ -2,7 +2,12 @@ import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
-import { authConfig } from "@/lib/auth.config"
+import { authConfig, PUBLIC_FILES } from "@/lib/auth.config"
+import { staffCanOpen, staffHome } from "@/lib/staff-access"
+import { getStaffModules } from "@/lib/staff-access-server"
+
+// Rutas que no dependen de los accesos: archivos públicos y las que validan por su cuenta
+const OPEN_TO_STAFF = [...PUBLIC_FILES, "/api/public/leads", "/api/mercadopago/webhook", "/api/coaching/automations/run"]
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -35,6 +40,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
   callbacks: {
     ...authConfig.callbacks,
+    // Reglas por rol y, para el staff, sus accesos actuales: todo lo que no tenga activo queda cerrado
+    async authorized(params) {
+      const base = await authConfig.callbacks!.authorized!(params)
+      const user = params.auth?.user as { id?: string; role?: string } | undefined
+      if (base !== true || user?.role !== "USER") return base
+      const { pathname } = params.request.nextUrl
+      if (OPEN_TO_STAFF.includes(pathname) || pathname.startsWith("/api/auth/")) return true
+      const modules = await getStaffModules(user.id)
+      if (staffCanOpen(modules, pathname, params.request.method)) return true
+      if (pathname.startsWith("/api/")) return Response.json({ error: "Sin permisos" }, { status: 403 })
+      return Response.redirect(new URL(staffHome(modules), params.request.nextUrl))
+    },
     jwt({ token, user }) {
       if (user) { token.id = user.id; token.role = user.role }
       return token
