@@ -33,6 +33,7 @@ import {
   Target,
   ClipboardCheck,
   HandCoins,
+  UserPlus,
 } from "lucide-react"
 
 type NavSubItem = {
@@ -52,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Clientes",
     items: [
       { href: "/coaching/clients", label: "Coaching", icon: HeartPulse },
+      { href: "/coaching/interesados", label: "Interesados", icon: UserPlus },
       { href: "/coaching/community", label: "Comunidad", icon: Trophy },
     ],
   },

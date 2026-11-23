@@ -29,6 +29,8 @@ export const CALENDAR_FIELDS = new Set([
   "payBy", "expectedOn",
   // Cobranza: día en que el cliente prometió pagar
   "promiseDate",
+  // Interesados: próximo contacto
+  "nextContactOn",
 ])
 
 /**

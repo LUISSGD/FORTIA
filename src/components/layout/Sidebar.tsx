@@ -22,6 +22,7 @@ import {
   HeartPulse,
   Target,
   HandCoins,
+  UserPlus,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils"
 const adminNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/coaching", label: "Coaching", icon: HeartPulse },
+  { href: "/coaching/interesados", label: "Interesados", icon: UserPlus },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
   { href: "/memberships", label: "Membresías", icon: CreditCard },
   { href: "/debts", label: "Deudas", icon: Landmark },

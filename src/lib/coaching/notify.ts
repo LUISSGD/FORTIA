@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { pushToClient, pushToCoaches } from "./push"
+import { pushToAdmins, pushToClient, pushToCoaches } from "./push"
 
 type NotifyInput = { type: string; title: string; body?: string | null; link?: string | null }
 
@@ -19,6 +19,12 @@ export async function notifyCoach(n: NotifyInput & { clientId?: string | null })
   })
   await pushToCoaches({ title: n.title, body: n.body, link: n.link, tag: n.type })
   return notification
+}
+
+/** Notificación en el panel del admin + push solo a los administradores (ventas, cobros). */
+export async function notifyAdmin(n: NotifyInput) {
+  await prisma.notification.create({ data: { audience: "COACH", type: n.type, title: n.title, body: n.body ?? null, link: n.link ?? null } })
+  await pushToAdmins({ title: n.title, body: n.body, link: n.link, tag: n.type })
 }
 
 /** Mensaje del staff (coach o entrenador) en el chat + notificación al cliente. */

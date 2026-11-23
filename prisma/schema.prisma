@@ -69,6 +69,7 @@ model Client {
   physicalRecords PhysicalRecord[]
   renewalSkips    RenewalProjectionSkip[]
   followUps       FollowUp[]
+  leads           Lead[]
   nutritionClients NutritionClient[]
 
   // Coaching
@@ -850,6 +851,7 @@ model TrialClass {
   createdByName String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  lead          Lead?
 
   @@index([trialDate])
 }
@@ -917,4 +919,36 @@ model MessageTemplate {
   key       String   @id
   text      String
   updatedAt DateTime @updatedAt
+}
+
+// Interesado (todavía no es cliente): embudo de ventas. La clase de prueba y la ficha de cliente se enlazan al avanzar.
+model Lead {
+  id            String      @id @default(cuid())
+  firstName     String
+  lastName      String?
+  phone         String? // normalizado con normalizePhone()
+  email         String?
+  goal          String?
+  daysPerWeek   Int?
+  planInterest  String?
+  source        String      @default("OTRO") // WEB | INSTAGRAM | WHATSAPP | REFERIDO | OTRO
+  referredBy    String?
+  stage         String      @default("NEW") // NEW | CONTACTED | TRIAL | WON | LOST
+  lostReason    String?
+  notes         String?
+  nextContactOn DateTime? // día de calendario
+  contactedAt   DateTime?
+  closedAt      DateTime? // cuándo pasó a alumno o a perdido
+  consentAt     DateTime? // aceptó la política de privacidad (formulario web)
+  ipHash        String? // solo para limitar envíos del formulario; se borra a las 24 h
+  trialId       String?     @unique
+  trial         TrialClass? @relation(fields: [trialId], references: [id], onDelete: SetNull)
+  clientId      String?
+  client        Client?     @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdByName String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([stage])
+  @@index([phone])
 }

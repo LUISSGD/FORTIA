@@ -80,6 +80,11 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   **Solo consulta** lo que hacen los clientes: no registra entrenamientos por ellos (decisión de Luis).
 - **Clases de prueba**: `TrialClass` (interesado, día, hora, entrenador, estado). Admin y entrenador las agendan
   (`/api/trainer/trials`); solo el admin las convierte en cliente (`/api/coaching/trials/[id]/convert`).
+- **Interesados** (`/coaching/interesados`, solo ADMIN): embudo `Lead` Nuevo → Contactado → Clase de prueba → Alumno/Perdido.
+  Reglas puras en `src/lib/coaching/lead-rules.ts`; `syncLeadFromTrial()` (`leads.ts`) enlaza y mueve de etapa desde las clases
+  de prueba (agendarla desde la agenda crea el interesado). Formulario web: `POST /api/public/leads`, única ruta abierta que
+  escribe (origen en `LEADS_ORIGINS`, consentimiento, campo trampa, 5 envíos por hora por conexión). La web todavía **no** lo
+  usa: falta completar su Política de privacidad. Avisos de ventas con `notifyAdmin()` (no llegan a los entrenadores).
 - **Duración del programa** (`src/lib/coaching/program-dates.ts`): la define el coach (4, 6, 8 semanas…),
   **no depende del pago**. `Program.startDate` + `Program.programEnd` (fecha de calendario; vacío = inicio +
   semanas × 7 − 1). Se edita en el editor de la rutina del cliente; se ve en los Resúmenes, en la lista de
