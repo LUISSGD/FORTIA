@@ -5,15 +5,22 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { signOut } from "next-auth/react"
-import { CalendarClock, HeartPulse, Dumbbell, Calendar, DollarSign, Users, LayoutDashboard, Settings, UserCog, LogOut } from "lucide-react"
+import { CalendarClock, HandCoins, HeartPulse, Sun, UserPlus, Dumbbell, Calendar, DollarSign, Users, LayoutDashboard, Settings, UserCog, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
+  { href: "/coaching/hoy", label: "Hoy", icon: Sun },
   { href: "/coaching/clients", label: "Clientes", icon: HeartPulse },
-  { href: "/coaching/programs", label: "Librería", icon: Dumbbell },
   { href: "/coaching/agenda", label: "Agenda", icon: Calendar },
   { href: "/coaching/vencimientos", label: "Vencen", icon: CalendarClock },
   { href: "/finances", label: "Finanzas", icon: DollarSign },
+]
+
+// Accesos del administrador que no caben abajo: se abren desde Perfil
+const adminMoreItems = [
+  { href: "/finances/cobranza", label: "Cobranza", icon: HandCoins },
+  { href: "/coaching/interesados", label: "Interesados", icon: UserPlus },
+  { href: "/coaching/programs", label: "Librería", icon: Dumbbell },
 ]
 
 const userNavItems = [
@@ -101,6 +108,17 @@ export default function BottomNav() {
 
             {/* Menu items */}
             <div className="py-2">
+              {role === "ADMIN" && adminMoreItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-3 px-5 py-3.5 text-sm text-gray-600 active:bg-gray-50"
+                >
+                  <item.icon className="h-5 w-5 text-gray-400 shrink-0" />
+                  {item.label}
+                </Link>
+              ))}
               <Link
                 href="/dashboard"
                 onClick={() => setProfileOpen(false)}

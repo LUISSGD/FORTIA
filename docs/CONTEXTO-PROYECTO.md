@@ -107,6 +107,10 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   7 días; "reactivar" solo para stand-by o "no renueva" (7 a 60 días). Cada paso queda en `FollowUp` (ciclo = fecha de
   vencimiento o id del pago con saldo); mensajes editados en `MessageTemplate`. Celulares: `normalizePhone()` (`src/lib/phone.ts`)
   y `whatsappUrl()` (`src/lib/utils.ts`). Precio: `renewalPrice()`, compartido con Proyección.
+- **Hoy / Resumen de la mañana** (`/coaching/hoy`, solo ADMIN): `buildDigest()` y `sendDigest()` en `src/lib/coaching/digest.ts`.
+  Sale una vez al día (`DailyDigest`) desde el cron de automatizaciones (13:00 UTC ≈ 8 a. m. en Lima) con `notifyAdmin()`: solo
+  cantidades, sin nombres ni montos. "En riesgo" **no** usa las alertas rojas (casi nadie registra entrenamientos y saldrían
+  todos): faltó a 2 clases EP en 14 días, o entrenaba en la app y lleva 10 días o más sin registrar.
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.
