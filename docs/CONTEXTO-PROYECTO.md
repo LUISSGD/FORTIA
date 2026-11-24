@@ -103,7 +103,7 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   `getRenewalProjection()` también devuelve los **saldos por cobrar** (pagos parciales que vencen en el mes; en el mes
   actual, también los vencidos): se suman al Proyectado y entran como ingreso en el Plan del mes.
 - **Cobranza** (`/finances/cobranza`, solo ADMIN): a quién escribir hoy por renovación o saldo, con el WhatsApp ya escrito
-  (lo envía Luis; nada se envía solo). Reglas puras en `src/lib/finance/collection-rules.ts`: activo vencido = se cobra cada
+  (lo envía Luis, salvo lo que envía el bot de WhatsApp: ver abajo). Reglas puras en `src/lib/finance/collection-rules.ts`: activo vencido = se cobra cada
   7 días; "reactivar" solo para stand-by o "no renueva" (7 a 60 días). Cada paso queda en `FollowUp` (ciclo = fecha de
   vencimiento o id del pago con saldo); mensajes editados en `MessageTemplate`. Celulares: `normalizePhone()` (`src/lib/phone.ts`)
   y `whatsappUrl()` (`src/lib/utils.ts`). Precio: `renewalPrice()`, compartido con Proyección.
@@ -117,6 +117,10 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   `personalTraining`), `payments` (renovación pagada con Culqi: registra pago + ingreso + membresía como el registro manual,
   idempotente por "Culqi <id>"), `busy` (EP, clases de prueba, coaching presencial y clases grupales con su entrenador: el bot no
   ofrece pruebas encima) y `trials` (crea/mueve/cancela clases de prueba con `createdByName` "Bot WhatsApp" y el interesado con su origen).
+  `collections`: el bot pide a quién escribir hoy por su renovación con `getCollections()` (pasos PRE, DUE, LATE y REACTIVATE; PROMISE y
+  saldos siguen siendo de Luis), envía el mensaje con su link de pago Culqi (EP y sin plan: sin link) y lo registra con POST como
+  `FollowUp` SENT de "Bot WhatsApp", así Cobranza no lo vuelve a proponer. `members` también devuelve `renewalPrice`/`personalTraining`
+  (`renewalInfo()`, mismas reglas que `renewalPrice()`).
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.

@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto"
 import { NextResponse } from "next/server"
 import { calendarYmd } from "@/lib/calendar"
+import { RENEWAL_SELECT, renewalPrice } from "@/lib/finance/renewals"
 
 // Rutas que usa el bot de WhatsApp (servidor propio). Se autentican con una clave compartida:
 // INTEGRATION_API_KEY en Vercel = RENEWALS_API_KEY en el bot. Sin la variable, todo responde 401.
@@ -48,4 +49,17 @@ export function toMember(c: MemberRow) {
     planPrice: c.membershipPlan?.price ?? null,
     durationDays: c.membershipPlan?.durationDays ?? null,
   }
+}
+
+// Precio y tipo de renovación con las mismas reglas que Cobranza y Proyección (renewalPrice)
+export const RENEWAL_INCLUDE = { trainingPlans: RENEWAL_SELECT.trainingPlans, payments: RENEWAL_SELECT.payments }
+
+type RenewalInput = Parameters<typeof renewalPrice>[0]
+
+/** Monto y nombre del plan a renovar, y si es entrenamiento personal (se renueva por paquete, no con link). */
+export function renewalInfo(c: RenewalInput) {
+  const { price, planName } = renewalPrice(c)
+  const ep = c.trainingPlans[0] ?? null
+  const lastMembership = c.payments.find((p) => p.income?.category === "MEMBERSHIP" && !(p.concept ?? "").startsWith("Saldo"))
+  return { price, planName, personalTraining: !!ep && (!lastMembership || ep.createdAt >= lastMembership.paidAt) }
 }
