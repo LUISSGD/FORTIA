@@ -111,6 +111,12 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   Sale una vez al día (`DailyDigest`) desde el cron de automatizaciones (13:00 UTC ≈ 8 a. m. en Lima) con `notifyAdmin()`: solo
   cantidades, sin nombres ni montos. "En riesgo" **no** usa las alertas rojas (casi nadie registra entrenamientos y saldrían
   todos): faltó a 2 clases EP en 14 días, o entrenaba en la app y lleva 10 días o más sin registrar.
+- **Bot de WhatsApp** (servidor propio en Google Cloud, repo aparte `fortia-whatsapp`): usa las rutas `src/app/api/integrations/**`,
+  abiertas en `auth.config.ts` y protegidas con la clave `INTEGRATION_API_KEY` (Vercel) = `RENEWALS_API_KEY` (bot), guard `botGuard()`
+  en `src/lib/integrations/bot.ts`. `members` (¿el celular es de un alumno?), `renewals` (vencen entre hoy+from y hoy+to; marca
+  `personalTraining`), `payments` (renovación pagada con Culqi: registra pago + ingreso + membresía como el registro manual,
+  idempotente por "Culqi <id>"), `busy` (EP, clases de prueba, coaching presencial y clases grupales con su entrenador: el bot no
+  ofrece pruebas encima) y `trials` (crea/mueve/cancela clases de prueba con `createdByName` "Bot WhatsApp" y el interesado con su origen).
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
 - **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
   tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.

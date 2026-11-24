@@ -49,6 +49,8 @@ export const authConfig: NextAuthConfig = {
       if (nextUrl.pathname === "/api/mercadopago/webhook") return true
       // Formulario de la web: solo crea interesados y valida origen, consentimiento y límite de envíos
       if (nextUrl.pathname === "/api/public/leads") return true
+      // Bot de WhatsApp (servidor propio): se autentica con INTEGRATION_API_KEY dentro de cada ruta
+      if (nextUrl.pathname.startsWith("/api/integrations/")) return true
       // Manifest e íconos de la PWA deben ser públicos para poder instalar la app
       if (PUBLIC_FILES.includes(nextUrl.pathname)) return true
       if (!isLoggedIn && !isLoginPage) return false
