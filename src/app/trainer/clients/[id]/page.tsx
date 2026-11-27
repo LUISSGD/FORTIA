@@ -8,7 +8,7 @@ import { requireTrainerPage } from "@/lib/coaching/auth"
 import { clientAchievements } from "@/lib/coaching/stats"
 import { formatYmd, toYmd } from "@/lib/coaching/dates"
 import { LEVELS, PROFILE_STATUS } from "@/lib/coaching/constants"
-import { getPersonalTraining, membershipInfo, type MembershipInfo } from "@/lib/coaching/personal-training"
+import { getPersonalTraining, membershipInfo, ptCounts, type MembershipInfo } from "@/lib/coaching/personal-training"
 import { calendarYmd } from "@/lib/calendar"
 import { trainingPlanName } from "@/lib/training-pricing"
 import { Panel, Stat } from "@/components/coaching/kit"
@@ -103,7 +103,7 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
 
       {tab === "summary" && (
         <>
-          <PlanCard membership={membership} ep={plan ? { used: plan.sessionsCompleted, total: plan.numPacks * plan.clasesPerPack, lastClass } : null} epHref={`/trainer/clients/${client.id}?tab=ep`} />
+          <PlanCard membership={membership} ep={plan ? { ...ptCounts(plan, plan.sessions), lastClass } : null} epHref={`/trainer/clients/${client.id}?tab=ep`} />
           <SummaryTab clientId={client.id} profile={profile} birthDate={client.birthDate} />
         </>
       )}
@@ -121,10 +121,10 @@ async function TrainerClientPage({ params, searchParams }: PageProps<"/trainer/c
             <p className="text-xs text-gray-500">{trainingPlanName(plan)}</p>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Clases</span>
-              <span className="font-medium">{plan.sessionsCompleted} / {plan.numPacks * plan.clasesPerPack}</span>
+              <span className="font-medium">{ptCounts(plan, plan.sessions).used} / {ptCounts(plan, plan.sessions).total} usadas</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div className="bg-orange-400 h-1.5 rounded-full" style={{ width: `${Math.min(100, (plan.sessionsCompleted / (plan.numPacks * plan.clasesPerPack)) * 100)}%` }} />
+              <div className="bg-orange-400 h-1.5 rounded-full" style={{ width: `${Math.min(100, (ptCounts(plan, plan.sessions).used / ptCounts(plan, plan.sessions).total) * 100)}%` }} />
             </div>
             {plan.scheduleSlots.length > 0 && (
               <p className="text-xs text-gray-400">

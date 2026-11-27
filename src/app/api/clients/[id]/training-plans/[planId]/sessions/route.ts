@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { syncMembershipWithTraining } from "@/lib/coaching/personal-training"
+import { recountPlan, syncMembershipWithTraining } from "@/lib/coaching/personal-training"
 import { addCalendarDays, calendarDate, calendarYmd, scheduleDates } from "@/lib/calendar"
 import { auth } from "@/lib/auth"
 import { parseStartTime } from "@/lib/session-time"
@@ -46,7 +46,8 @@ export async function POST(req: Request, { params }: Ctx) {
       notes: body.notes || null,
     },
   })
-  // La clase de reprogramación puede correr el vencimiento de la membresía
+  // La clase de reposición suma al total del paquete y puede correr el vencimiento de la membresía
+  await recountPlan(prisma, planId)
   await syncMembershipWithTraining(planId)
 
   const updatedPlan = await prisma.clientTrainingPlan.findUnique({
@@ -81,14 +82,9 @@ export async function DELETE(_req: Request, { params }: Ctx) {
     data: { attended: null, completedAt: null, trainer: null },
   })
 
-  const newSessionsCompleted = Math.max(0, plan.sessionsCompleted - 1)
-
-  const updated = await prisma.clientTrainingPlan.update({
+  await recountPlan(prisma, planId)
+  const updated = await prisma.clientTrainingPlan.findUniqueOrThrow({
     where: { id: planId },
-    data: {
-      sessionsCompleted: newSessionsCompleted,
-      status: plan.status === "COMPLETED" ? "ACTIVE" : plan.status,
-    },
     include: {
       sessions: { orderBy: [{ isRescheduled: "asc" }, { sessionNumber: "asc" }] },
       scheduleSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
