@@ -10,13 +10,12 @@ import {
   Salad,
   TrendingUp,
   CheckSquare,
-  DollarSign,
   MessageSquare,
   FileText,
   Settings2,
 } from "lucide-react"
 import { getClientsOverview, clientAchievements } from "@/lib/coaching/stats"
-import { formatYmd, lastNDays, periodLabel, todayYmd, toYmd, dateTimeLima } from "@/lib/coaching/dates"
+import { formatYmd, lastNDays, todayYmd, toYmd, dateTimeLima } from "@/lib/coaching/dates"
 import { LEVELS, PROFILE_STATUS } from "@/lib/coaching/constants"
 import { optionMacros, roundMacros } from "@/lib/coaching/nutrition"
 import { fmtKg } from "@/lib/coaching/workout"
@@ -30,8 +29,6 @@ import TrainingTab from "@/components/coaching/client-tabs/TrainingTab"
 import CheckInsTab from "@/components/coaching/client-tabs/CheckInsTab"
 import ChatTab from "@/components/coaching/client-tabs/ChatTab"
 import PhotoCompare from "@/components/coaching/PhotoCompare"
-import PaymentsTable from "@/components/coaching/PaymentsTable"
-import { mpEnabled } from "@/lib/coaching/mercadopago"
 import DocumentsManager from "@/components/coaching/DocumentsManager"
 import RenewalBadge from "@/components/clients/RenewalBadge"
 import ProgramEndLine from "@/components/coaching/ProgramEndLine"
@@ -48,7 +45,6 @@ const TABS = [
   ["nutrition", "Nutrición", Salad],
   ["progress", "Progreso", TrendingUp],
   ["checkins", "Check-ins", CheckSquare],
-  ["payments", "Pagos", DollarSign],
   ["chat", "Chat", MessageSquare],
   ["documents", "Documentos", FileText],
   ["settings", "Ajustes", Settings2],
@@ -161,7 +157,6 @@ export default async function CoachingClientPage({ params, searchParams }: PageP
           {tab === "nutrition" && <NutritionTab clientId={id} profile={profile} />}
           {tab === "progress" && <ProgressTab clientId={id} />}
           {tab === "checkins" && <CheckInsTab clientId={id} />}
-          {tab === "payments" && <PaymentsTab clientId={id} profile={profile} />}
           {tab === "chat" && <ChatTab clientId={id} showNutrition nutrition={sp.canal === "nutricion"} />}
           {tab === "documents" && <DocumentsTab clientId={id} />}
           {tab === "settings" && (
@@ -488,31 +483,6 @@ async function ProgressTab({ clientId }: { clientId: string }) {
           <PhysicalTrackingSection clientId={clientId} initialRecords={records.map((r) => ({ ...r, date: r.date.toISOString(), createdAt: r.createdAt.toISOString() }))} />
         </Panel>
       </div>
-    </div>
-  )
-}
-
-// ── Pagos ───────────────────────────────────────────────────────────
-
-async function PaymentsTab({ clientId, profile }: { clientId: string; profile: Profile }) {
-  const payments = await prisma.coachingPayment.findMany({ where: { clientId }, orderBy: { period: "desc" }, include: { client: { select: { firstName: true, lastName: true } } } })
-  const paid = payments.filter((p) => p.status === "PAID")
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Plan" value={<span className="text-base">{profile.planName ?? "—"}</span>} />
-        <Stat label="Precio" value={profile.price ? `${profile.currency === "USD" ? "$" : "S/"}${profile.price}` : "—"} hint="por mes" />
-        <Stat label="Último pago" value={<span className="text-base">{paid[0]?.paidAt ? formatYmd(toYmd(paid[0].paidAt), true) : "—"}</span>} />
-        <Stat label="Total pagado" value={`S/${paid.reduce((a, p) => a + p.amount, 0).toLocaleString("es-PE")}`} tone="green" />
-      </div>
-      <Panel title="Historial de mensualidades">
-        <PaymentsTable
-          mpEnabled={mpEnabled()}
-          clientId={clientId}
-          defaultAmount={profile.price ?? 0}
-          payments={payments.map((p) => ({ id: p.id, clientId: p.clientId, clientName: `${p.client.firstName} ${p.client.lastName}`, period: p.period, periodLabel: periodLabel(p.period), amount: p.amount, currency: p.currency, status: p.status, dueDate: toYmd(p.dueDate), paidAt: p.paidAt ? toYmd(p.paidAt) : null, method: p.method }))}
-        />
-      </Panel>
     </div>
   )
 }

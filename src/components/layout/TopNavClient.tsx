@@ -92,7 +92,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/finances/obligaciones", label: "Obligaciones", icon: AlertCircle },
       { href: "/finances/plan", label: "Plan del mes", icon: Target },
       { href: "/finances/proyeccion", label: "Proyección", icon: TrendingUp },
-      { href: "/coaching/payments", label: "Mensualidades", icon: CreditCard },
       { href: "/coaching/messages", label: "Mensajes", icon: MessageSquare },
     ],
   },

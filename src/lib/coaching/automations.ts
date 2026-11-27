@@ -53,13 +53,6 @@ export const AUTOMATION_DEFAULTS: Record<string, { label: string; description: s
     channel: "NOTIFICATION",
     message: "Tu sesión es mañana a las {hora}. ¡Te espero! 📅",
   },
-  PAYMENT_REMINDER: {
-    label: "Recordatorio de pago",
-    description: "N días antes del vencimiento de la mensualidad.",
-    days: 3,
-    channel: "NOTIFICATION",
-    message: "Hola {nombre}, tu mensualidad de {monto} vence el {fecha}. ¡Gracias! 🙌",
-  },
 }
 
 export async function ensureAutomationRules() {
@@ -178,18 +171,6 @@ export async function runAutomations() {
     }
   }
 
-  const payment = byType.get("PAYMENT_REMINDER")
-  if (payment) {
-    const limit = addDaysYmd(today, payment.days ?? 3)
-    const pending = await prisma.coachingPayment.findMany({
-      where: { status: "PENDING", dueDate: { gte: new Date(`${today}T00:00:00-05:00`), lte: new Date(`${limit}T23:59:59-05:00`) } },
-      include: { client: { select: { firstName: true } } },
-    })
-    for (const pay of pending) {
-      const vars = { nombre: pay.client.firstName, monto: `${pay.currency === "USD" ? "$" : "S/"} ${pay.amount.toFixed(0)}`, fecha: formatYmd(toYmd(pay.dueDate)) }
-      if (await fire(payment, pay.clientId, `PAYMENT_REMINDER:${pay.id}`, vars, "Recordatorio de pago", "/app/profile")) sent++
-    }
-  }
 
   return { sent, clients: profiles.length }
 }
