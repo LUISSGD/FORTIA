@@ -115,6 +115,11 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   7 días; "reactivar" solo para stand-by o "no renueva" (7 a 60 días). Cada paso queda en `FollowUp` (ciclo = fecha de
   vencimiento o id del pago con saldo); mensajes editados en `MessageTemplate`. Celulares: `normalizePhone()` (`src/lib/phone.ts`)
   y `whatsappUrl()` (`src/lib/utils.ts`). Precio: `renewalPrice()`, compartido con Proyección.
+  **Dos vías que no se mezclan** (pestañas Membresías / Personalizados, `?vista=personalizados`): si `renewalPrice().isTraining`
+  (su último plan es un paquete EP), no entra por fecha de membresía; va por clases con `ptStep()` sobre las filas de `getPtPanel()`:
+  PRE = estado renew, DUE = terminó hace <7 días, LATE = 7 a 60 días (semanal). `FollowUp` kind "PT", ciclo = id del paquete;
+  mensajes `PT_PRE/PT_DUE/PT_LATE` con `{clases}`. Saldos: área PT si el ingreso es PERSONAL_TRAINING. El bot solo toma kind RENEWAL
+  (membresías), así que nunca escribe a personalizados.
 - **Hoy / Resumen de la mañana** (`/coaching/hoy`, solo ADMIN): `buildDigest()` y `sendDigest()` en `src/lib/coaching/digest.ts`.
   Sale una vez al día (`DailyDigest`) desde el cron de automatizaciones (13:00 UTC ≈ 8 a. m. en Lima) con `notifyAdmin()`: solo
   cantidades, sin nombres ni montos. "En riesgo" **no** usa las alertas rojas (casi nadie registra entrenamientos y saldrían

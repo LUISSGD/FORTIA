@@ -28,7 +28,6 @@ type View = (typeof VIEWS)[number]["key"]
 
 /** Qué se hizo con la renovación (solo el administrador lo ve). */
 function followUpText(r: PtRow): string | null {
-  if (r.skipped) return "Marcado: no renueva"
   const f = r.followUp
   if (!f) return null
   if (f.outcome === "DISMISSED") return "Marcado: no renueva"
@@ -151,7 +150,7 @@ export default function PtPanel({ rows, trainers, withMoney, initialTrainer }: {
           })}
         </ul>
       )}
-      {withMoney && <p className="text-xs text-gray-400">Para escribirles, usa <Link href="/finances/cobranza" className="underline">Cobranza</Link>: ahí queda registrado a quién le escribiste.</p>}
+      {withMoney && <p className="text-xs text-gray-400">Para escribirles, usa <Link href="/finances/cobranza?vista=personalizados" className="underline">Cobranza → Personalizados</Link>: ahí queda registrado a quién le escribiste.</p>}
     </div>
   )
 }
