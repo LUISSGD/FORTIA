@@ -135,8 +135,8 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   `FollowUp` SENT de "Bot WhatsApp", así Cobranza no lo vuelve a proponer. `members` también devuelve `renewalPrice`/`personalTraining`
   (`renewalInfo()`, mismas reglas que `renewalPrice()`).
 - **Chat**: canales COACHING y NUTRITION con autor (`CoachMessage.authorName`).
-- **Mensualidades de coaching** (`CoachingPayment`): solo para clientes con precio en el perfil. Hoy nadie
-  tiene precio: se cobra por la membresía; no usar "Generar mensualidades" sin precio configurado.
+- **Mensualidades de coaching: quitadas** (27/11/2026). Generaban cobros de S/ 600 inventados y los alumnos los veían en su app.
+  Los cobros del gimnasio van solo por Pagos/Cobranza. `/coaching/payments` redirige a Cobranza; la tabla `CoachingPayment` queda vacía y sin uso.
 - **Accesos del staff** (rol USER): `src/lib/staff-access.ts` es el catálogo de módulos con sus páginas **y** APIs (todo lo que no esté
   activo queda cerrado); se valida en `authorized` de `src/lib/auth.ts` leyendo `StaffAccess` en cada pedido (vale al instante; si la
   base falla, no abre nada). El admin los cambia en Usuarios → Accesos. **Pantalla o API nueva para el staff: agregarla al catálogo**;

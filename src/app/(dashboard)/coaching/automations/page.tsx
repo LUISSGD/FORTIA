@@ -20,7 +20,7 @@ export default async function AutomationsPage() {
         </p>
       </div>
       <AutomationsEditor
-        rules={[...rules].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)).map((r) => ({ id: r.id, type: r.type, enabled: r.enabled, days: r.days, channel: r.channel, message: r.message, label: AUTOMATION_DEFAULTS[r.type]?.label ?? r.type, description: AUTOMATION_DEFAULTS[r.type]?.description ?? "", hasDays: AUTOMATION_DEFAULTS[r.type]?.days !== null }))}
+        rules={rules.filter((r) => r.type in AUTOMATION_DEFAULTS).sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)).map((r) => ({ id: r.id, type: r.type, enabled: r.enabled, days: r.days, channel: r.channel, message: r.message, label: AUTOMATION_DEFAULTS[r.type]?.label ?? r.type, description: AUTOMATION_DEFAULTS[r.type]?.description ?? "", hasDays: AUTOMATION_DEFAULTS[r.type]?.days !== null }))}
       />
       <Panel title="Últimos envíos automáticos">
         {logs.length === 0 ? (

@@ -12,7 +12,6 @@ const ITEMS = [
   { href: "/coaching/nutrition", label: "🥗 Nutrición" },
   { href: "/coaching/agenda", label: "📅 Agenda" },
   { href: "/coaching/finances", label: "💰 Finanzas" },
-  { href: "/coaching/payments", label: "💳 Mensualidades" },
   { href: "/coaching/messages", label: "💬 Mensajes" },
   { href: "/coaching/documents", label: "📄 Documentos" },
   { href: "/coaching/community", label: "🏆 Comunidad" },

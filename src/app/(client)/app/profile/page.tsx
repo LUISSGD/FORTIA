@@ -2,32 +2,25 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getClientSession } from "@/lib/coaching/auth"
-import { formatYmd, periodLabel, toYmd, todayYmd } from "@/lib/coaching/dates"
-import { Card, SectionTitle } from "@/components/coaching/app/ui"
-import { Suspense } from "react"
+import { formatYmd, toYmd } from "@/lib/coaching/dates"
+import { Card } from "@/components/coaching/app/ui"
 import ProfileActions from "@/components/coaching/app/ProfileActions"
 import ProfileInfo from "@/components/coaching/app/ProfileInfo"
 import { getLatestWeight } from "@/lib/coaching/client-data"
-import { PayOnlineButton, PaymentReturn } from "@/components/coaching/app/PayOnline"
-import { mpEnabled } from "@/lib/coaching/mercadopago"
 
 export default async function ProfilePage({ searchParams }: PageProps<"/app/profile">) {
   const sp = await searchParams
   const ctx = await getClientSession()
   if (!ctx) redirect("/login")
-  const [client, payments, weight] = await Promise.all([
+  const [client, weight] = await Promise.all([
     prisma.client.findUnique({ where: { id: ctx.clientId }, include: { coachingProfile: true, user: { select: { email: true } } } }),
-    prisma.coachingPayment.findMany({ where: { clientId: ctx.clientId }, orderBy: { period: "desc" }, take: 6 }),
     getLatestWeight(ctx.clientId),
   ])
   if (!client) redirect("/login")
   const p = client.coachingProfile
-  const pending = payments.find((x) => x.status === "PENDING")
-  const today = todayYmd()
 
   return (
     <div className="space-y-4">
-      <Suspense><PaymentReturn /></Suspense>
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 rounded-full bg-orange-500 flex items-center justify-center text-xl font-black">{client.firstName[0]}{client.lastName[0]}</div>
         <div>
@@ -52,33 +45,6 @@ export default async function ProfilePage({ searchParams }: PageProps<"/app/prof
           injuries: p?.injuries ?? "",
         }}
       />
-
-      <Card>
-        <SectionTitle emoji="💳">Tu plan</SectionTitle>
-        {p?.price ? <p className="text-sm text-gray-400">{p.currency === "USD" ? "$" : "S/"}{p.price} / mes</p> : null}
-        <div className="mt-3 flex items-center justify-between rounded-xl bg-gray-50 p-3">
-          <span className="text-sm">Estado</span>
-          {pending ? (
-            <span className={toYmd(pending.dueDate) < today ? "text-red-500 font-bold text-sm" : "text-amber-600 font-bold text-sm"}>
-              {toYmd(pending.dueDate) < today ? "🔴 VENCIDO" : "⏳ PENDIENTE"}
-            </span>
-          ) : payments.length ? <span className="text-emerald-600 font-bold text-sm">🟢 PAGADO</span> : <span className="text-gray-400 text-sm">—</span>}
-        </div>
-        {pending && <p className="text-xs text-gray-400 mt-2">Próximo pago: {formatYmd(toYmd(pending.dueDate), true)} · {pending.currency === "USD" ? "$" : "S/"}{pending.amount}</p>}
-        {pending && mpEnabled() && <PayOnlineButton paymentId={pending.id} label={`Pagar ${pending.currency === "USD" ? "$" : "S/"}${pending.amount} con Mercado Pago`} />}
-        {payments.length > 0 && (
-          <table className="w-full text-sm mt-3">
-            <tbody className="divide-y divide-gray-100">
-              {payments.map((x) => (
-                <tr key={x.id}>
-                  <td className="py-1.5">{periodLabel(x.period)}</td>
-                  <td className="py-1.5 text-right">{x.status === "PAID" ? "✅" : "⏳"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
 
       <div className="grid grid-cols-2 gap-3">
         {[
