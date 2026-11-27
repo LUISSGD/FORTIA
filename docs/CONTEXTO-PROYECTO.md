@@ -71,6 +71,10 @@ Léelo completo antes de cambiar algo. Si cambias una regla o agregas un módulo
   - **Clases del mes por entrenador** (comisiones): `/trainer/clases` y `/coaching/agenda/clases` (`getTrainerMonth`,
     `src/lib/coaching/trainer-month.ts`): dadas, no asistió, sin marcar, por dar y pruebas. Al marcar asistencia se guarda
     `TrainingSession.trainer` (`planTrainer()`), así reasignar al cliente no mueve las clases ya dadas.
+  - **Panel de clases personalizadas** (`/training-plans`, "Entrena. Personal"; `getPtPanel()` en `src/lib/coaching/pt-panel.ts`): un paquete
+    por alumno (el vigente o el último terminado hace ≤45 días), quedan = total − asistidas (las faltas no descuentan), filtro por entrenador
+    (`?entrenador=`). Estados (`ptState()`): terminó sin renovar, por renovar (≤2 clases o última clase en ≤7 días), revisar (su última
+    clase agendada ya pasó y le quedan más), renovó (≤14 días), al día. El admin ve monto de renovación y lo hecho en Cobranza; el staff no.
   - Entrenador asignado: `Client.trainer` ∈ `TRAINERS` (Julio, Piero) con colores en `src/lib/trainers.ts`;
     se ve en las agendas y en Hoy.
 - **Parejas**: la 2ª persona tiene su propia ficha con `Client.partnerOfId` → ficha principal, que conserva
