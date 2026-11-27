@@ -779,6 +779,7 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
           const pending = plan.sessions.filter(s => (s.attended ?? (s.completedAt ? true : null)) === null).length
 
           // Pack progress for header
+          // Las faltas también descuentan la clase (sessionsCompleted = clases usadas)
           const currentPack = Math.min(Math.floor(plan.sessionsCompleted / plan.clasesPerPack) + 1, plan.numPacks)
           const isCompleted = plan.status === "COMPLETED"
 
@@ -830,7 +831,7 @@ export default function PersonalTrainingSection({ clientId, initialPlans }: Prop
                   <span className="text-green-600 font-medium">{attended}</span> asistidas
                   {" · "}
                   <span className="text-gray-400">{pending}</span> pendientes
-                  {missed > 0 && <><span> · </span><span className="text-red-400">{missed}</span> no asistidas</>}
+                  {missed > 0 && <><span> · </span><span className="text-red-400">{missed}</span> no asistió (descontadas)</>}
                 </span>
               </div>
 

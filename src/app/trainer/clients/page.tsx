@@ -1,3 +1,4 @@
+import { ptCounts } from "@/lib/coaching/personal-training"
 import Link from "next/link"
 import { ChevronRight, MessageSquare, CheckSquare, Search } from "lucide-react"
 import { prisma } from "@/lib/prisma"
@@ -24,7 +25,7 @@ async function TrainerClientsPage({ searchParams }: PageProps<"/trainer/clients"
     prisma.clientTrainingPlan.findMany({
       where: { clientId: { in: ids }, status: { in: ["ACTIVE", "PAUSED", "COMPLETED"] } },
       orderBy: { createdAt: "desc" },
-      select: { clientId: true, status: true, sessionsCompleted: true, numPacks: true, clasesPerPack: true, sessions: { where: { attended: null, scheduledDate: { gte: new Date() } }, orderBy: { scheduledDate: "asc" }, take: 1, select: { scheduledDate: true } } },
+      select: { clientId: true, status: true, sessionsCompleted: true, numPacks: true, clasesPerPack: true, sessions: { select: { scheduledDate: true, attended: true, completedAt: true, isRescheduled: true } } },
     }),
   ])
 
@@ -60,8 +61,8 @@ async function TrainerClientsPage({ searchParams }: PageProps<"/trainer/clients"
       ) : (
         <ul className="divide-y divide-gray-100 rounded-xl border border-gray-100 overflow-hidden">
           {rows.map((c) => {
-            const ptTotal = c.pt ? c.pt.numPacks * c.pt.clasesPerPack : 0
-            const nextPt = c.pt?.sessions[0]?.scheduledDate
+            const ptc = c.pt ? ptCounts(c.pt, c.pt.sessions) : null
+            const nextPt = c.pt?.sessions.filter((s) => s.attended === null && !s.completedAt && s.scheduledDate && s.scheduledDate >= new Date()).map((s) => s.scheduledDate!).sort((a, b) => a.getTime() - b.getTime())[0]
             return (
               <li key={c.id}>
                 <Link href={`/trainer/clients/${c.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
@@ -86,7 +87,7 @@ async function TrainerClientsPage({ searchParams }: PageProps<"/trainer/clients"
                       {c.lastWorkout ? `Último entreno ${formatYmd(c.lastWorkout, true)}` : "Sin entrenamientos"}
                       {` · ${c.workoutsLast7}/${c.trainingDays} esta semana`}
                       {c.trainingAdherence !== null && ` (${c.trainingAdherence}%)`}
-                      {c.pt && ` · EP ${c.pt.sessionsCompleted}/${ptTotal}${c.pt.status === "COMPLETED" ? " ✓ completado" : ""}`}
+                      {c.pt && ` · EP ${ptc!.used}/${ptc!.total}${c.pt.status === "COMPLETED" ? " ✓ completado" : ""}`}
                       {nextPt && ` · próxima clase ${formatYmd(toYmd(nextPt), true)}`}
                     </p>
                   </div>

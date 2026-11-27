@@ -4,9 +4,10 @@ import { trainingPlanName } from "@/lib/training-pricing"
 import { TRAINERS, UNASSIGNED_TRAINER } from "@/lib/trainers"
 import { RENEWAL_SELECT, renewalPrice } from "@/lib/finance/renewals"
 import { addDaysYmd, diffDaysYmd, todayYmd, toYmd } from "./dates"
+import { ptCounts } from "./personal-training"
 
 // Panel de clases personalizadas: cuántas clases le quedan a cada alumno y cómo va su renovación, por entrenador.
-// Las faltas ("no asistió") no descuentan clases: quedan = total del paquete − clases asistidas.
+// Las faltas ("no asistió") descuentan la clase igual que una asistencia: quedan = total − clases marcadas (ptCounts).
 
 /** Quedan estas clases o menos, o su última clase es en esta cantidad de días o menos: toca renovar. */
 export const RENEW_CLASSES = 2
@@ -64,7 +65,7 @@ export async function getPtPanel({ withMoney }: { withMoney: boolean }) {
     select: {
       id: true, clientId: true, status: true, createdAt: true, updatedAt: true, numPacks: true, clasesPerPack: true, sessionsCompleted: true,
       tipoEntrenador: true, modalidad: true, tarifa: true,
-      sessions: { select: { scheduledDate: true, attended: true, completedAt: true } },
+      sessions: { select: { scheduledDate: true, attended: true, completedAt: true, isRescheduled: true } },
       client: {
         select: {
           id: true, firstName: true, lastName: true, trainer: true, membershipEnd: true,
@@ -91,14 +92,14 @@ export async function getPtPanel({ withMoney }: { withMoney: boolean }) {
 
   const rows: PtRow[] = current.map((p) => {
     const c = p.client
-    const total = p.numPacks * p.clasesPerPack
-    const used = Math.min(p.sessionsCompleted, total)
+    const { total, used, attended } = ptCounts(p, p.sessions)
     const dated = p.sessions.filter((s) => s.scheduledDate).map((s) => ({ d: calendarYmd(s.scheduledDate!), ok: s.attended ?? (s.completedAt ? true : null) }))
     const pending = dated.filter((s) => s.ok === null).map((s) => s.d).sort()
     const lastAttended = dated.filter((s) => s.ok === true).map((s) => s.d).sort().at(-1) ?? null
     const last = p.status === "COMPLETED" ? lastAttended ?? toYmd(p.updatedAt) : dated.map((s) => s.d).sort().at(-1) ?? null
     const renewedOn = (planCount.get(p.clientId) ?? 0) > 1 && p.status !== "COMPLETED" && toYmd(p.createdAt) >= addDaysYmd(today, -RENEWED_DAYS) ? toYmd(p.createdAt) : null
     const remaining = p.status === "COMPLETED" ? 0 : Math.max(0, total - used)
+    void attended
     const daysToLast = last ? diffDaysYmd(last, today) : null
     const cycle = c.membershipEnd ? calendarYmd(c.membershipEnd) : null
     const f = cycle ? followUps.find((x) => x.clientId === c.id && x.cycleKey === cycle) : undefined

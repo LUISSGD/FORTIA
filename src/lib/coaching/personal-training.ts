@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma"
+import { prisma, type Tx } from "@/lib/prisma"
 import { diffDaysYmd, todayYmd, toYmd, ymdToDate } from "./dates"
 import { addCalendarDays, calendarDate, calendarYmd, scheduleDates } from "@/lib/calendar"
 import { notifyClient, notifyCoach } from "./notify"
@@ -107,6 +107,30 @@ export async function assignPlanScheduleDates(planId: string, startDate?: Date |
 const isAttended = (s: { attended: boolean | null; completedAt: Date | null }) => s.attended ?? (s.completedAt ? true : null)
 
 /**
+ * Clases de un paquete. Regla de FORTIA: una clase marcada se descuenta, asista o no (la falta se pierde).
+ * Las clases de reposición que agrega el coach ("Agregar reprogramación") suman al total.
+ */
+export function ptCounts(plan: { numPacks: number; clasesPerPack: number }, sessions: { attended: boolean | null; completedAt: Date | null; isRescheduled: boolean }[]) {
+  const total = plan.numPacks * plan.clasesPerPack + sessions.filter((s) => s.isRescheduled).length
+  const attended = sessions.filter((s) => isAttended(s) === true).length
+  const missed = sessions.filter((s) => isAttended(s) === false).length
+  const used = attended + missed
+  return { total, used, attended, missed, remaining: Math.max(0, total - used) }
+}
+
+/**
+ * Recalcula las clases usadas y el estado del paquete después de marcar, deshacer o agregar clases.
+ * `reactivate: false` no reabre un paquete ya terminado (para corregir datos antiguos).
+ */
+export async function recountPlan(db: Pick<Tx, "clientTrainingPlan">, planId: string, opts: { reactivate?: boolean } = {}) {
+  const p = await db.clientTrainingPlan.findUniqueOrThrow({ where: { id: planId }, select: { status: true, numPacks: true, clasesPerPack: true, sessions: { select: { attended: true, completedAt: true, isRescheduled: true } } } })
+  const c = ptCounts(p, p.sessions)
+  const status = c.used >= c.total ? "COMPLETED" : p.status === "COMPLETED" && opts.reactivate !== false ? "ACTIVE" : p.status
+  await db.clientTrainingPlan.update({ where: { id: planId }, data: { sessionsCompleted: c.used, status } })
+  return c
+}
+
+/**
  * Con entrenamiento personalizado, la membresía vence el día de la última clase del paquete activo
  * (incluye reprogramaciones). Se llama al crear o renovar un paquete y al mover fechas de clases.
  * `reactivate`: un paquete nuevo pagado vuelve a activar al cliente que estaba en stand-by.
@@ -140,8 +164,7 @@ export async function getPersonalTraining(clientId: string) {
   })
   if (!plan) return null
   const today = todayYmd()
-  const total = plan.numPacks * plan.clasesPerPack
-  const used = Math.min(plan.sessionsCompleted, total)
+  const { total, used, remaining } = ptCounts(plan, plan.sessions)
   const attended = plan.sessions
     .filter((s) => isAttended(s) === true)
     .map((s) => ({ id: s.id, date: sessionYmd(s), byClient: s.notes === APP_SESSION_NOTE }))
@@ -159,7 +182,7 @@ export async function getPersonalTraining(clientId: string) {
     tipoEntrenador: plan.tipoEntrenador,
     total,
     used,
-    remaining: Math.max(0, total - used),
+    remaining,
     startedAt: plan.currentPackStart ? calendarYmd(plan.currentPackStart) : toYmd(plan.createdAt),
     schedule: plan.scheduleSlots.map((s) => ({ dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime })),
     attended,
@@ -184,8 +207,7 @@ export async function registerClientSession(clientId: string) {
       orderBy: { createdAt: "desc" },
     })
     if (!plan) throw new PTError("No tienes un paquete de entrenamiento personal activo. Habla con tu coach.")
-    const total = plan.numPacks * plan.clasesPerPack
-    if (plan.sessionsCompleted >= total) throw new PTError("Ya usaste todas las clases de tu paquete. Habla con tu coach para renovarlo.")
+    if (ptCounts(plan, plan.sessions).remaining <= 0) throw new PTError("Ya usaste todas las clases de tu paquete. Habla con tu coach para renovarlo.")
     if (plan.sessions.some((s) => isAttended(s) === true && sessionYmd(s) === today)) {
       throw new PTError("Tu clase de hoy ya está registrada ✅")
     }
@@ -209,12 +231,8 @@ export async function registerClientSession(clientId: string) {
       where: { id: target.id },
       data: { attended: true, completedAt: new Date(), scheduledDate: ymdToDate(today), notes: APP_SESSION_NOTE, trainer: (await tx.client.findUnique({ where: { id: plan.clientId }, select: { trainer: true } }))?.trainer ?? null },
     })
-    const sessionsCompleted = plan.sessionsCompleted + 1
-    await tx.clientTrainingPlan.update({
-      where: { id: plan.id },
-      data: { sessionsCompleted, status: sessionsCompleted >= total ? "COMPLETED" : plan.status },
-    })
-    return { total, used: sessionsCompleted, remaining: total - sessionsCompleted }
+    const c = await recountPlan(tx, plan.id)
+    return { total: c.total, used: c.used, remaining: c.remaining }
   }).catch((e) => {
     if (e instanceof PTError) return { error: e.message }
     throw e
@@ -265,11 +283,7 @@ export async function undoClientSession(clientId: string) {
     const session = plan?.sessions.find((s) => s.completedAt && toYmd(s.completedAt) === today)
     if (!plan || !session) return { error: "Solo puedes deshacer la clase que registraste hoy." }
     await tx.trainingSession.update({ where: { id: session.id }, data: { attended: null, completedAt: null, notes: null, trainer: null } })
-    const sessionsCompleted = Math.max(0, plan.sessionsCompleted - 1)
-    await tx.clientTrainingPlan.update({
-      where: { id: plan.id },
-      data: { sessionsCompleted, status: plan.status === "COMPLETED" ? "ACTIVE" : plan.status },
-    })
+    await recountPlan(tx, plan.id)
     return { ok: true }
   })
 }

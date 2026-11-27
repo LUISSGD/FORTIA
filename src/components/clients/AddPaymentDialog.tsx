@@ -75,7 +75,7 @@ export default function AddPaymentDialog({ clientId, clientName, plans, currentP
     fetch(`/api/clients/${clientId}/training-plans`)
       .then((r) => (r.ok ? r.json() : []))
       .then((plans: { status: string; sessionsCompleted: number; numPacks: number; clasesPerPack: number }[]) => {
-        const active = plans.some((p) => p.status === "ACTIVE" && p.sessionsCompleted < p.numPacks * p.clasesPerPack)
+        const active = plans.some((p) => p.status === "ACTIVE")
         setHasActivePlan(active)
         setCreatePlan(!active)
       })

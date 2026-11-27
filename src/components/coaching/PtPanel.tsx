@@ -67,7 +67,7 @@ export default function PtPanel({ rows, trainers, withMoney, initialTrainer }: {
     <div className="mx-auto w-full max-w-5xl space-y-4">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Clases personalizadas</h1>
-        <p className="text-sm text-gray-500">Cuántas clases le quedan a cada alumno y quién tiene que renovar. Las faltas no descuentan clases. “Revisar” = tiene clases pasadas sin marcar o ninguna agendada.</p>
+        <p className="text-sm text-gray-500">Cuántas clases le quedan a cada alumno y quién tiene que renovar. Una falta descuenta la clase igual que una asistencia. “Revisar” = tiene clases pasadas sin marcar o ninguna agendada.</p>
       </div>
 
       <div className={cn("grid gap-2", trainers.length > 2 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 sm:grid-cols-3")}>
@@ -126,7 +126,7 @@ export default function PtPanel({ rows, trainers, withMoney, initialTrainer }: {
                   <div className="mt-2.5">
                     <div className="flex items-baseline justify-between text-sm">
                       <span className="font-bold tabular-nums text-gray-900">Quedan {r.remaining} <span className="font-normal text-gray-500">de {r.total}</span></span>
-                      <span className="text-xs tabular-nums text-gray-500">{r.used} asistidas</span>
+                      <span className="text-xs tabular-nums text-gray-500">{r.used} usadas</span>
                     </div>
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className={cn("h-full rounded-full", r.state === "renew" ? "bg-amber-500" : "bg-gray-800")} style={{ width: `${pct}%` }} /></div>
                   </div>
@@ -137,7 +137,7 @@ export default function PtPanel({ rows, trainers, withMoney, initialTrainer }: {
                   {last && <p>{last}</p>}
                   {(r.noShows > 0 || r.unmarked > 0) && (
                     <p>
-                      {r.noShows > 0 && <span>Faltó {r.noShows} {r.noShows === 1 ? "vez" : "veces"}</span>}
+                      {r.noShows > 0 && <span>Faltó {r.noShows} {r.noShows === 1 ? "vez" : "veces"} (descontadas)</span>}
                       {r.noShows > 0 && r.unmarked > 0 && " · "}
                       {r.unmarked > 0 && <span className="font-medium text-amber-700">{r.unmarked} sin marcar</span>}
                     </p>

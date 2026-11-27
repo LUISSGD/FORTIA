@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { VISIBLE_SESSIONS } from "@/lib/coaching/personal-training"
+import { ptCounts, VISIBLE_SESSIONS } from "@/lib/coaching/personal-training"
 import { AlertTriangle, CheckSquare, ChevronDown, History, MessageSquare, Video, MapPin } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { cn } from "@/lib/utils"
@@ -37,7 +37,7 @@ async function TrainerTodayPage() {
       include: {
         plan: {
           select: {
-            numPacks: true, clasesPerPack: true, sessionsCompleted: true,
+            numPacks: true, clasesPerPack: true, sessionsCompleted: true, sessions: { select: { attended: true, completedAt: true, isRescheduled: true } },
             scheduleSlots: { select: { dayOfWeek: true, startTime: true } },
             client: { select: { ...person, trainer: true, partner: { select: person } } },
           },
@@ -70,12 +70,12 @@ async function TrainerTodayPage() {
 
   const classes = sessions
     .map((s) => {
-      const total = s.plan.numPacks * s.plan.clasesPerPack
+      const { total, remaining } = ptCounts(s.plan, s.plan.sessions)
       return {
         id: s.id,
         number: s.sessionNumber,
         total,
-        remaining: total - s.plan.sessionsCompleted,
+        remaining,
         attended: s.attended ?? (s.completedAt ? true : null),
         time: sessionTime({ startTime: s.startTime, scheduledYmd: today }, s.plan.scheduleSlots),
         persons: [s.plan.client, ...(s.plan.client.partner ? [s.plan.client.partner] : [])],

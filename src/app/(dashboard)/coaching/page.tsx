@@ -1,3 +1,4 @@
+import { ptCounts } from "@/lib/coaching/personal-training"
 import Link from "next/link"
 import { AlertTriangle, Bell, Calendar, ClipboardCheck, Ticket } from "lucide-react"
 import { prisma } from "@/lib/prisma"
@@ -47,15 +48,15 @@ async function CoachingDashboard() {
   // Último paquete de entrenamiento personal de cada cliente: le queda 1 clase o lo terminó hace poco (sin renovar).
   const ptPlans = await prisma.clientTrainingPlan.findMany({
     where: { status: { in: ["ACTIVE", "COMPLETED"] }, clientId: { in: overview.filter((c) => c.status !== "PAUSED").map((c) => c.id) } },
-    select: { clientId: true, status: true, updatedAt: true, numPacks: true, clasesPerPack: true, sessionsCompleted: true, client: { select: { firstName: true, lastName: true } } },
+    select: { clientId: true, status: true, updatedAt: true, numPacks: true, clasesPerPack: true, sessionsCompleted: true, sessions: { select: { attended: true, completedAt: true, isRescheduled: true } }, client: { select: { firstName: true, lastName: true } } },
     orderBy: { createdAt: "desc" },
   })
   const latestByClient = new Map<string, (typeof ptPlans)[number]>()
   for (const p of ptPlans) if (!latestByClient.has(p.clientId)) latestByClient.set(p.clientId, p)
   const ptEnding = [...latestByClient.values()].filter((p) =>
     p.status === "ACTIVE"
-      ? p.numPacks * p.clasesPerPack - p.sessionsCompleted <= 1
-      : p.sessionsCompleted >= p.numPacks * p.clasesPerPack && Date.now() - p.updatedAt.getTime() < 30 * 86_400_000,
+      ? ptCounts(p, p.sessions).remaining <= 1
+      : Date.now() - p.updatedAt.getTime() < 30 * 86_400_000,
   )
   const unread = overview.reduce((a, c) => a + c.unreadMessages, 0)
   const attention = overview.filter((c) => c.level !== "green").sort((a, b) => (a.level === b.level ? b.alerts.length - a.alerts.length : a.level === "red" ? -1 : 1))
@@ -133,7 +134,7 @@ async function CoachingDashboard() {
                       </li>
                     ))}
                     {ptEnding.map((p) => {
-                      const left = p.numPacks * p.clasesPerPack - p.sessionsCompleted
+                      const left = ptCounts(p, p.sessions).remaining
                       return (
                         <li key={`pt-${p.clientId}`}>
                           <Link href={`/coaching/clients/${p.clientId}?tab=membership`} className="flex items-center justify-between py-2 hover:bg-gray-50 -mx-2 px-2 rounded">
