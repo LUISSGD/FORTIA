@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     case "record": {
       const clientId = str(body.clientId), cycleKey = str(body.cycleKey)
       const { kind, step, outcome } = body
-      if (!clientId || !cycleKey || !["RENEWAL", "BALANCE"].includes(kind) || !STEPS.includes(step) || !["SENT", "PROMISED", "DISMISSED"].includes(outcome)) return jsonError("Datos no válidos")
+      if (!clientId || !cycleKey || !["RENEWAL", "BALANCE", "PT"].includes(kind) || !STEPS.includes(step) || !["SENT", "PROMISED", "DISMISSED"].includes(outcome)) return jsonError("Datos no válidos")
       const promise = outcome === "PROMISED" ? str(body.promiseDate) : ""
       if (outcome === "PROMISED" && (!YMD.test(promise) || promise <= todayYmd())) return jsonError("Elige una fecha futura para la promesa de pago")
       const data = { outcome, promiseDate: promise ? calendarDate(promise) : null, createdByName: guard.session.user.name ?? null, at: new Date() }

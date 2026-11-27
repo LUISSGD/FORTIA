@@ -7,6 +7,7 @@ import { addDaysYmd, diffDaysYmd, todayYmd, toYmd } from "./dates"
 import { ptCounts } from "./personal-training"
 
 // Panel de clases personalizadas: cuántas clases le quedan a cada alumno y cómo va su renovación, por entrenador.
+// El seguimiento de su renovación se registra en Cobranza → Personalizados (FollowUp kind "PT", ciclo = id del paquete).
 // Las faltas ("no asistió") descuentan la clase igual que una asistencia: quedan = total − clases marcadas (ptCounts).
 
 /** Quedan estas clases o menos, o su última clase es en esta cantidad de días o menos: toca renovar. */
@@ -24,6 +25,7 @@ export type PtRow = {
   planId: string
   clientId: string
   name: string
+  firstName: string
   trainer: string
   plan: string
   total: number
@@ -38,7 +40,8 @@ export type PtRow = {
   /** Solo para el administrador */
   price: number | null
   followUp: FollowUpInfo
-  skipped: boolean
+  /** Solo para el administrador (para escribirle desde Cobranza) */
+  phone: string | null
   renewedOn: string | null
 }
 
@@ -68,9 +71,8 @@ export async function getPtPanel({ withMoney }: { withMoney: boolean }) {
       sessions: { select: { scheduledDate: true, attended: true, completedAt: true, isRescheduled: true } },
       client: {
         select: {
-          id: true, firstName: true, lastName: true, trainer: true, membershipEnd: true,
+          id: true, firstName: true, lastName: true, trainer: true, phone: true,
           partner: { select: { firstName: true, lastName: true } },
-          renewalSkips: { select: { yearMonth: true } },
           ...(withMoney ? RENEWAL_SELECT : {}),
         },
       },
@@ -87,7 +89,7 @@ export async function getPtPanel({ withMoney }: { withMoney: boolean }) {
     .filter((p) => (seen.has(p.clientId) ? false : (seen.add(p.clientId), true)))
 
   const followUps = withMoney
-    ? await prisma.followUp.findMany({ where: { kind: "RENEWAL", clientId: { in: current.map((p) => p.clientId) } }, orderBy: { at: "desc" } })
+    ? await prisma.followUp.findMany({ where: { kind: "PT", cycleKey: { in: current.map((p) => p.id) }, clientId: { in: current.map((p) => p.clientId) } }, orderBy: { at: "desc" } })
     : []
 
   const rows: PtRow[] = current.map((p) => {
@@ -101,12 +103,12 @@ export async function getPtPanel({ withMoney }: { withMoney: boolean }) {
     const remaining = p.status === "COMPLETED" ? 0 : Math.max(0, total - used)
     void attended
     const daysToLast = last ? diffDaysYmd(last, today) : null
-    const cycle = c.membershipEnd ? calendarYmd(c.membershipEnd) : null
-    const f = cycle ? followUps.find((x) => x.clientId === c.id && x.cycleKey === cycle) : undefined
+    const f = followUps.find((x) => x.cycleKey === p.id)
     return {
       planId: p.id,
       clientId: c.id,
       name: c.partner ? `${clean(c)} y ${clean(c.partner)}` : clean(c),
+      firstName: c.firstName.trim(),
       trainer: c.trainer ?? UNASSIGNED_TRAINER.name,
       plan: trainingPlanName(p),
       total,
@@ -120,7 +122,7 @@ export async function getPtPanel({ withMoney }: { withMoney: boolean }) {
       state: ptState({ status: p.status, remaining, daysToLast, renewedOn }),
       price: withMoney && "payments" in c ? renewalPrice(c as unknown as Parameters<typeof renewalPrice>[0]).price : null,
       followUp: f ? { outcome: f.outcome, at: toYmd(f.at), promise: f.promiseDate ? calendarYmd(f.promiseDate) : null } : null,
-      skipped: !!cycle && c.renewalSkips.some((s) => s.yearMonth === cycle.slice(0, 7)),
+      phone: withMoney ? c.phone : null,
       renewedOn,
     }
   })

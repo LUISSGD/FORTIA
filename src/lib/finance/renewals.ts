@@ -31,14 +31,14 @@ export function parseYearMonth(month: string | null): { monthStart: Date; monthE
   }
 }
 
-export type BalanceRow = { paymentId: string; clientId: string; name: string; concept: string; amount: number; dueDate: string | null; overdue: boolean }
+export type BalanceRow = { paymentId: string; clientId: string; name: string; concept: string; amount: number; dueDate: string | null; overdue: boolean; isTraining: boolean }
 
 /** Todos los saldos pendientes de pagos parciales, del que vence antes al que vence después. */
 export async function getAllBalances(): Promise<BalanceRow[]> {
   const today = calendarYmd(new Date())
   const rows = await prisma.payment.findMany({
     where: { balanceDue: { gt: 0 }, balancePaidAt: null },
-    select: { id: true, clientId: true, concept: true, balanceDue: true, balanceDueDate: true, client: { select: { firstName: true, lastName: true } } },
+    select: { id: true, clientId: true, concept: true, balanceDue: true, balanceDueDate: true, client: { select: { firstName: true, lastName: true } }, income: { select: { category: true } } },
     orderBy: { balanceDueDate: "asc" },
   })
   return rows
@@ -57,6 +57,7 @@ export async function getAllBalances(): Promise<BalanceRow[]> {
         amount: Math.round((p.balanceDue ?? 0) * 100) / 100,
         dueDate: due,
         overdue: !!due && due < today,
+        isTraining: p.income?.category === "PERSONAL_TRAINING",
       }
     })
 }
@@ -99,17 +100,17 @@ type RenewalSource = {
  * Precio de renovación = lo que pagó la última vez por lo que tiene ahora (paquete EP completo, p. ej. 3 packs,
  * o la última membresía), no el precio de lista del plan. Sin pagos registrados, el precio del plan.
  */
-export function renewalPrice(c: RenewalSource): { price: number; planName: string; priceSource: "lastPayment" | "plan" } {
+export function renewalPrice(c: RenewalSource): { price: number; planName: string; priceSource: "lastPayment" | "plan"; isTraining: boolean } {
   const ep = c.trainingPlans[0] ?? null
   const lastMembership = c.payments.find((p) => p.income?.category === "MEMBERSHIP" && !(p.concept ?? "").startsWith("Saldo"))
   if (ep && (!lastMembership || ep.createdAt >= lastMembership.paidAt)) {
     const linked = ep.incomeId ? c.payments.find((p) => p.incomeId === ep.incomeId) : undefined
-    return { price: linked ? paymentTotal(linked, c.payments) : ep.pricePaid, planName: trainingPlanName(ep), priceSource: "lastPayment" }
+    return { price: linked ? paymentTotal(linked, c.payments) : ep.pricePaid, planName: trainingPlanName(ep), priceSource: "lastPayment", isTraining: true }
   }
   const planName = c.membershipPlan?.name ?? ""
   return lastMembership
-    ? { price: paymentTotal(lastMembership, c.payments), planName, priceSource: "lastPayment" }
-    : { price: c.membershipPlan?.price ?? 0, planName, priceSource: "plan" }
+    ? { price: paymentTotal(lastMembership, c.payments), planName, priceSource: "lastPayment", isTraining: false }
+    : { price: c.membershipPlan?.price ?? 0, planName, priceSource: "plan", isTraining: false }
 }
 
 export async function getRenewalProjection(month: string | null) {
